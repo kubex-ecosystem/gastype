@@ -156,3 +156,10 @@ npm/
 /ctk_database/mongodb/ctk_database.bin
 /pkg/
 /pkg/mod/
+/.idea/.gitignore
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+/.idea/workspace.xml
+/gastype.iml
+/go.sum
