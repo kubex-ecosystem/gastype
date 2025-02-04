@@ -24,11 +24,12 @@ var (
 
 // CheckResult stores the results of the type checking process.
 type CheckResult struct {
-	Package string `json:"package"`
-	Status  string `json:"status"`
-	Error   string `json:"error,omitempty"`
+	Package string `json:"package"`         // Name of the package
+	Status  string `json:"status"`          // Status of the type check (Success, Failed, Error)
+	Error   string `json:"error,omitempty"` // Error message if any
 }
 
+// main is the entry point of the program.
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "typechecker",
@@ -36,21 +37,36 @@ func main() {
 		Run:   runTypeCheck,
 	}
 
+	// Define command-line flags
 	rootCmd.Flags().StringVarP(&dir, "dir", "d", "./example", "Directory containing Go files")
 	rootCmd.Flags().IntVarP(&workerCount, "workers", "w", 4, "Number of workers for parallel processing")
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "type_check_results.json", "Output file for JSON results")
 
+	//rootCmd.SilenceUsage = true
+	//rootCmd.SilenceErrors = true
+	//rootCmd.SetOut(os.Stdout)
+	//rootCmd.SetErr(os.Stderr)
+
+	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func runTypeCheck(cmd *cobra.Command, args []string) {
+// runTypeCheck performs the type checking process.
+func runTypeCheck(_ *cobra.Command, _ []string) {
+	// Validate and sanitize the directory path
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
 		log.Fatalf("Invalid directory path: %v", err)
 	}
 
+	// Ensure the directory exists
+	if _, err := os.Stat(absDir); os.IsNotExist(err) {
+		log.Fatalf("Directory does not exist: %s", absDir)
+	}
+
+	// Find all Go files in the directory
 	files, err := filepath.Glob(filepath.Join(absDir, "*.go"))
 	if err != nil {
 		log.Fatal(err)
@@ -61,24 +77,34 @@ func runTypeCheck(cmd *cobra.Command, args []string) {
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 
+	// Channel to capture parsing errors
 	errChan := make(chan error, len(files))
 
+	// Parse files in parallel
 	for _, file := range files {
 		wg.Add(1)
 		go func(file string) {
 			defer wg.Done()
-			src, err := os.ReadFile(file)
+			// Validate and sanitize the file path
+			absFile, err := filepath.Abs(file)
 			if err != nil {
-				errChan <- fmt.Errorf("error reading file %s: %v", file, err)
+				errChan <- fmt.Errorf("invalid file path: %v", err)
 				return
 			}
 
-			node, err := parser.ParseFile(filesSet, file, src, parser.AllErrors)
+			src, err := os.ReadFile(absFile)
 			if err != nil {
-				errChan <- fmt.Errorf("error parsing %s: %v", file, err)
+				errChan <- fmt.Errorf("error reading file %s: %v", absFile, err)
 				return
 			}
 
+			node, err := parser.ParseFile(filesSet, absFile, src, parser.AllErrors)
+			if err != nil {
+				errChan <- fmt.Errorf("error parsing %s: %v", absFile, err)
+				return
+			}
+
+			// Store files grouped by package
 			mu.Lock()
 			packages[node.Name.Name] = append(packages[node.Name.Name], node)
 			mu.Unlock()
@@ -88,14 +114,17 @@ func runTypeCheck(cmd *cobra.Command, args []string) {
 	wg.Wait()
 	close(errChan)
 
+	// Display parsing errors
 	for err := range errChan {
 		log.Println(err)
 	}
 
+	// If there are no packages, abort
 	if len(packages) == 0 {
 		log.Fatal("No files parsed successfully.")
 	}
 
+	// Sort packages by size (priority)
 	sortedPackages := make([]string, 0, len(packages))
 	for pkgName := range packages {
 		sortedPackages = append(sortedPackages, pkgName)
@@ -104,6 +133,7 @@ func runTypeCheck(cmd *cobra.Command, args []string) {
 		return len(packages[sortedPackages[i]]) > len(packages[sortedPackages[j]])
 	})
 
+	// Create workers for type checking
 	typeCheckJobs := make(chan string, len(packages))
 	results := make(chan CheckResult, len(packages))
 
@@ -118,23 +148,28 @@ func runTypeCheck(cmd *cobra.Command, args []string) {
 		}()
 	}
 
+	// Send packages for type checking (largest first)
 	for _, pkgName := range sortedPackages {
 		typeCheckJobs <- pkgName
 	}
 	close(typeCheckJobs)
 
+	// Wait for workers to finish
 	workers.Wait()
 	close(results)
 
+	// Collect results
 	var checkResults []CheckResult
 	for res := range results {
 		checkResults = append(checkResults, res)
 		fmt.Println(res.Status)
 	}
 
+	// Save results to JSON
 	saveResultsToJSON(checkResults, outputFile)
 }
 
+// performTypeCheck performs type checking for a given package.
 func performTypeCheck(pkgName string, filesSet *token.FileSet, files []*ast.File, results chan<- CheckResult) {
 	conf := types.Config{
 		Error: func(err error) {
@@ -156,16 +191,23 @@ func performTypeCheck(pkgName string, filesSet *token.FileSet, files []*ast.File
 	}
 }
 
+// saveResultsToJSON saves the type check results to a JSON file.
 func saveResultsToJSON(results []CheckResult, filename string) {
+	// Validate and sanitize the output file path
+	absFile, err := filepath.Abs(filename)
+	if err != nil {
+		log.Fatalf("Invalid output file path: %v", err)
+	}
+
 	data, err := json.MarshalIndent(results, "", "  ")
 	if err != nil {
 		log.Fatalf("Error generating JSON: %v", err)
 	}
 
-	err = os.WriteFile(filename, data, 0644)
+	err = os.WriteFile(absFile, data, 0644)
 	if err != nil {
 		log.Fatalf("Error saving JSON: %v", err)
 	}
 
-	fmt.Println("Results saved to:", filename)
+	fmt.Println("Results saved to:", absFile)
 }
