@@ -20,6 +20,16 @@ var (
 	dir         string
 	workerCount int
 	outputFile  string
+
+	notifierChan = make(chan string)
+	email        = "gastype@gmail.com"
+	emailToken   = "123456"
+	notify       = false
+	config       = &Config{
+		Dir:         "./example",
+		WorkerCount: 4,
+		OutputFile:  "type_check_results.json",
+	}
 )
 
 // CheckResult stores the results of the type checking process.
@@ -29,23 +39,63 @@ type CheckResult struct {
 	Error   string `json:"error,omitempty"` // Error message if any
 }
 
+type Config struct {
+	Dir         string
+	WorkerCount int
+	OutputFile  string
+}
+
 // main is the entry point of the program.
 func main() {
+	// Define the root command
 	var rootCmd = &cobra.Command{
-		Use:   "typechecker",
-		Short: "Parallel type checking for Go files",
-		Run:   runTypeCheck,
+		Use:     "gastype",
+		Short:   "Parallel type checking for Go files",
+		Long:    "Parallel type checking for Go files in a given directory",
+		Example: `gastype -d ./example -w 4 -o type_check_results.json`,
+		Aliases: []string{"got", "gotype"},
+		Run:     runTypeCheck,
 	}
+
+	var checkCmd = &cobra.Command{
+		Use:     "check",
+		Short:   "Check Go files for type errors",
+		Long:    "Check Go files for type errors in a given directory",
+		Example: `gastype check -d ./example -w 4 -o type_check_results.json`,
+		Run:     runTypeCheck,
+	}
+
+	// Add flags to the root command
+	checkCmd.Flags().StringVarP(&dir, "dir", "d", "./example", "Directory containing Go files")
+	checkCmd.Flags().IntVarP(&workerCount, "workers", "w", 4, "Number of workers for parallel processing")
+	checkCmd.Flags().StringVarP(&outputFile, "output", "o", "type_check_results.json", "Output file for JSON results")
+
+	// Add commands to the root command
+	rootCmd.AddCommand(checkCmd)
+
+	// Define the watch command
+	var watch = &cobra.Command{
+		Use:     "watch",
+		Short:   "Watcher and notifier for type checking Go files",
+		Long:    "Watcher and notifier for type checking Go files in a given directory",
+		Example: `gastype watch -d ./example -w 4 -o type_check_results.json`,
+		Run:     runTypeCheck,
+	}
+
+	// Add flags to the watch command
+	watch.Flags().StringVarP(&email, "email", "e", "gastype@gmail.com", "Email address for notifications")
+	watch.Flags().StringVarP(&emailToken, "token", "t", "123456", "Token for email notifications")
+	watch.Flags().BoolVarP(&notify, "notify", "n", false, "Enable email notifications")
+
+	// Add commands to the root command
+	rootCmd.AddCommand(watch)
 
 	// Define command-line flags
 	rootCmd.Flags().StringVarP(&dir, "dir", "d", "./example", "Directory containing Go files")
 	rootCmd.Flags().IntVarP(&workerCount, "workers", "w", 4, "Number of workers for parallel processing")
 	rootCmd.Flags().StringVarP(&outputFile, "output", "o", "type_check_results.json", "Output file for JSON results")
 
-	//rootCmd.SilenceUsage = true
-	//rootCmd.SilenceErrors = true
-	//rootCmd.SetOut(os.Stdout)
-	//rootCmd.SetErr(os.Stderr)
+	SetUsageDefinition(rootCmd)
 
 	// Execute the root command
 	if err := rootCmd.Execute(); err != nil {
@@ -70,6 +120,11 @@ func runTypeCheck(_ *cobra.Command, _ []string) {
 	files, err := filepath.Glob(filepath.Join(absDir, "*.go"))
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	outputFileSanitized := filepath.Clean(outputFile)
+	if outputFileSanitized == "" {
+		log.Fatal("Invalid output file path")
 	}
 
 	filesSet := token.NewFileSet()
@@ -166,7 +221,7 @@ func runTypeCheck(_ *cobra.Command, _ []string) {
 	}
 
 	// Save results to JSON
-	saveResultsToJSON(checkResults, outputFile)
+	saveResultsToJSON(checkResults, outputFileSanitized)
 }
 
 // performTypeCheck performs type checking for a given package.
