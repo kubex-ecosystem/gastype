@@ -1,7 +1,7 @@
 package main
 
 import (
-	l "github.com/faelmori/gotya/log"
+	l "github.com/faelmori/gastype/log"
 	"os"
 )
 
