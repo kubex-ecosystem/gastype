@@ -66,5 +66,3 @@ require (
 	gorm.io/driver/sqlserver v1.5.4 // indirect
 	gorm.io/gorm v1.25.12 // indirect
 )
-
-replace github.com/faelmori/logz => ../logz
