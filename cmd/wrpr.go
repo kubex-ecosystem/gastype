@@ -39,8 +39,8 @@ func (m *GasType) Active() bool {
 }
 func (m *GasType) Module() string { return "gastype" }
 func (m *GasType) Execute() error {
-	dbChanData := make(chan interface{})
-	defer close(dbChanData)
+	//dbChanData := make(chan interface{})
+	//defer close(dbChanData)
 
 	if spyderErr := m.Command().Execute(); spyderErr != nil {
 		l.Error(spyderErr.Error(), nil)
