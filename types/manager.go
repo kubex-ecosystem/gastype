@@ -19,4 +19,5 @@ type ITypeManager interface {
 	LoadConfig() error
 	SaveConfig() error
 	CanNotify() bool
+	PrepareActions() error
 }

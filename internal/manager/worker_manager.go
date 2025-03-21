@@ -3,8 +3,8 @@ package manager
 import (
 	"sync"
 
-	l "github.com/faelmori/gastype/log"
 	t "github.com/faelmori/gastype/types"
+	l "github.com/faelmori/logz"
 )
 
 // WorkerManager manages the pool of workers for parallel task execution

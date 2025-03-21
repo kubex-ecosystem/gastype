@@ -2,8 +2,8 @@ package globals
 
 import (
 	"fmt"
-	l "github.com/faelmori/gastype/log"
 	t "github.com/faelmori/gastype/types"
+	l "github.com/faelmori/logz"
 )
 
 type Result struct {

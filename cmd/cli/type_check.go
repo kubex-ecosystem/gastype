@@ -1,8 +1,10 @@
 package cli
 
 import (
+	"fmt"
 	g "github.com/faelmori/gastype/internal/globals"
 	m "github.com/faelmori/gastype/internal/manager"
+	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 )
 
@@ -23,39 +25,32 @@ func commandCheckType() *cobra.Command {
 		Short:   "Check code files for type errors",
 		Long:    "Check code files for type errors in a given directory",
 		Example: `gastype check -d ./example -w 4 -o type_check_results.json`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := g.NewConfig()
+		Run: func(cmd *cobra.Command, args []string) {
+			// Create a new configuration
+			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
+				l.Error(fmt.Sprintf("Error creating configuration"), nil)
+			} else {
 
-			// Set the configuration values
-			if dir == "" {
-				cfg.SetDir(dir)
-			}
-			if workerCount > 0 {
-				cfg.SetWorkerLimit(workerCount)
-			}
-			if outputFile != "" {
-				cfg.SetOutputFile(outputFile)
-			}
+				// Create a new type manager
+				tc := m.NewTypeManager(cfg)
 
-			// Load the configuration
-			if cfgErr := cfg.Load(); cfgErr != nil {
-				return cfgErr
+				// Load the actions
+				if prepareErr := tc.PrepareActions(); prepareErr != nil {
+					l.Error(fmt.Sprintf("Error preparing actions: %s", prepareErr.Error()), nil)
+					return
+				}
+
+				// Start checking the Go files
+				if err := tc.StartChecking(workerCount); err != nil {
+					l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
+					return
+				}
 			}
-
-			// Create a new type manager
-			tc := m.NewTypeManager(cfg)
-
-			// Start checking the Go files
-			if err := tc.StartChecking(workerCount); err != nil {
-				return err
-			}
-
-			return nil
 		},
 	}
 
 	// Add flags to the root command
-	checkCmd.Flags().StringVarP(&dir, "dir", "d", "./example", "Directory containing Go files")
+	checkCmd.Flags().StringVarP(&dir, "dir", "d", "./", "Directory containing Go files")
 	checkCmd.Flags().IntVarP(&workerCount, "workers", "w", 4, "Number of workers for parallel processing")
 	checkCmd.Flags().StringVarP(&outputFile, "output", "o", "type_check_results.json", "Output file for JSON results")
 	checkCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "Configuration file for email notifications")
@@ -74,39 +69,25 @@ func commandWatch() *cobra.Command {
 		Short:   "Watcher and notifier for type checking Go files",
 		Long:    "Watcher and notifier for type checking Go files in a given directory",
 		Example: `gastype watch -d ./example -w 4 -o type_check_results.json`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := g.NewConfig()
+		Run: func(cmd *cobra.Command, args []string) {
+			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
+				l.Error("Error creating configuration", nil)
+				return
+			} else {
+				// Create a new type manager
+				tc := m.NewTypeManager(cfg)
 
-			// Set the configuration values
-			if dir == "" {
-				cfg.SetDir(dir)
+				// Set the email notifications
+				tc.SetEmail(email)
+				tc.SetEmailToken(emailToken)
+				tc.SetNotify(notify)
+
+				// Start checking the Go files
+				if err := tc.StartChecking(workerCount); err != nil {
+					l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
+					return
+				}
 			}
-			if workerCount > 0 {
-				cfg.SetWorkerLimit(workerCount)
-			}
-			if outputFile != "" {
-				cfg.SetOutputFile(outputFile)
-			}
-
-			// Load the configuration
-			if cfgErr := cfg.Load(); cfgErr != nil {
-				return cfgErr
-			}
-
-			// Create a new type manager
-			tc := m.NewTypeManager(cfg)
-
-			// Set the email notifications
-			tc.SetEmail(email)
-			tc.SetEmailToken(emailToken)
-			tc.SetNotify(notify)
-
-			// Start checking the Go files
-			if err := tc.StartChecking(workerCount); err != nil {
-				return err
-			}
-
-			return nil
 		},
 	}
 

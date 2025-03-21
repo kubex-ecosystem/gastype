@@ -2,8 +2,8 @@ package main
 
 import (
 	c "github.com/faelmori/gastype/cmd/cli"
-	l "github.com/faelmori/gastype/log"
 	s "github.com/faelmori/gkbxsrv/services"
+	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 
 	"os"

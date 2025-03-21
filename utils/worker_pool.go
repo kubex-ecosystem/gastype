@@ -5,8 +5,8 @@ import (
 	"sync"
 
 	g "github.com/faelmori/gastype/internal/globals"
-	l "github.com/faelmori/gastype/log"
 	t "github.com/faelmori/gastype/types"
+	l "github.com/faelmori/logz"
 )
 
 // WorkerPool manages workers and their assigned jobs
@@ -34,8 +34,8 @@ func NewWorkerPool(workerLimit int) t.IWorkerPool {
 
 // SubmitJob adds a job to the jobChannel for processing
 func (wp *WorkerPool) SubmitJob(job t.IJob) {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+	//wp.mu.Lock()
+	//defer wp.mu.Unlock()
 
 	if wp.jobChannel == nil {
 		l.Error("job channel is not initialized", nil)
@@ -52,8 +52,8 @@ func (wp *WorkerPool) SubmitJob(job t.IJob) {
 
 // StartWorkers initializes workers and begins processing jobs
 func (wp *WorkerPool) StartWorkers() {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+	//wp.mu.Lock()
+	//defer wp.mu.Unlock()
 
 	if wp.isRunning {
 		l.Warn("WorkerPool is already running", nil)
@@ -104,8 +104,8 @@ func (wp *WorkerPool) StartWorkers() {
 
 // StopWorkers stops all workers and closes necessary channels
 func (wp *WorkerPool) StopWorkers() {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+	//wp.mu.Lock()
+	//defer wp.mu.Unlock()
 
 	if !wp.isRunning {
 		l.Warn("WorkerPool is not running", nil)
@@ -128,7 +128,7 @@ func (wp *WorkerPool) IsRunning() bool                  { return wp.isRunning }
 
 // Setters
 func (wp *WorkerPool) SetWorkerLimit(workerLimit int) {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+	//wp.mu.Lock()
+	//defer wp.mu.Unlock()
 	wp.workerLimit = workerLimit
 }

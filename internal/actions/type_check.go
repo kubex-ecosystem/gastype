@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/faelmori/gastype/log"
 	"github.com/faelmori/gastype/types"
+	log "github.com/faelmori/logz"
 	"go/ast"
 	"go/parser"
 	"go/token"

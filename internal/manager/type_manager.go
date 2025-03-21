@@ -6,8 +6,8 @@ import (
 	"github.com/faelmori/gastype/utils"
 	"sync"
 
-	l "github.com/faelmori/gastype/log"
 	t "github.com/faelmori/gastype/types"
+	l "github.com/faelmori/logz"
 )
 
 // TypeManager manages type-related actions and notifications
@@ -49,14 +49,14 @@ func (tm *TypeManager) SetNotify(notify bool)                    { tm.notify = n
 func (tm *TypeManager) SetConfig(cfg t.IConfig)                  { tm.cfg = cfg }
 func (tm *TypeManager) AddAction(action t.IAction)               { tm.actions = append(tm.actions, action) }
 
-// Action Management
+// StartChecking begins the process of checking Go files
 func (tm *TypeManager) StartChecking(workerCount int) error {
 	if len(tm.actions) == 0 {
 		return fmt.Errorf("no actions available to execute")
 	}
 
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
+	//tm.mu.Lock()
+	//defer tm.mu.Unlock()
 
 	if tm.isRunning {
 		return fmt.Errorf("manager is already running")
@@ -75,10 +75,9 @@ func (tm *TypeManager) StartChecking(workerCount int) error {
 	tm.isRunning = true
 	return nil
 }
-
 func (tm *TypeManager) StopChecking() {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
+	//tm.mu.Lock()
+	//defer tm.mu.Unlock()
 
 	if !tm.isRunning {
 		l.Warn("manager is not running", nil)
@@ -89,27 +88,21 @@ func (tm *TypeManager) StopChecking() {
 	tm.isRunning = false
 	l.Info("TypeManager stopped successfully", nil)
 }
-
-// Load and Save Configurations
 func (tm *TypeManager) LoadConfig() error {
 	if tm.cfg == nil {
 		return fmt.Errorf("configuration not initialized")
 	}
 	return tm.cfg.Load()
 }
-
 func (tm *TypeManager) SaveConfig() error {
 	if tm.cfg == nil {
 		return fmt.Errorf("configuration not initialized")
 	}
 	return nil // Implement saving logic here
 }
-
-// Notification Management
 func (tm *TypeManager) CanNotify() bool {
 	return tm.notify && tm.notifierChan != nil
 }
-
 func (tm *TypeManager) PrepareActions() error {
 	parsedFiles, err := utils.ParseFiles(tm.cfg.GetDir())
 	if err != nil {
