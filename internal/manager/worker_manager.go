@@ -17,7 +17,7 @@ type WorkerManager struct {
 }
 
 // NewWorkerManager creates a new instance of WorkerManager
-func NewWorkerManager(workerCount int) *WorkerManager {
+func NewWorkerManager(workerCount int) t.IWorker {
 	return &WorkerManager{
 		WorkerCount: workerCount,
 		JobQueue:    make(chan t.IAction, workerCount),
@@ -67,4 +67,9 @@ func (wm *WorkerManager) StartWorkers() {
 func (wm *WorkerManager) StopWorkers() {
 	close(wm.StopChannel)
 	close(wm.JobQueue)
+}
+
+// GetJobQueue returns the job queue channel
+func (wm *WorkerManager) GetJobQueue() chan t.IAction {
+	return wm.JobQueue
 }

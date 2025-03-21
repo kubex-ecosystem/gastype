@@ -65,7 +65,7 @@ func (tm *TypeManager) StartChecking(workerCount int) error {
 	workerManager := NewWorkerManager(workerCount)
 	for _, action := range tm.actions {
 		if action.CanExecute() {
-			workerManager.JobQueue <- action
+			workerManager.GetJobQueue() <- action
 		} else {
 			l.Warn(fmt.Sprintf("Action %s cannot execute", action.GetType()), nil)
 		}

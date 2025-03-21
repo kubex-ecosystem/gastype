@@ -20,6 +20,7 @@ type Action struct {
 }
 
 // Common methods
+func (a *Action) GetID() string                      { return a.ID }
 func (a *Action) GetType() string                    { return a.Type }
 func (a *Action) GetResults() map[string]interface{} { return a.Results }
 func (a *Action) GetStatus() string                  { return a.Status }

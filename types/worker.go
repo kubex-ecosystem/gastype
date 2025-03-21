@@ -3,6 +3,7 @@ package types
 type IWorker interface {
 	StartWorkers()
 	StopWorkers()
+	GetJobQueue() chan IAction
 }
 
 type IWorkerPool interface {
@@ -22,10 +23,6 @@ type IWorkerPool interface {
 }
 
 type IJob interface {
+	IAction
 	GetID() string
-	GetType() string
-	GetData() map[string]interface{}
-	GetResults() map[string]interface{}
-	GetStatus() string
-	GetErrors() []error
 }
