@@ -6,7 +6,6 @@ import (
 	s "github.com/faelmori/gkbxsrv/services"
 	"github.com/spf13/cobra"
 
-	"fmt"
 	"os"
 	"strings"
 )
@@ -78,14 +77,14 @@ func (m *GasType) Command() *cobra.Command {
 	return cmd
 }
 func (m *GasType) preRunEMethod(cmd *cobra.Command, args []string) error {
-	l.Debug(fmt.Sprintf("PreRunE: %s", cmd.Name()), nil)
-	if m.cfg == nil {
-		m.cfg = s.NewConfigService(m.configPath, m.keyPath, m.certPath)
-	}
-	if setupConfigErr := m.cfg.SetupConfig(); setupConfigErr != nil {
-		l.Error(setupConfigErr.Error(), nil)
-		return setupConfigErr
-	}
+	//l.Debug(fmt.Sprintf("PreRunE: %s", cmd.Name()), nil)
+	//if m.cfg == nil {
+	//	m.cfg = s.NewConfigService(m.configPath, m.keyPath, m.certPath)
+	//}
+	//if setupConfigErr := m.cfg.SetupConfig(); setupConfigErr != nil {
+	//	l.Error(setupConfigErr.Error(), nil)
+	//	return setupConfigErr
+	//}
 	return nil
 }
 func (m *GasType) SetParentCmdName(rtCmd string) {
