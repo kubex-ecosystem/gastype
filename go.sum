@@ -37,10 +37,6 @@ github.com/dnaeon/go-vcr v1.1.0/go.mod h1:M7tiix8f0r6mKKJ3Yq/kqU1OYf3MnfmBWVbPx/
 github.com/dnaeon/go-vcr v1.2.0/go.mod h1:R4UdLID7HZT3taECzJs4YgbbH6PIGXB6W/sc5OLb6RQ=
 github.com/faelmori/gkbxsrv v1.0.4 h1:OyQnP0lI4LgehYhF/hfF4xb7o6C3nQxKARaF4OMMXnY=
 github.com/faelmori/gkbxsrv v1.0.4/go.mod h1:pDYyZSqOfoSLtf431eIe6VCv2L05+82be6GfvF9xEUg=
-github.com/faelmori/kubex-interfaces v0.0.0-20250321181654-90dc17f9d234 h1:w8/jLjAt6n1B7uvpWy1Y1spybJ8OxZAJU+aYV9jo6n8=
-github.com/faelmori/kubex-interfaces v0.0.0-20250321181654-90dc17f9d234/go.mod h1:F4BI1sKlk0RkQNJmUQ1SrlaergB5McpqwiV0XF4ZEIE=
-github.com/faelmori/kubex-interfaces v1.0.0 h1:ImVwiZIXS/Z+XJFYyPKvClmsTPRtxKjQoJXeZUwRu/A=
-github.com/faelmori/kubex-interfaces v1.0.0/go.mod h1:F4BI1sKlk0RkQNJmUQ1SrlaergB5McpqwiV0XF4ZEIE=
 github.com/faelmori/logz v1.1.5 h1:6m0XRnaVQiOnlfjPcWVssB/QQFP/GEVwul4oZuBmxJ4=
 github.com/faelmori/logz v1.1.5/go.mod h1:fsU0XHY+yLRyvJxUy39vnBFDUJsyaYaFmUBxRr7URlE=
 github.com/fatih/color v1.18.0 h1:S8gINlzdQ840/4pfAwic/ZE0djQEH3wM94VfqLTZcOM=

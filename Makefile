@@ -109,6 +109,6 @@ help:
 	$(call log, $(APP_NAME) is a tool for managing Kubernetes resources)
 	$(call break, b )
 	$(call log, For more information, visit: )
-	$(call log, 'https://github.com/faelmori/gospyder' )
+	$(call log, 'https://github.com/faelmori/gastype.git' )
 	$(call break, b )
 	$(call success, End of help message)

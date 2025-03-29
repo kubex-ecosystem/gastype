@@ -2,6 +2,7 @@ package main
 
 import (
 	c "github.com/faelmori/gastype/cmd/cli"
+	"github.com/faelmori/gastype/version"
 	s "github.com/faelmori/gkbxsrv/services"
 	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
@@ -65,27 +66,20 @@ func (m *GasType) Command() *cobra.Command {
 
 	cmd.AddCommand(c.TypeCheckCmds()...)
 
-	setUsageDefinition(cmd)
+	cmd.AddCommand(version.CliCommand())
 
+	// Set usage definitions for the command and its subcommands
+	setUsageDefinition(cmd)
 	for _, subCmd := range cmd.Commands() {
-		setUsageDefinition(subCmd)
-		subCmd.PreRunE = m.preRunEMethod
+		setUsageDefinition(cmd)
+		if !strings.Contains(strings.Join(os.Args, " "), subCmd.Use) {
+			if subCmd.Short == "" {
+				subCmd.Short = subCmd.Annotations["description"]
+			}
+		}
 	}
 
-	cmd.PreRunE = m.preRunEMethod
-
 	return cmd
-}
-func (m *GasType) preRunEMethod(cmd *cobra.Command, args []string) error {
-	//l.Debug(fmt.Sprintf("PreRunE: %s", cmd.Name()), nil)
-	//if m.cfg == nil {
-	//	m.cfg = s.NewConfigService(m.configPath, m.keyPath, m.certPath)
-	//}
-	//if setupConfigErr := m.cfg.SetupConfig(); setupConfigErr != nil {
-	//	l.Error(setupConfigErr.Error(), nil)
-	//	return setupConfigErr
-	//}
-	return nil
 }
 func (m *GasType) SetParentCmdName(rtCmd string) {
 	m.parentCmdName = rtCmd

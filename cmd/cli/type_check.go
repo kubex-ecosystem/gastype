@@ -21,9 +21,11 @@ func commandCheckType() *cobra.Command {
 	var workerCount int
 
 	checkCmd := &cobra.Command{
-		Use:     "check",
-		Short:   "Check code files for type errors",
-		Long:    "Check code files for type errors in a given directory",
+		Use: "check",
+		Annotations: GetDescriptions([]string{
+			"Check code files for type errors in a given directory",
+			"Check code files for type errors",
+		}, false),
 		Example: `gastype check -d ./example -w 4 -o type_check_results.json`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Create a new configuration
@@ -65,9 +67,11 @@ func commandWatch() *cobra.Command {
 	var notify bool
 
 	watch := &cobra.Command{
-		Use:     "watch",
-		Short:   "Watcher and notifier for type checking Go files",
-		Long:    "Watcher and notifier for type checking Go files in a given directory",
+		Use: "watch",
+		Annotations: GetDescriptions([]string{
+			"Watcher and notifier for type checking Go files in a given directory",
+			"Watcher and notifier for type checking Go files",
+		}, false),
 		Example: `gastype watch -d ./example -w 4 -o type_check_results.json`,
 		Run: func(cmd *cobra.Command, args []string) {
 			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
