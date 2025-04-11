@@ -4,6 +4,7 @@ import (
 	"fmt"
 	t "github.com/faelmori/gastype/types"
 	l "github.com/faelmori/logz"
+	"os"
 )
 
 type Result struct {
@@ -14,12 +15,28 @@ type Result struct {
 
 func NewResult(pkg, status string, err error) t.IResult {
 	errorStr := ""
-
+	l.Notice(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	if err != nil {
 		l.Error(fmt.Sprintf("[ %s ] %s", pkg, err.Error()), map[string]interface{}{})
 		errorStr = err.Error()
 	}
-
+	if status == "" {
+		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Status is empty"), nil)
+		status = "Error"
+	}
+	if pkg == "" {
+		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Package is empty"), nil)
+		pkg = "Unknown"
+	}
+	if errorStr == "" {
+		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Error is empty"), nil)
+		errorStr = "No error"
+	}
+	if status == "Error" {
+		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Status is Error"), nil)
+		errorStr = "Error"
+	}
+	l.Notice(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	return &Result{
 		Package: pkg,
 		Status:  status,
@@ -27,27 +44,78 @@ func NewResult(pkg, status string, err error) t.IResult {
 	}
 }
 
-func (c *Result) GetPackage() string { return c.Package }
-func (c *Result) GetStatus() string  { return c.Status }
-func (c *Result) GetError() string   { return c.Error }
+func (c *Result) GetPackage() string {
+	l.Debug(fmt.Sprintf("Getting package %s", c.Package), nil)
+	return c.Package
+}
+func (c *Result) GetStatus() string {
+	l.Debug(fmt.Sprintf("Getting status %s", c.Status), nil)
+	return c.Status
+}
+func (c *Result) GetError() string {
+	l.Debug(fmt.Sprintf("Getting error %s", c.Error), nil)
+	return c.Error
+}
 
-func (c *Result) SetPackage(packageName string) { c.Package = packageName }
-func (c *Result) SetStatus(status string)       { c.Status = status }
-func (c *Result) SetError(err string)           { c.Error = err }
+func (c *Result) SetPackage(packageName string) {
+	l.Debug(fmt.Sprintf("Setting package %s", packageName), nil)
+	c.Package = packageName
+}
+func (c *Result) SetStatus(status string) {
+	l.Debug(fmt.Sprintf("Setting status %s", status), nil)
+	c.Status = status
+}
+func (c *Result) SetError(err string) {
+	l.Debug(fmt.Sprintf("Setting error %s", err), nil)
+	c.Error = err
+}
 
 func (c *Result) ToJSON(outputTarget string) string {
-	return ""
+	l.Debug(fmt.Sprintf("Converting to JSON %s", c.Package), nil)
+	if outputTarget == "" {
+		pwd, pwdErr := os.Getwd()
+		if pwdErr != nil {
+			l.Error(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
+			return ""
+		}
+		outputTarget = fmt.Sprintf("%s/%s.json", pwd, c.Package)
+	}
+	return fmt.Sprintf("%s/%s.json", outputTarget, c.Package)
 }
 func (c *Result) ToXML(outputTarget string) string {
-	return ""
+	l.Debug(fmt.Sprintf("Converting to XML %s", c.Package), nil)
+	if outputTarget == "" {
+		pwd, pwdErr := os.Getwd()
+		if pwdErr != nil {
+			l.Error(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
+			return ""
+		}
+		outputTarget = fmt.Sprintf("%s/%s.xml", pwd, c.Package)
+	}
+	return fmt.Sprintf("%s/%s.xml", outputTarget, c.Package)
 }
 func (c *Result) ToCSV(outputTarget string) string {
-	return ""
+	l.Debug(fmt.Sprintf("Converting to CSV %s", c.Package), nil)
+	if outputTarget == "" {
+		pwd, pwdErr := os.Getwd()
+		if pwdErr != nil {
+			l.Error(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
+			return ""
+		}
+		outputTarget = fmt.Sprintf("%s/%s.csv", pwd, c.Package)
+	}
+	return fmt.Sprintf("%s/%s.csv", outputTarget, c.Package)
 }
 func (c *Result) ToMap() map[string]interface{} {
-	return nil
+	l.Debug(fmt.Sprintf("Converting to map %s", c.Package), nil)
+	return map[string]interface{}{
+		"package": c.Package,
+		"status":  c.Status,
+		"error":   c.Error,
+	}
 }
 
 func (c *Result) DataTable() error {
+	l.Debug(fmt.Sprintf("Converting to DataTable %s", c.Package), nil)
 	return nil
 }

@@ -28,25 +28,31 @@ func commandCheckType() *cobra.Command {
 		}, false),
 		Example: `gastype check -d ./example -w 4 -o type_check_results.json`,
 		Run: func(cmd *cobra.Command, args []string) {
+			l.GetLogger("GasType")
 			// Create a new configuration
+			l.Notice("Creating configuration", nil)
 			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
 				l.Error(fmt.Sprintf("Error creating configuration"), nil)
 			} else {
-
+				l.Success("Configuration created successfully", nil)
 				// Create a new type manager
 				tc := m.NewTypeManager(cfg)
+				l.Success("Type manager created successfully", nil)
 
 				// Load the actions
 				if prepareErr := tc.PrepareActions(); prepareErr != nil {
 					l.Error(fmt.Sprintf("Error preparing actions: %s", prepareErr.Error()), nil)
 					return
 				}
+				l.Success("Actions prepared successfully", nil)
 
 				// Start checking the Go files
+				l.Notice("Starting type checking", nil)
 				if err := tc.StartChecking(workerCount); err != nil {
 					l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
 					return
 				}
+				l.Success("Type checking completed successfully", nil)
 			}
 		},
 	}

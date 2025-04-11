@@ -17,7 +17,25 @@ type Environment struct {
 	kernel   string
 }
 
-func NewEnvironment() t.IEnvironment { return &Environment{} }
+func NewEnvironment() t.IEnvironment {
+	l.Notice("Creating environment", nil)
+	cpuCount := runtime.NumCPU()
+	memTotal := syscall.Sysinfo_t{}.Totalram
+	hostname, hostnameErr := os.Hostname()
+	if hostnameErr != nil {
+		l.Error(fmt.Sprintf("Error getting hostname: %s", hostnameErr.Error()), nil)
+		return nil
+	}
+	os := runtime.GOOS
+	kernel := runtime.GOARCH
+	return &Environment{
+		cpuCount: cpuCount,
+		memTotal: int(memTotal),
+		hostname: hostname,
+		os:       os,
+		kernel:   kernel,
+	}
+}
 
 func (e *Environment) CpuCount() int {
 	if e.cpuCount == 0 {

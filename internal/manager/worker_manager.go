@@ -1,6 +1,7 @@
 package manager
 
 import (
+	"fmt"
 	"sync"
 
 	t "github.com/faelmori/gastype/types"
@@ -30,13 +31,12 @@ func NewWorkerManager(workerCount int) t.IWorker {
 func (wm *WorkerManager) StartWorkers() {
 	var wg sync.WaitGroup
 
+	l.Info(fmt.Sprintf("Starting workers %d", wm.WorkerCount), map[string]interface{}{"worker_count": wm.WorkerCount})
 	for i := 0; i < wm.WorkerCount; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			l.Info("Worker started", map[string]interface{}{
-				"worker_id": workerID,
-			})
+			l.Info("Worker started", map[string]interface{}{"worker_id": workerID})
 
 			for {
 				select {
@@ -60,16 +60,25 @@ func (wm *WorkerManager) StartWorkers() {
 		}(i)
 	}
 
+	l.Info("All workers started", map[string]interface{}{"worker_count": wm.WorkerCount})
 	wg.Wait()
+
+	l.Info("All workers finished", map[string]interface{}{"worker_count": wm.WorkerCount})
 }
 
 // StopWorkers stops all workers gracefully
 func (wm *WorkerManager) StopWorkers() {
+	l.Info("Stopping workers", map[string]interface{}{"worker_count": wm.WorkerCount})
 	close(wm.StopChannel)
 	close(wm.JobQueue)
 }
 
 // GetJobQueue returns the job queue channel
 func (wm *WorkerManager) GetJobQueue() chan t.IAction {
+	// Ensure the JobQueue is initialized
+	if wm.JobQueue == nil {
+		l.Error("JobQueue is not initialized", nil)
+		return nil
+	}
 	return wm.JobQueue
 }

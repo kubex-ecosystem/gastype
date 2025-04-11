@@ -52,19 +52,23 @@ func (tm *TypeManager) AddAction(action t.IAction)               { tm.actions = 
 // StartChecking begins the process of checking Go files
 func (tm *TypeManager) StartChecking(workerCount int) error {
 	if len(tm.actions) == 0 {
+		l.Warn("no actions available to execute", nil)
 		return fmt.Errorf("no actions available to execute")
 	}
 
-	//tm.mu.Lock()
-	//defer tm.mu.Unlock()
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
 
 	if tm.isRunning {
+		l.Warn("manager is already running", nil)
 		return fmt.Errorf("manager is already running")
 	}
 
+	l.Notice("Starting TypeManager", nil)
 	workerManager := NewWorkerManager(workerCount)
 	for _, action := range tm.actions {
 		if action.CanExecute() {
+			l.Info(fmt.Sprintf("Action %s is executing", action.GetType()), nil)
 			workerManager.GetJobQueue() <- action
 		} else {
 			l.Warn(fmt.Sprintf("Action %s cannot execute", action.GetType()), nil)
