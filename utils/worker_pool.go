@@ -34,8 +34,8 @@ func NewWorkerPool(workerLimit int) t.IWorkerPool {
 
 // SubmitJob adds a job to the jobChannel for processing
 func (wp *WorkerPool) SubmitJob(job t.IJob) {
-	//wp.mu.Lock()
-	//defer wp.mu.Unlock()
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
 
 	if wp.jobChannel == nil {
 		l.Error("job channel is not initialized", nil)
@@ -52,8 +52,8 @@ func (wp *WorkerPool) SubmitJob(job t.IJob) {
 
 // StartWorkers initializes workers and begins processing jobs
 func (wp *WorkerPool) StartWorkers() {
-	//wp.mu.Lock()
-	//defer wp.mu.Unlock()
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
 
 	if wp.isRunning {
 		l.Warn("WorkerPool is already running", nil)
@@ -98,14 +98,21 @@ func (wp *WorkerPool) StartWorkers() {
 		}(i)
 	}
 
+	l.Info("All workers started successfully", nil)
+	l.Info(fmt.Sprintf("WorkerPool started with %d workers", wp.workerLimit), nil)
+	l.Info(fmt.Sprintf("WorkerPool is running: %t", wp.isRunning), nil)
+
+	// Wait for all workers to finish
 	wg.Wait()
+
+	l.Info("All workers finished processing", nil)
 	wp.isRunning = false
 }
 
 // StopWorkers stops all workers and closes necessary channels
 func (wp *WorkerPool) StopWorkers() {
-	//wp.mu.Lock()
-	//defer wp.mu.Unlock()
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
 
 	if !wp.isRunning {
 		l.Warn("WorkerPool is not running", nil)
@@ -128,7 +135,7 @@ func (wp *WorkerPool) IsRunning() bool                  { return wp.isRunning }
 
 // Setters
 func (wp *WorkerPool) SetWorkerLimit(workerLimit int) {
-	//wp.mu.Lock()
-	//defer wp.mu.Unlock()
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
 	wp.workerLimit = workerLimit
 }

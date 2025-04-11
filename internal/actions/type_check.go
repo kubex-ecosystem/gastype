@@ -16,6 +16,7 @@ import (
 // TypeCheckAction defines a type-checking action
 type TypeCheckAction struct {
 	Action       // Embedding the base action
+	mu           sync.Mutex
 	Config       types.IConfig
 	ParsedFiles  map[string][]*ast.File
 	FileSet      *token.FileSet
@@ -64,6 +65,11 @@ func collectGoFiles(dirPath string, files *[]string, lgr l.Logger) error {
 
 // Execute runs the type-checking process
 func (tca *TypeCheckAction) Execute() error {
+	l.GetLogger("GasType").Info("Starting type checking", nil)
+	// Set the status to running
+	// and defer setting it to completed
+	// to ensure it is set even if an error occurs
+	// and to ensure the status is set to completed
 	tca.Status = "Running"
 	defer func() { tca.Status = "Completed" }()
 
@@ -78,28 +84,6 @@ func (tca *TypeCheckAction) Execute() error {
 		l.GetLogger("GasType").Error(fmt.Sprintf("directory does not exist: %s", absDir), nil)
 		return fmt.Errorf("directory does not exist: %s", absDir)
 	}
-
-	// Find all Go files
-	//files, err := filepath.Glob(filepath.Join(absDir, "*.go"))
-	//if err != nil {
-	//	return fmt.Errorf("error finding Go files: %v", err)
-	//}
-	//if len(files) == 0 {
-	//	return fmt.Errorf("no Go files found in directory: %s", absDir)
-	//}
-
-	//entries, err := os.ReadDir(absDir)
-	//if err != nil {
-	//	l.Error(fmt.Sprintf("error reading directory %s: %v", absDir, err), nil)
-	//	return err
-	//}
-	//files := make([]string, 0)
-	//for _, entry := range entries {
-	//	if !entry.IsDir() && filepath.Ext(entry.Name()) == ".go" {
-	//		l.Info(fmt.Sprintf("Found Go file: %s", entry.Name()), nil)
-	//		files = append(files, filepath.Join(absDir, entry.Name()))
-	//	}
-	//}
 
 	files := make([]string, 0)
 	filesErr := collectGoFiles(absDir, &files, l.GetLogger("GasType"))
