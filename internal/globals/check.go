@@ -15,7 +15,7 @@ type Result struct {
 
 func NewResult(pkg, status string, err error) t.IResult {
 	errorStr := ""
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
+	l.GetLogger("GasType").NoticeCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	if err != nil {
 		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, err.Error()), map[string]interface{}{})
 		errorStr = err.Error()
@@ -36,7 +36,7 @@ func NewResult(pkg, status string, err error) t.IResult {
 		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Status is Error"), nil)
 		errorStr = "Error"
 	}
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
+	l.GetLogger("GasType").NoticeCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	return &Result{
 		Package: pkg,
 		Status:  status,

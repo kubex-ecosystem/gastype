@@ -10,8 +10,18 @@ import (
 	"path/filepath"
 )
 
+func ParseAstFile(fSet *token.FileSet, filePath string, lgr l.Logger) (*ast.File, error) {
+	astFile, err := parser.ParseFile(fSet, filePath, nil, parser.ParseComments)
+	if err != nil {
+		lgr.ErrorCtx(fmt.Sprintf("error parsing file %s: %v", filePath, err), nil)
+		return nil, err
+	}
+	lgr.NoticeCtx(fmt.Sprintf("Parsed file: %s", filePath), nil)
+	return astFile, nil
+}
+
 // CollectGoFiles collects all Go files in a directory recursively
-func CollectGoFiles(dirPath string, files *[]string, astFiles *[]*ast.File, lgr l.Logger) error {
+func CollectGoFiles(dirPath string, files *[]string, lgr l.Logger) error {
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		lgr.ErrorCtx(fmt.Sprintf("error reading directory %s: %v", dirPath, err), nil)
@@ -20,22 +30,15 @@ func CollectGoFiles(dirPath string, files *[]string, astFiles *[]*ast.File, lgr 
 
 	for _, entry := range entries {
 		fullPath := filepath.Join(dirPath, entry.Name())
-		if entry.IsDir() {
-			lgr.DebugCtx(fmt.Sprintf("Recursing into directory: %s", fullPath), nil)
-			if err := CollectGoFiles(fullPath, files, astFiles, lgr); err != nil {
+		if entry.IsDir() && entry.Name() != "." && entry.Name() != ".." && entry.Name() != ".git" {
+			lgr.NoticeCtx(fmt.Sprintf("Recursing into directory: %s", fullPath), nil)
+			if err := CollectGoFiles(fullPath, files, lgr); err != nil {
 				lgr.ErrorCtx(fmt.Sprintf("error reading subdirectory %s: %v", fullPath, err), nil)
 				return err
 			}
 		} else if filepath.Ext(entry.Name()) == ".go" {
-			lgr.DebugCtx(fmt.Sprintf("Found Go file: %s", fullPath), nil)
+			lgr.NoticeCtx(fmt.Sprintf("Found Go file: %s", fullPath), nil)
 			*files = append(*files, fullPath)
-			fset := token.NewFileSet()
-			astFile, err := parser.ParseFile(fset, fullPath, nil, parser.ParseComments)
-			if err != nil {
-				lgr.ErrorCtx(fmt.Sprintf("error parsing file %s: %v", fullPath, err), nil)
-				return err
-			}
-			*astFiles = append(*astFiles, astFile)
 		}
 	}
 

@@ -2,7 +2,6 @@ package types
 
 import (
 	l "github.com/faelmori/logz"
-	"go/ast"
 )
 
 type ITypeManager interface {
@@ -18,6 +17,10 @@ type ITypeManager interface {
 	SetEmailToken(emailToken string)
 	SetNotify(notify bool)
 	SetConfig(cfg IConfig)
+	SetFiles(files []string)
+	SetWorkerManager(workerManager IWorker)
+	SetLogger(logger l.Logger)
+	SetActions(actions []IAction)
 	AddAction(action IAction)
 	StartChecking(workerCount int) error
 	StopChecking()
@@ -26,5 +29,7 @@ type ITypeManager interface {
 	CanNotify() bool
 	PrepareActions() error
 	GetLogger() l.Logger
-	GetFilesList(force bool) ([]string, []*ast.File, error)
+	GetWorkerManager() IWorker
+	GetWorkerPool() IWorkerPool
+	GetFilesList(force bool) ([]string, error)
 }

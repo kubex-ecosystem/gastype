@@ -2,71 +2,79 @@ package actions
 
 import (
 	"fmt"
-	"github.com/faelmori/gastype/internal/globals"
-	"github.com/faelmori/gastype/utils"
-	"go/parser"
-	"os"
-	"path/filepath"
-	"sync"
-
+	g "github.com/faelmori/gastype/internal/globals"
 	t "github.com/faelmori/gastype/types"
+	"github.com/faelmori/gastype/utils"
 	l "github.com/faelmori/logz"
 	"go/ast"
+	"go/parser"
 	"go/token"
-	"go/types"
+	"os"
+	"path/filepath"
+	"sort"
+	"sync"
 )
-
-type CheckResult struct {
-	Package string `json:"package"`
-	Status  string `json:"status"`
-	Error   string `json:"error,omitempty"`
-}
 
 // TypeCheckAction defines a type-checking action
 type TypeCheckAction struct {
-	Action       // Embedding the base action
-	mu           sync.Mutex
-	logger       l.Logger
-	Config       t.IConfig
-	ParsedFiles  map[string][]*ast.File
-	files        []string
-	Errors       []error
-	FileSet      *token.FileSet
-	results      chan CheckResult
-	ErrorChannel chan error
+	Action         // Embedding the base action
+	mu             sync.Mutex
+	logger         l.Logger
+	Config         t.IConfig
+	ParsedFiles    map[string][]*ast.File
+	files          []string
+	Errors         []error
+	FileSet        *token.FileSet
+	results        map[string]g.Result
+	ResultsChannel chan t.IResult
+	ErrorChannel   chan error
 }
 
 // NewTypeCheckAction creates a new type-checking action
-func NewTypeCheckAction(pkg string, files []*ast.File, cfg t.IConfig, logger l.Logger) *TypeCheckAction {
-	pkgName := pkg
+func NewTypeCheckAction(fileList []string, cfg t.IConfig, logger l.Logger) t.IAction {
 	fileNameList := make([]string, 0)
 	parsedFiles := make(map[string][]*ast.File)
-	for _, file := range files {
-		if file.Name != nil {
-			pkgName = file.Name.Name
-			fileNameList = append(fileNameList, file.Name.Name)
-		}
-		parsedFiles[pkgName] = append(parsedFiles[pkgName], file)
+	if len(fileList) > 0 {
+		fileNameList = fileList
+	} else {
+		fileNameList = make([]string, 0)
+	}
+	if logger == nil {
+		logger = l.GetLogger("GasType")
 	}
 	return &TypeCheckAction{
 		Action: Action{
 			Type:    "TypeCheck",
 			Status:  "Pending",
-			Results: make(map[string]interface{}),
+			Results: make(map[string]t.IResult),
 		},
-		logger:       logger,
-		Config:       cfg,
-		files:        fileNameList,
-		Errors:       make([]error, 0),
-		ParsedFiles:  parsedFiles,
-		FileSet:      token.NewFileSet(),
-		ErrorChannel: make(chan error, cfg.GetWorkerCount()),
+		logger:         logger,
+		Config:         cfg,
+		files:          fileNameList,
+		Errors:         make([]error, 0),
+		ParsedFiles:    parsedFiles,
+		FileSet:        token.NewFileSet(),
+		ErrorChannel:   make(chan error, 50),
+		ResultsChannel: make(chan t.IResult, 50),
 	}
+}
+
+func (tca *TypeCheckAction) GetResults() map[string]t.IResult {
+	tca.mu.Lock()
+	defer tca.mu.Unlock()
+	if tca.Results == nil {
+		tca.Results = make(map[string]t.IResult)
+	}
+	return tca.Results
 }
 
 // Execute runs the type-checking process
 func (tca *TypeCheckAction) Execute() error {
-	tca.logger.DebugCtx("Starting type checking....", nil)
+	tca.logger.NoticeCtx("Starting type checking....", nil)
+	// Set the status to running
+	// and defer setting it to completed
+	// to ensure it is set even if an error occurs
+	// and to ensure the status is set to completed
 	tca.Status = "Running"
 	defer func() { tca.Status = "Completed" }()
 
@@ -82,17 +90,17 @@ func (tca *TypeCheckAction) Execute() error {
 		return fmt.Errorf("directory does not exist: %s", absDir)
 	}
 
-	parsedFiles := make([]*ast.File, 0)
 	if tca.ParsedFiles == nil || len(tca.ParsedFiles) == 0 {
 		tca.files = make([]string, 0)
-		filesErr := utils.CollectGoFiles(absDir, &tca.files, &parsedFiles, tca.logger)
+		filesErr := utils.CollectGoFiles(absDir, &tca.files, tca.logger)
 		if filesErr != nil {
 			tca.logger.ErrorCtx(fmt.Sprintf("Error collecting Go files: %s", filesErr.Error()), nil)
 			return filesErr
 		}
 	}
 
-	tca.logger.InfoCtx(fmt.Sprintf("Collected %d Go files", len(tca.files)), nil)
+	go tca.listenExecution()
+
 	// Parse files in parallel
 	var wg sync.WaitGroup
 	var rCounter = 0
@@ -104,33 +112,39 @@ func (tca *TypeCheckAction) Execute() error {
 				wg.Done()
 				rCounter--
 			}(wg)
-			conf := types.Config{
-				Error: func(err error) {
-					tca.results <- CheckResult{Package: file, Status: "Error ❌", Error: err.Error()}
-				},
+
+			tca.logger.NoticeCtx(fmt.Sprintf("Parsing file: %s", file), nil)
+			if err := tca.parseFile(file); err != nil {
+				tca.logger.ErrorCtx(fmt.Sprintf("Error parsing file %s: %v", file, err), nil)
+				tca.ErrorChannel <- fmt.Errorf("error parsing file %s: %v", file, err)
+				return
 			}
-			tca.logger.DebugCtx(fmt.Sprintf("Parsing file: %s", file), nil)
-			if parseErr := tca.parseFile(file); parseErr != nil {
-				tca.logger.ErrorCtx(fmt.Sprintf("Error parsing file %s: %v", file, parseErr), nil)
-				tca.ErrorChannel <- parseErr
-			}
-			tca.logger.DebugCtx(fmt.Sprintf("Finished parsing file: %s", file), nil)
-			info := globals.NewInfo()
-			if _, err := conf.Check(file, tca.FileSet, parsedFiles, info); err != nil {
-				tca.results <- CheckResult{Package: file, Status: "Failed ❌", Error: err.Error()}
-			} else {
-				tca.results <- CheckResult{Package: file, Status: "Success ✅"}
-			}
+			tca.logger.NoticeCtx(fmt.Sprintf("Parsed file: %s", file), nil)
 		}(file, &wg)
 	}
-	tca.logger.DebugCtx("Waiting for all files to be parsed", nil)
+	tca.logger.NoticeCtx("Waiting for all files to be parsed", nil)
 
 	// Wait for all goroutines to finish
-	tca.logger.DebugCtx(fmt.Sprintf("Waiting for all %d routines to finish", rCounter), nil)
+	tca.logger.NoticeCtx(fmt.Sprintf("Waiting for all %d routines to finish", rCounter), nil)
 	wg.Wait()
 
+	sortedFileList := make([]string, 0)
+	if len(tca.files) > 0 {
+		for _, file := range tca.files {
+			if filepath.Ext(file) == ".go" {
+				sortedFileList = append(sortedFileList, file)
+			}
+		}
+		sort.Slice(sortedFileList, func(i, j int) bool {
+			return len(tca.ParsedFiles[sortedFileList[i]]) < len(tca.ParsedFiles[sortedFileList[j]])
+		})
+	} else {
+		l.ErrorCtx("No Go files found", nil)
+		return nil
+	}
+
 	close(tca.ErrorChannel)
-	tca.logger.DebugCtx("All files parsed successfully", nil)
+	tca.logger.NoticeCtx("All files parsed successfully", nil)
 
 	// Collect errors
 	for err := range tca.ErrorChannel {
@@ -138,7 +152,7 @@ func (tca *TypeCheckAction) Execute() error {
 		tca.Errors = append(tca.Errors, err)
 	}
 
-	tca.logger.DebugCtx("Type checking completed", nil)
+	tca.logger.NoticeCtx("Type checking completed", nil)
 	tca.Status = "Completed"
 	return nil
 }
@@ -148,30 +162,26 @@ func (tca *TypeCheckAction) parseFile(file string) error {
 	tca.mu.Lock()
 	defer tca.mu.Unlock()
 
-	tca.logger.DebugCtx(fmt.Sprintf("Reading file: %s", file), nil)
+	tca.logger.NoticeCtx(fmt.Sprintf("Reading file: %s", file), nil)
 	src, err := os.ReadFile(file)
 	if err != nil {
 		l.ErrorCtx(fmt.Sprintf("error reading file %s: %v", file, err), nil)
 		return fmt.Errorf("error reading file %s: %v", file, err)
 	}
 
-	tca.logger.DebugCtx(fmt.Sprintf("Parsing file: %s", file), nil)
+	tca.logger.NoticeCtx(fmt.Sprintf("Parsing file: %s", file), nil)
 
 	if node, nodeErr := parser.ParseFile(tca.FileSet, file, src, parser.AllErrors); nodeErr != nil {
 		l.ErrorCtx(fmt.Sprintf("error parsing file %s: %v", file, nodeErr), nil)
-		tca.Results[node.Name.Name] = globals.NewResult(
-			node.Name.Name,
-			fmt.Sprintf("error parsing file %s: %v", file, nodeErr),
-			nodeErr,
-		)
+		tca.ErrorChannel <- fmt.Errorf("error parsing file %s: %v", file, nodeErr)
 	} else {
 		if node == nil {
 			tca.logger.ErrorCtx(fmt.Sprintf("Parsed node is nil for file %s", file), nil)
 			return fmt.Errorf("parsed node is nil for file %s", file)
 		} else {
-			tca.logger.DebugCtx(fmt.Sprintf("Parsed file: %s", file), nil)
+			tca.logger.NoticeCtx(fmt.Sprintf("Parsed file: %s", file), nil)
 			if node.Name != nil {
-				tca.logger.DebugCtx(fmt.Sprintf("Parsed node name: %s", node.Name.Name), nil)
+				tca.logger.NoticeCtx(fmt.Sprintf("Parsed node name: %s", node.Name.Name), nil)
 			} else {
 				tca.logger.ErrorCtx(fmt.Sprintf("Parsed node name is nil for file %s", file), nil)
 				return fmt.Errorf("parsed node name is nil for file %s", file)
@@ -181,12 +191,40 @@ func (tca *TypeCheckAction) parseFile(file string) error {
 			} else {
 				tca.ParsedFiles[node.Name.String()] = append(tca.ParsedFiles[node.Name.String()], node)
 			}
+			tca.ResultsChannel <- g.NewResult(node.Name.Name, "Success ✅", nil)
+			tca.logger.NoticeCtx(fmt.Sprintf("Parsed file: %s", node.Name.Name), nil)
 		}
 	}
 	return nil
 }
 
-// Error sends an error message to the results channel
-func (tca *TypeCheckAction) Error(pkgName string, err error) {
-	tca.results <- CheckResult{Package: pkgName, Status: "Error ❌", Error: err.Error()}
+func (tca *TypeCheckAction) listenExecution() {
+	defer func() {
+		tca.logger.NoticeCtx("Execution listener stopped", nil)
+		close(tca.ResultsChannel)
+	}()
+	for {
+		select {
+		case err := <-tca.ErrorChannel:
+			if err != nil {
+				tca.logger.ErrorCtx(fmt.Sprintf("Error during type checking: %v", err), nil)
+			}
+		case result := <-tca.ResultsChannel:
+			if result != nil {
+				tca.logger.NoticeCtx(fmt.Sprintf("Result: %s", result.GetStatus()), nil)
+				if iResult, ok := result.(t.IResult); ok {
+					tca.logger.NoticeCtx(fmt.Sprintf("Result: %s", iResult.GetStatus()), nil)
+					if iResult.GetError() != "" {
+						tca.logger.ErrorCtx(fmt.Sprintf("Error during type checking: %v", iResult.GetError()), nil)
+						tca.Errors = append(tca.Errors, fmt.Errorf("error during type checking: %v", iResult.GetError()))
+					} else {
+						tca.logger.NoticeCtx(fmt.Sprintf("Parsed file: %s", iResult.GetPackage()), nil)
+						tca.Results[iResult.GetPackage()] = iResult
+					}
+				} else {
+					tca.logger.ErrorCtx(fmt.Sprintf("Error casting result to IResult: %v", result), nil)
+				}
+			}
+		}
+	}
 }

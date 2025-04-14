@@ -18,7 +18,7 @@ type Environment struct {
 }
 
 func NewEnvironment() t.IEnvironment {
-	l.DebugCtx("Creating environment", nil)
+	l.NoticeCtx("Creating environment", nil)
 	cpuCount := runtime.NumCPU()
 	memTotal := syscall.Sysinfo_t{}.Totalram
 	hostname, hostnameErr := os.Hostname()

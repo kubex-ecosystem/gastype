@@ -7,6 +7,7 @@ import (
 
 type IInfo interface {
 	GetTypes() map[ast.Expr]types.TypeAndValue
+	GetInstances() map[*ast.Ident]types.Object
 	GetDefs() map[*ast.Ident]types.Object
 	GetUses() map[*ast.Ident]types.Object
 	GetImplicits() map[ast.Node]types.Object
@@ -16,6 +17,7 @@ type IInfo interface {
 	GetFileVersions() map[*ast.File]string
 
 	SetTypes(types map[ast.Expr]types.TypeAndValue)
+	SetInstances(instances map[*ast.Ident]types.Object)
 	SetDefs(defs map[*ast.Ident]types.Object)
 	SetUses(uses map[*ast.Ident]types.Object)
 	SetImplicits(implicits map[ast.Node]types.Object)
@@ -25,6 +27,7 @@ type IInfo interface {
 	SetFileVersions(fileVersions map[*ast.File]string)
 
 	AddType(key ast.Expr, value types.TypeAndValue)
+	AddInstance(key *ast.Ident, value types.Object)
 	AddDef(key *ast.Ident, value types.Object)
 	AddUse(key *ast.Ident, value types.Object)
 	AddImplicit(key ast.Node, value types.Object)

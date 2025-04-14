@@ -31,7 +31,7 @@ func commandCheckType() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			lgr := l.GetLogger("GasType")
 			// Create a new configuration
-			lgr.DebugCtx("Creating configuration", nil)
+			lgr.NoticeCtx("Creating configuration", nil)
 			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile, lgr, module.RegX(
 				"gastype",
 				"gastype",
@@ -50,6 +50,21 @@ func commandCheckType() *cobra.Command {
 				tc := m.NewTypeManager(cfg, lgr)
 
 				tc.SetNotify(true)
+
+				if len(tc.GetActions()) == 0 {
+					if prepErr := tc.PrepareActions(); prepErr != nil {
+						lgr.ErrorCtx(fmt.Sprintf("Error preparing actions: %s", prepErr.Error()), nil)
+						return
+					} else {
+						if files, filesErr := tc.GetFilesList(true); filesErr != nil {
+							lgr.ErrorCtx(fmt.Sprintf("Error getting files list: %s", filesErr.Error()), nil)
+							return
+						} else {
+							lgr.NoticeCtx(fmt.Sprintf("Actions prepared successfully with %d", len(files)), nil)
+							tc.SetFiles(files)
+						}
+					}
+				}
 
 				if err := tc.StartChecking(workerCount); err != nil {
 					lgr.ErrorCtx(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)

@@ -192,8 +192,8 @@ func GetGitModelUrl() string {
 }
 
 func GetVersionInfo() string {
-	l.DebugCtx("Version: "+GetVersion(), map[string]interface{}{})
-	l.DebugCtx("Git repository: "+GetGitModelUrl(), map[string]interface{}{})
+	l.NoticeCtx("Version: "+GetVersion(), map[string]interface{}{})
+	l.NoticeCtx("Git repository: "+GetGitModelUrl(), map[string]interface{}{})
 	return fmt.Sprintf("Version: %s\nGit repository: %s", GetVersion(), GetGitModelUrl())
 }
 
@@ -224,13 +224,13 @@ func GetLatestVersionFromGit() string {
 }
 
 func GetLatestVersionInfo() string {
-	l.DebugCtx("Latest version: "+GetLatestVersionFromGit(), map[string]interface{}{})
+	l.NoticeCtx("Latest version: "+GetLatestVersionFromGit(), map[string]interface{}{})
 	return "Latest version: " + GetLatestVersionFromGit()
 }
 
 func GetVersionInfoWithLatestAndCheck() string {
 	if GetVersion() == GetLatestVersionFromGit() {
-		l.DebugCtx("You are using the latest version.", map[string]interface{}{})
+		l.NoticeCtx("You are using the latest version.", map[string]interface{}{})
 		return fmt.Sprintf("You are using the latest version.\n%s\n%s", GetVersionInfo(), GetLatestVersionInfo())
 	} else {
 		l.WarnCtx("You are using an outdated version.", map[string]interface{}{})

@@ -2,7 +2,7 @@ package types
 
 type IActionBase interface {
 	GetType() string
-	GetResults() map[string]interface{}
+	GetResults() map[string]IResult
 	GetStatus() string
 	GetErrors() []error
 	IsRunning() bool

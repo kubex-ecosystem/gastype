@@ -15,6 +15,7 @@ type Config struct {
 	cfgSrv      c.Manager[m.KubexModule]
 	dir         string
 	workerCount int
+	workerLimit int
 	outputFile  string
 	results     []t.IResult
 	logger      l.Logger
@@ -43,7 +44,7 @@ func NewConfig[T m.KubexModule](m T, logger l.Logger) t.IConfig {
 		}
 		if _, err := os.Stat(cfgFilePath); os.IsNotExist(err) {
 			logger.WarnCtx("Configuration file does not exist", map[string]interface{}{"error": err.Error()})
-			logger.DebugCtx("Creating default configuration file", nil)
+			logger.NoticeCtx("Creating default configuration file", nil)
 			if err := os.MkdirAll(filepath.Dir(cfgFilePath), os.ModePerm); err != nil {
 				logger.ErrorCtx("Error creating configuration directory", map[string]interface{}{"error": err.Error()})
 				return nil
@@ -52,17 +53,17 @@ func NewConfig[T m.KubexModule](m T, logger l.Logger) t.IConfig {
 				logger.ErrorCtx("Error creating configuration file", map[string]interface{}{"error": err.Error()})
 				return nil
 			}
-			logger.DebugCtx(fmt.Sprintf("Configuration file created at %s", cfgFilePath), nil)
+			logger.NoticeCtx(fmt.Sprintf("Configuration file created at %s", cfgFilePath), nil)
 		} else {
-			logger.DebugCtx(fmt.Sprintf("Configuration file found at %s", cfgFilePath), nil)
+			logger.NoticeCtx(fmt.Sprintf("Configuration file found at %s", cfgFilePath), nil)
 			if err := os.Chmod(cfgFilePath, 0644); err != nil {
 				logger.ErrorCtx("Error setting permissions for configuration file", map[string]interface{}{"error": err.Error()})
 				return nil
 			}
-			logger.DebugCtx(fmt.Sprintf("Permissions set for configuration file at %s", cfgFilePath), nil)
+			logger.NoticeCtx(fmt.Sprintf("Permissions set for configuration file at %s", cfgFilePath), nil)
 		}
 		cfg.dir = filepath.Dir(cfgFilePath)
-		logger.DebugCtx(fmt.Sprintf("Loading configuration from %s", cfgFilePath), nil)
+		logger.NoticeCtx(fmt.Sprintf("Loading configuration from %s", cfgFilePath), nil)
 	}
 	cfg.environment = NewEnvironment()
 	cfg.cfgSrv = c.NewConfigManager[T](m)
@@ -70,18 +71,18 @@ func NewConfig[T m.KubexModule](m T, logger l.Logger) t.IConfig {
 		logger.ErrorCtx("Error setting up logger", map[string]interface{}{"error": setLoggerErr.Error()})
 		return nil
 	}
-	logger.DebugCtx(fmt.Sprintf("Config path: %s", cfg.cfgSrv), nil)
+	logger.NoticeCtx(fmt.Sprintf("Config path: %s", cfg.cfgSrv), nil)
 	return cfg
 }
 
-func NewConfigWithArgs[T m.KubexModule](dir string, workerCount int, outputFile string, logger l.Logger, m T) t.IConfig {
+func NewConfigWithArgs[T m.KubexModule](dir string, workerLimit int, outputFile string, logger l.Logger, m T) t.IConfig {
 	if logger == nil {
 		logger = l.GetLogger("GasType")
 	}
-	logger.DebugCtx("Creating configuration", nil)
+	logger.NoticeCtx("Creating configuration", nil)
 	cfg := NewConfig[T](m, l.GetLogger("GasType"))
 	cfg.SetDir(dir)
-	cfg.SetWorkerLimit(workerCount)
+	cfg.SetWorkerLimit(workerLimit)
 	cfg.SetOutputFile(outputFile)
 
 	if loadErr := cfg.Load(); loadErr != nil {
@@ -95,7 +96,7 @@ func NewConfigWithArgs[T m.KubexModule](dir string, workerCount int, outputFile 
 
 func (c *Config) Load() error {
 	if c.dir == "" {
-		c.logger.DebugCtx("Loading configuration from environment", nil)
+		c.logger.NoticeCtx("Loading configuration from environment", nil)
 		dir, dirErr := filepath.Abs("./")
 		if dirErr != nil {
 			c.logger.ErrorCtx("Error getting absolute path", map[string]interface{}{"error": dirErr.Error()})
@@ -103,9 +104,9 @@ func (c *Config) Load() error {
 		}
 		c.dir = dir
 	}
-	c.logger.DebugCtx(fmt.Sprintf("Configuration loaded from %s", c.dir), nil)
+	c.logger.NoticeCtx(fmt.Sprintf("Configuration loaded from %s", c.dir), nil)
 
-	c.logger.DebugCtx(fmt.Sprintf("Begining with %d workers", c.workerCount), map[string]interface{}{"workerCount": c.workerCount})
+	c.logger.NoticeCtx(fmt.Sprintf("Begining with %d workers", c.workerCount), map[string]interface{}{"workerCount": c.workerCount})
 	if c.workerCount == 0 {
 		cpuCount := c.environment.CpuCount()
 		if cpuCount <= 0 {
@@ -119,9 +120,9 @@ func (c *Config) Load() error {
 			}
 		}
 	}
-	c.logger.DebugCtx(fmt.Sprintf("Worker count set to %d", c.workerCount), map[string]interface{}{"workerCount": c.workerCount})
+	c.logger.NoticeCtx(fmt.Sprintf("Worker count set to %d", c.workerCount), map[string]interface{}{"workerCount": c.workerCount})
 
-	c.logger.DebugCtx(fmt.Sprintf("Searching for output file: %s", c.outputFile), map[string]interface{}{"outputFile": c.outputFile})
+	c.logger.NoticeCtx(fmt.Sprintf("Searching for output file: %s", c.outputFile), map[string]interface{}{"outputFile": c.outputFile})
 	if c.outputFile == "" {
 		homeDir, homeDirErr := os.UserHomeDir()
 		if homeDirErr != nil {
@@ -133,7 +134,7 @@ func (c *Config) Load() error {
 			}
 		}
 	}
-	c.logger.DebugCtx(fmt.Sprintf("Output file set to: %s", c.outputFile), map[string]interface{}{"outputFile": c.outputFile})
+	c.logger.NoticeCtx(fmt.Sprintf("Output file set to: %s", c.outputFile), map[string]interface{}{"outputFile": c.outputFile})
 
 	if c.results == nil {
 		c.results = make([]t.IResult, 0)
@@ -143,24 +144,30 @@ func (c *Config) Load() error {
 		c.chanResult = make(chan t.IResult, 50)
 	}
 
-	c.logger.DebugCtx("Configuration loaded from environment", nil)
-	c.logger.DebugCtx("========================================", nil)
-	c.logger.DebugCtx("Directory: "+c.dir, nil)
-	c.logger.DebugCtx("Worker Count: "+fmt.Sprintf("%d", c.workerCount), nil)
-	c.logger.DebugCtx("Output File: "+c.outputFile, nil)
-	c.logger.DebugCtx("Environment CPU Count: "+fmt.Sprintf("%d", c.environment.CpuCount()), nil)
-	c.logger.DebugCtx("Environment OS: "+c.environment.Os(), nil)
-	c.logger.DebugCtx("Environment Hostname: "+c.environment.Hostname(), nil)
-	c.logger.DebugCtx("Environment Mem Total: "+fmt.Sprintf("%d", c.environment.MemTotal()), nil)
-	c.logger.DebugCtx("Environment Kernel: "+c.environment.Kernel(), nil)
-	c.logger.DebugCtx("========================================", nil)
-	c.logger.SuccessCtx("Configuration loaded successfully", nil)
+	c.logger.NoticeCtx("Configuration loaded from environment", nil)
+	c.logger.NoticeCtx("========================================", nil)
+	c.logger.NoticeCtx("Directory: "+c.dir, nil)
+	c.logger.NoticeCtx("Worker Count: "+fmt.Sprintf("%d", c.workerCount), nil)
+	c.logger.NoticeCtx("Output File: "+c.outputFile, nil)
+	c.logger.NoticeCtx("Environment CPU Count: "+fmt.Sprintf("%d", c.environment.CpuCount()), nil)
+	c.logger.NoticeCtx("Environment OS: "+c.environment.Os(), nil)
+	c.logger.NoticeCtx("Environment Hostname: "+c.environment.Hostname(), nil)
+	c.logger.NoticeCtx("Environment Mem Total: "+fmt.Sprintf("%d", c.environment.MemTotal()), nil)
+	c.logger.NoticeCtx("Environment Kernel: "+c.environment.Kernel(), nil)
+	c.logger.NoticeCtx("========================================", nil)
 
 	return nil
 }
-func (c *Config) GetDir() string                  { return c.dir }
-func (c *Config) GetWorkerCount() int             { return c.workerCount }
-func (c *Config) GetOutputFile() string           { return c.outputFile }
-func (c *Config) SetDir(dir string)               { c.dir = dir }
-func (c *Config) SetWorkerLimit(workerCount int)  { c.workerCount = workerCount }
+func (c *Config) GetDir() string        { return c.dir }
+func (c *Config) GetWorkerCount() int   { return c.workerCount }
+func (c *Config) GetWorkerLimit() int   { return c.workerLimit }
+func (c *Config) GetOutputFile() string { return c.outputFile }
+func (c *Config) SetDir(dir string)     { c.dir = dir }
+func (c *Config) SetWorkerLimit(workerLimit int) {
+	if workerLimit <= 0 {
+		workerLimit = 1
+	}
+	c.workerCount = workerLimit
+	c.workerLimit = workerLimit
+}
 func (c *Config) SetOutputFile(outputFile string) { c.outputFile = outputFile }

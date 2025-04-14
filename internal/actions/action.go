@@ -1,6 +1,9 @@
 package actions
 
-import "sync"
+import (
+	t "github.com/faelmori/gastype/types"
+	"sync"
+)
 
 // Base interface for all actions
 
@@ -10,6 +13,10 @@ type IAction interface {
 	Cancel() error
 	CanExecute() bool
 	IsRunning() bool
+	GetID() string
+	GetResults() map[string]t.IResult
+	GetStatus() string
+	GetErrors() []error
 }
 
 // Common struct for all actions
@@ -20,12 +27,20 @@ type Action struct {
 	Type      string
 	Status    string
 	Errors    []error
-	Results   map[string]interface{}
+	Results   map[string]t.IResult
 	isRunning bool
 }
 
-// Common methods
+// NewAction creates a new action
+func NewAction(actionType string) IAction {
+	return &Action{
+		Type:    actionType,
+		Status:  "Pending",
+		Results: make(map[string]t.IResult),
+	}
+}
 
+// Common methods
 func (a *Action) GetID() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
@@ -36,7 +51,7 @@ func (a *Action) GetType() string {
 	defer a.mu.RUnlock()
 	return a.Type
 }
-func (a *Action) GetResults() map[string]interface{} {
+func (a *Action) GetResults() map[string]t.IResult {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return a.Results
@@ -60,4 +75,22 @@ func (a *Action) CanExecute() bool {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	return !a.isRunning
+}
+func (a *Action) Execute() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if a.isRunning {
+		return nil
+	}
+	a.isRunning = true
+	return nil
+}
+func (a *Action) Cancel() error {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.isRunning {
+		return nil
+	}
+	a.isRunning = false
+	return nil
 }

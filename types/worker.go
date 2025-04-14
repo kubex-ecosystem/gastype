@@ -7,7 +7,9 @@ import (
 type IWorker interface {
 	StartWorkers() IWorker
 	StopWorkers()
+	GetWorkerPool() IWorkerPool
 	GetJobQueue() chan IAction
+	SetJobQueue(jobQueue chan IAction)
 }
 
 type IWorkerPool interface {
@@ -23,6 +25,7 @@ type IWorkerPool interface {
 	GetMonitorChannel() chan MonitorMessage
 
 	GetJobChannel() chan IJob
+	SetJobChannel(jobChannel chan IJob)
 	GetResultChannel() chan IResult
 
 	GetWorkerCount() int
@@ -35,6 +38,7 @@ type IWorkerPool interface {
 }
 
 type IJob interface {
-	IAction
 	GetID() string
+	GetAction() IAction
+	IAction
 }

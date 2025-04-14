@@ -6,6 +6,7 @@ require (
 	github.com/faelmori/kubex-interfaces v1.0.0
 	github.com/faelmori/logz v1.1.8
 	github.com/fatih/color v1.18.0
+	github.com/google/uuid v1.6.0
 	github.com/spf13/cobra v1.9.1
 )
 

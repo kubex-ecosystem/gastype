@@ -37,6 +37,29 @@ func NewWorkerPool(workerLimit int, logger l.Logger) t.IWorkerPool {
 	}
 }
 
+// NewJob creates a new job and adds it to the jobChannel
+func (wp *WorkerPool) NewJob(job t.IJob) {
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+
+	if wp.jobChannel == nil {
+		wp.logger.ErrorCtx("job channel is not initialized", nil)
+		return
+	}
+
+	if job == nil {
+		wp.logger.ErrorCtx("job is nil", nil)
+		return
+	}
+
+	select {
+	case wp.jobChannel <- job:
+		wp.logger.NoticeCtx(fmt.Sprintf("Job %s created successfully", job.GetID()), nil)
+	default:
+		wp.logger.WarnCtx(fmt.Sprintf("Job %s could not be created, worker limit reached", job.GetID()), nil)
+	}
+}
+
 // SubmitJob adds a job to the jobChannel for processing
 func (wp *WorkerPool) SubmitJob(job t.IJob) {
 	wp.mu.Lock()
@@ -49,7 +72,7 @@ func (wp *WorkerPool) SubmitJob(job t.IJob) {
 
 	select {
 	case wp.jobChannel <- job:
-		wp.logger.DebugCtx(fmt.Sprintf("Job %s submitted successfully", job.GetID()), nil)
+		wp.logger.NoticeCtx(fmt.Sprintf("Job %s submitted successfully", job.GetID()), nil)
 	default:
 		wp.logger.WarnCtx(fmt.Sprintf("Job %s could not be submitted, worker limit reached", job.GetID()), nil)
 	}
@@ -72,12 +95,12 @@ func (wp *WorkerPool) StartWorkers() t.IWorkerPool {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			wp.logger.DebugCtx(fmt.Sprintf("Worker %d started", workerID), nil)
+			wp.logger.NoticeCtx(fmt.Sprintf("Worker %d started", workerID), nil)
 
 			for {
 				select {
 				case <-wp.stopChannel:
-					wp.logger.DebugCtx(fmt.Sprintf("Worker %d stopped", workerID), nil)
+					wp.logger.NoticeCtx(fmt.Sprintf("Worker %d stopped", workerID), nil)
 					return
 				case job, ok := <-wp.jobChannel:
 					if !ok {
@@ -88,14 +111,10 @@ func (wp *WorkerPool) StartWorkers() t.IWorkerPool {
 					if err := job.Execute(); err != nil {
 						wp.logger.ErrorCtx(fmt.Sprintf("Error executing job %s: %v", job.GetID(), err), nil)
 					} else {
-						wp.logger.DebugCtx(fmt.Sprintf("Job %s completed successfully", job.GetID()), nil)
+						wp.logger.NoticeCtx(fmt.Sprintf("Job %s completed successfully", job.GetID()), nil)
 
 						result := g.NewResult(job.GetID(), "Success ✅", nil)
 
-						//result := t.IResult{
-						//	Package: job.GetID(),
-						//	Status:  "Success ✅",
-						//}
 						wp.resultChannel <- result
 					}
 				}
@@ -103,14 +122,14 @@ func (wp *WorkerPool) StartWorkers() t.IWorkerPool {
 		}(i)
 	}
 
-	wp.logger.DebugCtx("All workers started successfully", nil)
-	wp.logger.DebugCtx(fmt.Sprintf("WorkerPool started with %d workers", wp.workerLimit), nil)
-	wp.logger.DebugCtx(fmt.Sprintf("WorkerPool is running: %t", wp.isRunning), nil)
+	wp.logger.NoticeCtx("All workers started successfully", nil)
+	wp.logger.NoticeCtx(fmt.Sprintf("WorkerPool started with %d workers", wp.workerLimit), nil)
+	wp.logger.NoticeCtx(fmt.Sprintf("WorkerPool is running: %t", wp.isRunning), nil)
 
 	// Wait for all workers to finish
 	wg.Wait()
 
-	wp.logger.DebugCtx("All workers finished processing", nil)
+	wp.logger.NoticeCtx("All workers finished processing", nil)
 	wp.isRunning = false
 
 	return wp
@@ -129,7 +148,7 @@ func (wp *WorkerPool) StopWorkers() {
 	close(wp.stopChannel)
 	close(wp.jobChannel)
 	wp.isRunning = false
-	wp.logger.DebugCtx("WorkerPool stopped successfully", nil)
+	wp.logger.NoticeCtx("WorkerPool stopped successfully", nil)
 }
 
 // Getters
@@ -141,10 +160,10 @@ func (wp *WorkerPool) GetBuffersSize() int {
 		wp.logger.ErrorCtx("One of the channels is not initialized", nil)
 		return 0
 	} else {
-		wp.logger.DebugCtx("Getting buffer size", nil)
-		wp.logger.DebugCtx(fmt.Sprintf("Job channel size: %d", len(wp.jobChannel)), nil)
-		wp.logger.DebugCtx(fmt.Sprintf("Result channel size: %d", len(wp.resultChannel)), nil)
-		wp.logger.DebugCtx(fmt.Sprintf("Monitor channel size: %d", len(wp.monitorChannel)), nil)
+		wp.logger.NoticeCtx("Getting buffer size", nil)
+		wp.logger.NoticeCtx(fmt.Sprintf("Job channel size: %d", len(wp.jobChannel)), nil)
+		wp.logger.NoticeCtx(fmt.Sprintf("Result channel size: %d", len(wp.resultChannel)), nil)
+		wp.logger.NoticeCtx(fmt.Sprintf("Monitor channel size: %d", len(wp.monitorChannel)), nil)
 	}
 	return len(wp.jobChannel) + len(wp.resultChannel) + len(wp.monitorChannel)
 }
@@ -153,7 +172,7 @@ func (wp *WorkerPool) AjustBufferSize(autoSize bool, size int) {
 	defer wp.mu.Unlock()
 
 	if autoSize {
-		wp.logger.DebugCtx("Auto-sizing buffer size", nil)
+		wp.logger.NoticeCtx("Auto-sizing buffer size", nil)
 		cpuCount := g.NewEnvironment().CpuCount()
 		memTotal := g.NewEnvironment().MemTotal()
 		// Calculate buffer size based on CPU count and memory
@@ -185,7 +204,7 @@ func (wp *WorkerPool) AjustBufferSize(autoSize bool, size int) {
 		wp.resultChannel = make(chan t.IResult, size)
 		wp.monitorChannel = make(chan t.MonitorMessage, size)
 	} else {
-		wp.logger.DebugCtx("Setting buffer size manually", nil)
+		wp.logger.NoticeCtx("Setting buffer size manually", nil)
 		wp.jobChannel = make(chan t.IJob, size)
 		wp.resultChannel = make(chan t.IResult, size)
 		wp.monitorChannel = make(chan t.MonitorMessage, size)
@@ -210,6 +229,15 @@ func (wp *WorkerPool) GetJobChannel() chan t.IJob {
 	wp.mu.RLock()
 	defer wp.mu.RUnlock()
 	return wp.jobChannel
+}
+func (wp *WorkerPool) SetJobChannel(jobChannel chan t.IJob) {
+	wp.mu.Lock()
+	defer wp.mu.Unlock()
+	if jobChannel == nil {
+		wp.logger.ErrorCtx("job channel is nil", nil)
+		return
+	}
+	wp.jobChannel = jobChannel
 }
 func (wp *WorkerPool) GetResultChannel() chan t.IResult {
 	wp.mu.RLock()
