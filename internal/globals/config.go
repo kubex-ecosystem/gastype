@@ -80,7 +80,7 @@ func NewConfigWithArgs[T m.KubexModule](dir string, workerLimit int, outputFile 
 		logger = l.GetLogger("GasType")
 	}
 	logger.NoticeCtx("Creating configuration", nil)
-	cfg := NewConfig[T](m, l.GetLogger("GasType"))
+	cfg := NewConfig[T](m, logger)
 	cfg.SetDir(dir)
 	cfg.SetWorkerLimit(workerLimit)
 	cfg.SetOutputFile(outputFile)
@@ -171,3 +171,22 @@ func (c *Config) SetWorkerLimit(workerLimit int) {
 	c.workerLimit = workerLimit
 }
 func (c *Config) SetOutputFile(outputFile string) { c.outputFile = outputFile }
+func (c *Config) GetLogger() l.Logger {
+	if c.logger == nil {
+		c.logger = l.GetLogger("GasType")
+	}
+	return c.logger
+}
+func (c *Config) SetLogger(logger l.Logger) {
+	if logger == nil {
+		c.logger = l.GetLogger("GasType")
+	} else {
+		c.logger = logger
+	}
+}
+func (c *Config) GetChanCtl() chan interface{} {
+	if c.chanCtl == nil {
+		c.chanCtl = make(chan interface{}, 50)
+	}
+	return c.chanCtl
+}

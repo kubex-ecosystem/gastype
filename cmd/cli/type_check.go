@@ -49,29 +49,12 @@ func commandCheckType() *cobra.Command {
 			} else {
 				tc := m.NewTypeManager(cfg, lgr)
 
-				tc.SetNotify(true)
-
-				if len(tc.GetActions()) == 0 {
-					if prepErr := tc.PrepareActions(); prepErr != nil {
-						lgr.ErrorCtx(fmt.Sprintf("Error preparing actions: %s", prepErr.Error()), nil)
-						return
-					} else {
-						if files, filesErr := tc.GetFilesList(true); filesErr != nil {
-							lgr.ErrorCtx(fmt.Sprintf("Error getting files list: %s", filesErr.Error()), nil)
-							return
-						} else {
-							lgr.NoticeCtx(fmt.Sprintf("Actions prepared successfully with %d", len(files)), nil)
-							tc.SetFiles(files)
-						}
-					}
-				}
-
 				if err := tc.StartChecking(workerCount); err != nil {
-					lgr.ErrorCtx(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
+					tc.GetLogger().ErrorCtx(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
 					return
 				}
 
-				lgr.SuccessCtx("Type checking completed successfully", nil)
+				tc.GetLogger().SuccessCtx("Type checking completed successfully", nil)
 			}
 		},
 	}

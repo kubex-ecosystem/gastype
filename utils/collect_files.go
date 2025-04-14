@@ -16,7 +16,7 @@ func ParseAstFile(fSet *token.FileSet, filePath string, lgr l.Logger) (*ast.File
 		lgr.ErrorCtx(fmt.Sprintf("error parsing file %s: %v", filePath, err), nil)
 		return nil, err
 	}
-	lgr.NoticeCtx(fmt.Sprintf("Parsed file: %s", filePath), nil)
+	lgr.DebugCtx(fmt.Sprintf("Parsed file: %s", filePath), nil)
 	return astFile, nil
 }
 
@@ -31,13 +31,13 @@ func CollectGoFiles(dirPath string, files *[]string, lgr l.Logger) error {
 	for _, entry := range entries {
 		fullPath := filepath.Join(dirPath, entry.Name())
 		if entry.IsDir() && entry.Name() != "." && entry.Name() != ".." && entry.Name() != ".git" {
-			lgr.NoticeCtx(fmt.Sprintf("Recursing into directory: %s", fullPath), nil)
+			lgr.DebugCtx(fmt.Sprintf("Recursing into directory: %s", fullPath), nil)
 			if err := CollectGoFiles(fullPath, files, lgr); err != nil {
 				lgr.ErrorCtx(fmt.Sprintf("error reading subdirectory %s: %v", fullPath, err), nil)
 				return err
 			}
 		} else if filepath.Ext(entry.Name()) == ".go" {
-			lgr.NoticeCtx(fmt.Sprintf("Found Go file: %s", fullPath), nil)
+			lgr.DebugCtx(fmt.Sprintf("Found Go file: %s", fullPath), nil)
 			*files = append(*files, fullPath)
 		}
 	}

@@ -52,6 +52,9 @@ func (wm *WorkerManager) StartWorkers() t.IWorker {
 		wg.Add(1)
 		go wm.workerLoop(i, &wg)
 	}
+
+	wm.logger.InfoCtx("Worker waiting for all workers to start", nil)
+
 	wg.Wait()
 
 	wm.logger.InfoCtx("All workers started", nil)
