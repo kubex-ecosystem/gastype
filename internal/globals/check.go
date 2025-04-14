@@ -15,28 +15,28 @@ type Result struct {
 
 func NewResult(pkg, status string, err error) t.IResult {
 	errorStr := ""
-	l.Notice(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	if err != nil {
-		l.Error(fmt.Sprintf("[ %s ] %s", pkg, err.Error()), map[string]interface{}{})
+		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, err.Error()), map[string]interface{}{})
 		errorStr = err.Error()
 	}
 	if status == "" {
-		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Status is empty"), nil)
+		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Status is empty"), nil)
 		status = "Error"
 	}
 	if pkg == "" {
-		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Package is empty"), nil)
+		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Package is empty"), nil)
 		pkg = "Unknown"
 	}
 	if errorStr == "" {
-		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Error is empty"), nil)
+		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Error is empty"), nil)
 		errorStr = "No error"
 	}
 	if status == "Error" {
-		l.Error(fmt.Sprintf("[ %s ] %s", pkg, "Status is Error"), nil)
+		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Status is Error"), nil)
 		errorStr = "Error"
 	}
-	l.Notice(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	return &Result{
 		Package: pkg,
 		Status:  status,
@@ -45,37 +45,37 @@ func NewResult(pkg, status string, err error) t.IResult {
 }
 
 func (c *Result) GetPackage() string {
-	l.Debug(fmt.Sprintf("Getting package %s", c.Package), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Getting package %s", c.Package), nil)
 	return c.Package
 }
 func (c *Result) GetStatus() string {
-	l.Debug(fmt.Sprintf("Getting status %s", c.Status), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Getting status %s", c.Status), nil)
 	return c.Status
 }
 func (c *Result) GetError() string {
-	l.Debug(fmt.Sprintf("Getting error %s", c.Error), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Getting error %s", c.Error), nil)
 	return c.Error
 }
 
 func (c *Result) SetPackage(packageName string) {
-	l.Debug(fmt.Sprintf("Setting package %s", packageName), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Setting package %s", packageName), nil)
 	c.Package = packageName
 }
 func (c *Result) SetStatus(status string) {
-	l.Debug(fmt.Sprintf("Setting status %s", status), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Setting status %s", status), nil)
 	c.Status = status
 }
 func (c *Result) SetError(err string) {
-	l.Debug(fmt.Sprintf("Setting error %s", err), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Setting error %s", err), nil)
 	c.Error = err
 }
 
 func (c *Result) ToJSON(outputTarget string) string {
-	l.Debug(fmt.Sprintf("Converting to JSON %s", c.Package), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to JSON %s", c.Package), nil)
 	if outputTarget == "" {
 		pwd, pwdErr := os.Getwd()
 		if pwdErr != nil {
-			l.Error(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
+			l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
 			return ""
 		}
 		outputTarget = fmt.Sprintf("%s/%s.json", pwd, c.Package)
@@ -83,11 +83,11 @@ func (c *Result) ToJSON(outputTarget string) string {
 	return fmt.Sprintf("%s/%s.json", outputTarget, c.Package)
 }
 func (c *Result) ToXML(outputTarget string) string {
-	l.Debug(fmt.Sprintf("Converting to XML %s", c.Package), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to XML %s", c.Package), nil)
 	if outputTarget == "" {
 		pwd, pwdErr := os.Getwd()
 		if pwdErr != nil {
-			l.Error(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
+			l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
 			return ""
 		}
 		outputTarget = fmt.Sprintf("%s/%s.xml", pwd, c.Package)
@@ -95,11 +95,11 @@ func (c *Result) ToXML(outputTarget string) string {
 	return fmt.Sprintf("%s/%s.xml", outputTarget, c.Package)
 }
 func (c *Result) ToCSV(outputTarget string) string {
-	l.Debug(fmt.Sprintf("Converting to CSV %s", c.Package), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to CSV %s", c.Package), nil)
 	if outputTarget == "" {
 		pwd, pwdErr := os.Getwd()
 		if pwdErr != nil {
-			l.Error(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
+			l.ErrorCtx(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
 			return ""
 		}
 		outputTarget = fmt.Sprintf("%s/%s.csv", pwd, c.Package)
@@ -107,7 +107,7 @@ func (c *Result) ToCSV(outputTarget string) string {
 	return fmt.Sprintf("%s/%s.csv", outputTarget, c.Package)
 }
 func (c *Result) ToMap() map[string]interface{} {
-	l.Debug(fmt.Sprintf("Converting to map %s", c.Package), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to map %s", c.Package), nil)
 	return map[string]interface{}{
 		"package": c.Package,
 		"status":  c.Status,
@@ -116,6 +116,6 @@ func (c *Result) ToMap() map[string]interface{} {
 }
 
 func (c *Result) DataTable() error {
-	l.Debug(fmt.Sprintf("Converting to DataTable %s", c.Package), nil)
+	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to DataTable %s", c.Package), nil)
 	return nil
 }

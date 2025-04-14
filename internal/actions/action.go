@@ -3,6 +3,7 @@ package actions
 import "sync"
 
 // Base interface for all actions
+
 type IAction interface {
 	GetType() string
 	Execute() error
@@ -12,6 +13,7 @@ type IAction interface {
 }
 
 // Common struct for all actions
+
 type Action struct {
 	mu        sync.RWMutex
 	ID        string
@@ -23,6 +25,7 @@ type Action struct {
 }
 
 // Common methods
+
 func (a *Action) GetID() string {
 	a.mu.RLock()
 	defer a.mu.RUnlock()

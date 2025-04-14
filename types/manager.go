@@ -1,14 +1,19 @@
 package types
 
+import (
+	l "github.com/faelmori/logz"
+	"go/ast"
+)
+
 type ITypeManager interface {
-	GetNotifierChan() chan string
+	GetNotifierChan() chan interface{}
 	GetEmail() string
 	GetEmailToken() string
 	GetNotify() bool
 	GetConfig() IConfig
 	GetActions() []IAction
 	IsRunning() bool
-	SetNotifierChan(notifierChan chan string)
+	SetNotifierChan(notifierChan chan interface{})
 	SetEmail(email string)
 	SetEmailToken(emailToken string)
 	SetNotify(notify bool)
@@ -20,4 +25,6 @@ type ITypeManager interface {
 	SaveConfig() error
 	CanNotify() bool
 	PrepareActions() error
+	GetLogger() l.Logger
+	GetFilesList(force bool) ([]string, []*ast.File, error)
 }

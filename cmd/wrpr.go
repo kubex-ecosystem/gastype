@@ -3,7 +3,7 @@ package main
 import (
 	c "github.com/faelmori/gastype/cmd/cli"
 	"github.com/faelmori/gastype/version"
-	s "github.com/faelmori/gkbxsrv/services"
+	"github.com/faelmori/kubex-interfaces/types"
 	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 
@@ -14,7 +14,7 @@ import (
 type GasType struct {
 	parentCmdName string
 	printBanner   bool
-	cfg           s.ConfigService
+	cfg           types.IConfig[any]
 	certPath      string
 	keyPath       string
 	configPath    string
@@ -44,7 +44,7 @@ func (m *GasType) Execute() error {
 	//defer close(dbChanData)
 
 	if spyderErr := m.Command().Execute(); spyderErr != nil {
-		l.Error(spyderErr.Error(), nil)
+		l.ErrorCtx(spyderErr.Error(), nil)
 		return spyderErr
 	} else {
 		return nil
@@ -59,7 +59,7 @@ func (m *GasType) Command() *cobra.Command {
 			[]string{m.ShortDescription(), m.LongDescription()}, false,
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			l.Error("No command specified.", nil)
+			l.ErrorCtx("No command specified.", nil)
 			return nil
 		},
 	}

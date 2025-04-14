@@ -4,6 +4,7 @@ import (
 	"fmt"
 	g "github.com/faelmori/gastype/internal/globals"
 	m "github.com/faelmori/gastype/internal/manager"
+	"github.com/faelmori/kubex-interfaces/module"
 	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 )
@@ -28,31 +29,34 @@ func commandCheckType() *cobra.Command {
 		}, false),
 		Example: `gastype check -d ./example -w 4 -o type_check_results.json`,
 		Run: func(cmd *cobra.Command, args []string) {
-			l.GetLogger("GasType")
+			lgr := l.GetLogger("GasType")
 			// Create a new configuration
-			l.Notice("Creating configuration", nil)
-			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
-				l.Error(fmt.Sprintf("Error creating configuration"), nil)
+			lgr.DebugCtx("Creating configuration", nil)
+			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile, lgr, module.RegX(
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				[]string{},
+				true,
+				cmd,
+				nil,
+			)); cfg == nil {
+				lgr.ErrorCtx(fmt.Sprintf("Error creating configuration"), nil)
 			} else {
-				l.Success("Configuration created successfully", nil)
-				// Create a new type manager
-				tc := m.NewTypeManager(cfg)
-				l.Success("Type manager created successfully", nil)
+				tc := m.NewTypeManager(cfg, lgr)
 
-				// Load the actions
-				if prepareErr := tc.PrepareActions(); prepareErr != nil {
-					l.Error(fmt.Sprintf("Error preparing actions: %s", prepareErr.Error()), nil)
-					return
-				}
-				l.Success("Actions prepared successfully", nil)
+				tc.SetNotify(true)
 
-				// Start checking the Go files
-				l.Notice("Starting type checking", nil)
 				if err := tc.StartChecking(workerCount); err != nil {
-					l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
+					lgr.ErrorCtx(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
 					return
 				}
-				l.Success("Type checking completed successfully", nil)
+
+				lgr.SuccessCtx("Type checking completed successfully", nil)
 			}
 		},
 	}
@@ -60,8 +64,8 @@ func commandCheckType() *cobra.Command {
 	// Add flags to the root command
 	checkCmd.Flags().StringVarP(&dir, "dir", "d", "./", "Directory containing Go files")
 	checkCmd.Flags().IntVarP(&workerCount, "workers", "w", 4, "Number of workers for parallel processing")
-	checkCmd.Flags().StringVarP(&outputFile, "output", "o", "type_check_results.json", "Output file for JSON results")
-	checkCmd.Flags().StringVarP(&configFile, "config", "c", "config.json", "Configuration file for email notifications")
+	checkCmd.Flags().StringVarP(&outputFile, "output", "o", "./type_check_results.json", "Output file for JSON results")
+	checkCmd.Flags().StringVarP(&configFile, "config", "c", "./config.json", "Configuration file for email notifications")
 
 	return checkCmd
 }
@@ -80,12 +84,25 @@ func commandWatch() *cobra.Command {
 		}, false),
 		Example: `gastype watch -d ./example -w 4 -o type_check_results.json`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
-				l.Error("Error creating configuration", nil)
+			lgr := l.GetLogger("GasType")
+			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile, lgr, module.RegX(
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				"gastype",
+				[]string{},
+				true,
+				cmd,
+				nil,
+			)); cfg == nil {
+				lgr.ErrorCtx("Error creating configuration", nil)
 				return
 			} else {
 				// Create a new type manager
-				tc := m.NewTypeManager(cfg)
+				tc := m.NewTypeManager(cfg, lgr)
 
 				// Set the email notifications
 				tc.SetEmail(email)
@@ -94,7 +111,7 @@ func commandWatch() *cobra.Command {
 
 				// Start checking the Go files
 				if err := tc.StartChecking(workerCount); err != nil {
-					l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
+					lgr.ErrorCtx(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
 					return
 				}
 			}
@@ -105,10 +122,10 @@ func commandWatch() *cobra.Command {
 	watch.Flags().StringVarP(&email, "email", "e", "gastype@gmail.com", "Email address for notifications")
 	watch.Flags().StringVarP(&emailToken, "token", "t", "123456", "Token for email notifications")
 	watch.Flags().BoolVarP(&notify, "notify", "n", false, "Enable email notifications")
-	watch.Flags().StringVarP(&dir, "dir", "d", "./example", "Directory containing Go files")
+	watch.Flags().StringVarP(&dir, "dir", "d", "./", "Directory containing Go files")
 	watch.Flags().IntVarP(&workerCount, "workers", "w", 4, "Number of workers for parallel processing")
-	watch.Flags().StringVarP(&outputFile, "output", "o", "type_check_results.json", "Output file for JSON results")
-	watch.Flags().StringVarP(&configFile, "config", "c", "config.json", "Configuration file for email notifications")
+	watch.Flags().StringVarP(&outputFile, "output", "o", "./type_check_results.json", "Output file for JSON results")
+	watch.Flags().StringVarP(&configFile, "config", "c", "./config.json", "Configuration file for email notifications")
 
 	return watch
 }

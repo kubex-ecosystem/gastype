@@ -5,22 +5,11 @@ import (
 	"go/types"
 )
 
-type Info struct {
-	Types        map[ast.Expr]types.TypeAndValue
-	Instances    map[*ast.Ident]types.Object
-	Defs         map[*ast.Ident]types.Object
-	Uses         map[*ast.Ident]types.Object
-	Implicits    map[ast.Node]types.Object
-	Selections   map[*ast.SelectorExpr]*types.Selection
-	Scopes       map[ast.Node]*types.Scope
-	InitOrder    []*types.Initializer
-	FileVersions map[*ast.File]string
-}
+type Info types.Info
 
-func NewInfo() *Info {
-	return &Info{
+func NewInfo() *types.Info {
+	return &types.Info{
 		Types:        make(map[ast.Expr]types.TypeAndValue),
-		Instances:    make(map[*ast.Ident]types.Object),
 		Defs:         make(map[*ast.Ident]types.Object),
 		Uses:         make(map[*ast.Ident]types.Object),
 		Implicits:    make(map[ast.Node]types.Object),
@@ -32,7 +21,6 @@ func NewInfo() *Info {
 }
 
 func (i *Info) GetTypes() map[ast.Expr]types.TypeAndValue { return i.Types }
-func (i *Info) GetInstances() map[*ast.Ident]types.Object { return i.Instances }
 func (i *Info) GetDefs() map[*ast.Ident]types.Object      { return i.Defs }
 func (i *Info) GetUses() map[*ast.Ident]types.Object      { return i.Uses }
 func (i *Info) GetImplicits() map[ast.Node]types.Object   { return i.Implicits }
@@ -44,11 +32,8 @@ func (i *Info) GetInitOrder() []*types.Initializer    { return i.InitOrder }
 func (i *Info) GetFileVersions() map[*ast.File]string { return i.FileVersions }
 
 func (i *Info) SetTypes(types map[ast.Expr]types.TypeAndValue) { i.Types = types }
-func (i *Info) SetInstances(instances map[*ast.Ident]types.Object) {
-	i.Instances = instances
-}
-func (i *Info) SetDefs(defs map[*ast.Ident]types.Object) { i.Defs = defs }
-func (i *Info) SetUses(uses map[*ast.Ident]types.Object) { i.Uses = uses }
+func (i *Info) SetDefs(defs map[*ast.Ident]types.Object)       { i.Defs = defs }
+func (i *Info) SetUses(uses map[*ast.Ident]types.Object)       { i.Uses = uses }
 func (i *Info) SetImplicits(implicits map[ast.Node]types.Object) {
 	i.Implicits = implicits
 }
@@ -61,12 +46,7 @@ func (i *Info) SetFileVersions(fileVersions map[*ast.File]string) {
 	i.FileVersions = fileVersions
 }
 
-func (i *Info) AddType(key ast.Expr, value types.TypeAndValue) {
-	i.Types[key] = value
-}
-func (i *Info) AddInstance(key *ast.Ident, value types.Object) {
-	i.Instances[key] = value
-}
+func (i *Info) AddType(key ast.Expr, value types.TypeAndValue) { i.Types[key] = value }
 func (i *Info) AddDef(key *ast.Ident, value types.Object) {
 	i.Defs[key] = value
 }
@@ -92,7 +72,6 @@ func (i *Info) RemoveFileVersion(key *ast.File) { delete(i.FileVersions, key) }
 func (i *Info) ClearFileVersions()              { i.FileVersions = make(map[*ast.File]string) }
 func (i *Info) Clear() {
 	i.Types = make(map[ast.Expr]types.TypeAndValue)
-	i.Instances = make(map[*ast.Ident]types.Object)
 	i.Defs = make(map[*ast.Ident]types.Object)
 	i.Uses = make(map[*ast.Ident]types.Object)
 	i.Implicits = make(map[ast.Node]types.Object)
