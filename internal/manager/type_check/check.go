@@ -1,4 +1,4 @@
-package globals
+package type_check
 
 import (
 	t "github.com/faelmori/gastype/types"
@@ -9,9 +9,9 @@ type CheckProcess struct {
 	Worker     t.IWorker
 	Packages   []string
 	Config     t.IConfig
-	ChanResult chan t.IResult
 	ChanError  chan error
 	ChanDone   chan bool
+	ChanResult chan TypeCheckDetails
 	Logger     l.Logger
 }
 
@@ -23,16 +23,16 @@ func NewCheckProcess(worker t.IWorker, packages []string, config t.IConfig, logg
 		Worker:     worker,
 		Packages:   packages,
 		Config:     config,
-		ChanResult: make(chan t.IResult, 50),
+		ChanResult: make(chan TypeCheckDetails, 50),
 		ChanError:  make(chan error, 50),
 		ChanDone:   make(chan bool, 50),
 		Logger:     logger,
 	}
 }
 
-func (p *CheckProcess) WatchResults() t.IResult {
+func (p *CheckProcess) WatchResults() TypeCheckDetails {
 	if p.ChanResult == nil {
-		p.ChanResult = make(chan t.IResult, 50)
+		p.ChanResult = make(chan TypeCheckDetails, 50)
 	}
 	return <-p.ChanResult
 }
@@ -70,9 +70,9 @@ func (p *CheckProcess) GetConfig() t.IConfig {
 	}
 	return p.Config
 }
-func (p *CheckProcess) GetChanResult() chan t.IResult {
+func (p *CheckProcess) GetChanResult() chan TypeCheckDetails {
 	if p.ChanResult == nil {
-		p.ChanResult = make(chan t.IResult, 50)
+		p.ChanResult = make(chan TypeCheckDetails, 50)
 	}
 	return p.ChanResult
 }
@@ -116,7 +116,7 @@ func (p *CheckProcess) SetConfig(config t.IConfig) {
 	}
 	p.Config = config
 }
-func (p *CheckProcess) SetChanResult(chanResult chan t.IResult) {
+func (p *CheckProcess) SetChanResult(chanResult chan TypeCheckDetails) {
 	if chanResult == nil {
 		p.Logger.ErrorCtx("ChanResult is nil", nil)
 		return

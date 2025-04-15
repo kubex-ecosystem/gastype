@@ -14,7 +14,6 @@ import (
 	"time"
 )
 
-// TypeManager with corrections
 type TypeManager struct {
 	mu            sync.RWMutex
 	notifierChan  chan interface{}
@@ -31,7 +30,6 @@ type TypeManager struct {
 	isRunning     bool
 }
 
-// NewTypeManager creates a new instance
 func NewTypeManager(cfg t.IConfig, logger l.Logger) t.ITypeManager {
 	if logger == nil {
 		if cfg.GetLogger() != nil {
@@ -60,8 +58,6 @@ func NewTypeManager(cfg t.IConfig, logger l.Logger) t.ITypeManager {
 	}
 }
 
-// Getters
-
 func (tm *TypeManager) GetWorkerManager() t.IWorkerManager {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
@@ -82,7 +78,6 @@ func (tm *TypeManager) SetWorkerManager(wm t.IWorkerManager) {
 	}
 	tm.workerManager = wm
 }
-
 func (tm *TypeManager) SetWorkerPool(wp t.IWorkerPool) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
@@ -103,7 +98,6 @@ func (tm *TypeManager) GetWorkerPool() t.IWorkerPool {
 	}
 	return tm.workerPool
 }
-
 func (tm *TypeManager) GetNotifierChan() chan interface{} {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
@@ -179,9 +173,6 @@ func (tm *TypeManager) IsRunning() bool {
 
 	return tm.isRunning
 }
-
-// Setters
-
 func (tm *TypeManager) SetNotifierChan(notifierChan chan interface{}) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
@@ -248,7 +239,6 @@ func (tm *TypeManager) AddAction(action t.IAction) {
 	tm.logger.DebugCtx(fmt.Sprintf("Adding action: %s", action.GetType()), nil)
 	tm.actions = append(tm.actions, action)
 }
-
 func (tm *TypeManager) LoadConfig() error {
 	if tm.cfg == nil {
 		return fmt.Errorf("configuration not initialized")
@@ -263,6 +253,98 @@ func (tm *TypeManager) SaveConfig() error {
 }
 func (tm *TypeManager) CanNotify() bool {
 	return tm.notify && tm.notifierChan != nil
+}
+func (tm *TypeManager) SetFiles(files []string) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+	tm.files = files
+}
+func (tm *TypeManager) SetLogger(logger l.Logger) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+	if logger == nil {
+		logger = l.GetLogger("GasType")
+	}
+	tm.logger = logger
+}
+func (tm *TypeManager) StartChecking(workerCount int, background bool) error {
+	lgr := l.GetLogger("GasType")
+	if tm.GetLogger() == nil {
+		tm.logger = lgr
+	}
+	if tm.IsRunning() {
+		tm.logger.WarnCtx("TypeManager already running", nil)
+		return fmt.Errorf("manager already running")
+	}
+
+	tm.SetWorkerPool(workers.NewWorkerPool(workerCount, tm.logger))
+	tm.SetWorkerManager(NewWorkerManager(workerCount, tm.GetWorkerPool(), tm.logger))
+
+	if prepareErr := tm.PrepareActions(); prepareErr != nil {
+		tm.logger.ErrorCtx(fmt.Sprintf("Error preparing actions: %s", prepareErr.Error()), nil)
+		return prepareErr
+	}
+
+	go tm.runWorkerManager(workerCount)
+
+	if background {
+		go tm.listenResults()
+	} else {
+		tm.listenResults()
+	}
+
+	return nil
+}
+func (tm *TypeManager) StopChecking() {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	if !tm.isRunning {
+		tm.logger.WarnCtx("TypeManager is not running", nil)
+		return
+	}
+
+	if tm.workerManager != nil {
+		tm.workerManager.GetStopChannel() <- struct{}{}
+	}
+
+	if tm.workerPool != nil && tm.workerPool.IsRunning() {
+		tm.workerPool.StopWorkers()
+	}
+
+	close(tm.notifierChan)
+
+	tm.isRunning = false
+
+	tm.logger.InfoCtx("TypeManager stopped successfully", nil)
+
+	return
+}
+func (tm *TypeManager) PrepareActions() error {
+	if files, err := tm.GetFilesList(true); err != nil {
+		tm.logger.ErrorCtx(fmt.Sprintf("Error getting files list: %s", err.Error()), nil)
+		return err
+	} else {
+		tm.files = files
+	}
+
+	tm.logger.DebugCtx(fmt.Sprintf("Preparing actions for %d files", len(tm.files)), nil)
+
+	for _, file := range tm.files {
+		if file == "" {
+			tm.logger.WarnCtx("Empty file name", nil)
+			continue
+		}
+		tm.logger.DebugCtx(fmt.Sprintf("Preparing action for file: %s", file), nil)
+
+		action := a.NewTypeCheckAction(file, tm.cfg, tm.logger)
+
+		tm.AddAction(action)
+	}
+
+	tm.logger.DebugCtx(fmt.Sprintf("Actions prepared: %d", len(tm.actions)), nil)
+
+	return nil
 }
 
 func (tm *TypeManager) runWorkerManager(workerCount int) {
@@ -333,123 +415,36 @@ func (tm *TypeManager) runWorkerManager(workerCount int) {
 	tm.isRunning = true
 	tm.logger.InfoCtx("Worker manager started successfully", nil)
 }
-func (tm *TypeManager) SetFiles(files []string) {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-	tm.files = files
-}
-
-func (tm *TypeManager) SetLogger(logger l.Logger) {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-	if logger == nil {
-		logger = l.GetLogger("GasType")
-	}
-	tm.logger = logger
-}
-
-func (tm *TypeManager) StartChecking(workerCount int) error {
-	lgr := l.GetLogger("GasType")
-	if tm.GetLogger() == nil {
-		tm.logger = lgr
-	}
-	if tm.IsRunning() {
-		tm.logger.WarnCtx("TypeManager already running", nil)
-		return fmt.Errorf("manager already running")
-	}
-
-	tm.SetWorkerPool(workers.NewWorkerPool(workerCount, tm.logger))
-	tm.SetWorkerManager(NewWorkerManager(workerCount, tm.GetWorkerPool(), tm.logger))
-
-	if prepareErr := tm.PrepareActions(); prepareErr != nil {
-		tm.logger.ErrorCtx(fmt.Sprintf("Error preparing actions: %s", prepareErr.Error()), nil)
-		return prepareErr
-	}
-
-	go tm.runWorkerManager(workerCount)
-
-	go func(tm *TypeManager) {
-		tm.logger.DebugCtx("Starting notification goroutine", nil)
-		for {
-			select {
-			case msg := <-tm.notifierChan:
-				tm.logger.DebugCtx(fmt.Sprintf("Received notifier message: %v", msg), nil)
-			case <-tm.GetStopChannel():
-				tm.logger.InfoCtx("Stopping notification goroutine", nil)
-				tm.StopChecking()
-				tm.GetCancelChannel() <- struct{}{}
-				return
-			case <-tm.GetWorkerPool().GetJobChannel():
-				tm.logger.DebugCtx("Received job channel message", nil)
-				// Process job channel messages here
-			case <-tm.GetWorkerPool().GetResultChannel():
-				tm.logger.DebugCtx("Received result channel message", nil)
-				// Process result channel messages here
-			case <-tm.GetWorkerPool().GetMonitorChannel():
-				tm.logger.DebugCtx("Received monitor channel message", nil)
-				// Process monitor channel messages here
-			default:
-				time.Sleep(50 * time.Millisecond)
-			}
-		}
-	}(tm)
-
-	return nil
-}
-
-func (tm *TypeManager) StopChecking() {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
-	if !tm.isRunning {
-		tm.logger.WarnCtx("TypeManager is not running", nil)
+func (tm *TypeManager) listenResults() {
+	var wp t.IWorkerPool
+	if tm.GetWorkerPool() == nil {
+		tm.GetLogger().ErrorCtx("Worker pool not initialized", nil)
 		return
-	}
-
-	if tm.workerManager != nil {
-		tm.GetStopChannel() <- struct{}{}
-	}
-
-	if tm.GetWorkerPool().IsRunning() {
-		tm.GetWorkerPool().GetStopChannel() <- struct{}{}
-	}
-
-	close(tm.notifierChan)
-
-	tm.isRunning = false
-
-	tm.logger.InfoCtx("TypeManager stopped successfully", nil)
-
-	return
-}
-
-func (tm *TypeManager) PrepareActions() error {
-	if files, err := tm.GetFilesList(true); err != nil {
-		tm.logger.ErrorCtx(fmt.Sprintf("Error getting files list: %s", err.Error()), nil)
-		return err
 	} else {
-		tm.files = files
+		wp = tm.GetWorkerPool()
 	}
-
-	tm.logger.DebugCtx(fmt.Sprintf("Preparing actions for %d files", len(tm.files)), nil)
-
-	for _, file := range tm.files {
-		if file == "" {
-			tm.logger.WarnCtx("Empty file name", nil)
-			continue
+	for {
+		select {
+		case msg := <-tm.notifierChan:
+			tm.logger.DebugCtx(fmt.Sprintf("Received notifier message: %v", msg), nil)
+		case <-wp.GetStopChannel():
+			tm.logger.InfoCtx("Stopping notification goroutine", nil)
+			tm.StopChecking()
+			return
+		case <-wp.GetJobChannel():
+			tm.logger.DebugCtx("Received job channel message", nil)
+			// Process job channel messages here
+		case <-wp.GetResultChannel():
+			tm.logger.DebugCtx("Received result channel message", nil)
+			// Process result channel messages here
+		case <-wp.GetMonitorChannel():
+			tm.logger.DebugCtx("Received monitor channel message", nil)
+			// Process monitor channel messages here
+		default:
+			time.Sleep(50 * time.Millisecond)
 		}
-		tm.logger.DebugCtx(fmt.Sprintf("Preparing action for file: %s", file), nil)
-
-		action := a.NewTypeCheckAction(file, tm.cfg, tm.logger)
-
-		tm.AddAction(action)
 	}
-
-	tm.logger.DebugCtx(fmt.Sprintf("Actions prepared: %d", len(tm.actions)), nil)
-
-	return nil
 }
-
 func (tm *TypeManager) watchAction(action t.IAction) {
 	time.Sleep(50 * time.Millisecond)
 
@@ -469,13 +464,12 @@ func (tm *TypeManager) watchAction(action t.IAction) {
 			if tm.CanNotify() {
 				tm.GetNotifierChan() <- fmt.Sprintf("Action %s failed", action.GetType())
 			}
-		case <-tm.GetStopChannel():
-			tm.logger.InfoCtx("Stopping action goroutine", nil)
+		case <-action.GetCancelChannel():
+			tm.logger.InfoCtx("Action cancelled", nil)
 			return
+		default:
+			time.Sleep(50 * time.Millisecond)
 		}
-
-		time.Sleep(50 * time.Millisecond)
-
 		if !action.IsRunning() || action.GetStatus() == fmt.Sprintf("Completed") {
 			tm.logger.InfoCtx(fmt.Sprintf("Action %s completed", action.GetType()), nil)
 			if tm.CanNotify() {

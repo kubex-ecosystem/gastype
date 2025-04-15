@@ -4,7 +4,7 @@ import "sync"
 
 // IDefer is a struct that holds the defer function
 type IDefer interface {
-	Defer() func(f func(), args interface{}) func() error
+	Defer(action func(...interface{})) func(...interface{})
 }
 
 // IMutex is a struct that holds the mutexes

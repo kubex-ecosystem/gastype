@@ -213,11 +213,8 @@ func (wm *Worker) monitorRoutine(workerID int, chanMonitor chan t.MonitorMessage
 					wm.GetLogger().ErrorCtx(fmt.Sprintf("Worker %d error casting result to IResult: %v", workerID, result), nil)
 				}
 			}(wm, result)
-		default:
-			// Do nothing
+		case <-time.After(100 * time.Millisecond): // Timeout para evitar espera ativa
+			continue
 		}
-
-		// Sleep for a short duration to avoid busy waiting
-		time.Sleep(100 * time.Millisecond)
 	}
 }

@@ -3,7 +3,6 @@ package type_check
 import (
 	"encoding/json"
 	"fmt"
-	g "github.com/faelmori/gastype/internal/globals"
 	t "github.com/faelmori/gastype/types"
 	l "github.com/faelmori/logz"
 	"os"
@@ -53,20 +52,7 @@ func NewTypeCheckSpecInfo(info t.IInfo) TypeCheckSpecInfo {
 	if info == nil {
 		return typeCheckSpecInfo
 	}
-
-	//typeCheckSpecInfo.Functions = info.GetFunctions()
-	//typeCheckSpecInfo.GasTypeResponse = info.GetGasTypeResponse()
-	//typeCheckSpecInfo.Variables = info.GetVariables()
-	//typeCheckSpecInfo.Types = info.GetTypes()
-	//typeCheckSpecInfo.Imports = info.GetImports()
-	//typeCheckSpecInfo.Exports = info.GetExports()
-	//typeCheckSpecInfo.Constants = info.GetConstants()
-	//typeCheckSpecInfo.Interfaces = info.GetInterfaces()
-	//typeCheckSpecInfo.Structs = info.GetStructs()
-	//typeCheckSpecInfo.Enums = info.GetEnums()
-	//typeCheckSpecInfo.Methods = info.GetMethods()
-	//typeCheckSpecInfo.Routines = info.GetRoutines()
-	//typeCheckSpecInfo.GasTypeResponse = info.GetGasTypeResponse()
+	//Tirei o comentário pra caber ...rsrs
 
 	return typeCheckSpecInfo
 }
@@ -103,9 +89,9 @@ type TypeCheckSummary struct {
 	TotalPackages  int    `json:"total_packages"`
 	Successful     int    `json:"successful"`
 	Errors         int    `json:"errors"`
-	CriticalErrors int    `json:"critical_errors"` // Nova métrica
+	CriticalErrors int    `json:"critical_errors"`
 	LinesAnalyzed  int    `json:"lines_analyzed"`
-	AvgLinesPerPkg int    `json:"avg_lines_per_package"` // Média por pacote
+	AvgLinesPerPkg int    `json:"avg_lines_per_package"`
 	Resume         string `json:"resume"`
 	Score          int    `json:"score"`
 }
@@ -113,9 +99,9 @@ type TypeCheckSummary struct {
 type TypeCheckResult struct {
 	mu         sync.RWMutex
 	logger     l.Logger
-	chanResult chan t.IResult
 	chanError  chan error
 	chanDone   chan bool
+	chanResult chan TypeCheckDetails
 	worker     t.IWorker
 	config     t.IConfig
 	Summary    TypeCheckSummary   `json:"summary"`
@@ -124,7 +110,7 @@ type TypeCheckResult struct {
 	Duration   string             `json:"duration"`
 }
 
-func NewTypeCheckResult(processConfig g.CheckProcess) *TypeCheckResult {
+func NewTypeCheckResult(processConfig CheckProcess) *TypeCheckResult {
 	if processConfig.Logger == nil {
 		processConfig.Logger = l.GetLogger("GasType")
 	}
@@ -171,12 +157,11 @@ func NewTypeCheckResult(processConfig g.CheckProcess) *TypeCheckResult {
 }
 
 func (tc *TypeCheckResult) AnalyzePackage(pkgName string, lines int, astFile string) TypeCheckDetails {
-	// Simulação de análise
 	errors := make([]string, 0)
 	warnings := make([]string, 0)
 	info := []string{"Analysis completed"}
 
-	if lines < 10 { // Exemplo de condição que gera erro
+	if lines < 10 {
 		errors = append(errors, "Package too small")
 	}
 
@@ -207,28 +192,18 @@ func (tc *TypeCheckResult) UpdateSummary() {
 	tc.Summary.LinesAnalyzed = 0
 	tc.Summary.AvgLinesPerPkg = 0
 	tc.Summary.Score = 1000
+	scorePenalties := map[string]int{
+		"Success":       0,
+		"Error":         150,
+		"CriticalError": 250,
+		"Warning":       50,
+		"Unknown":       50,
+	}
 
 	for _, detail := range tc.Details {
 		tc.Summary.LinesAnalyzed += detail.Lines
-		if detail.Status == "Success" {
-			tc.Summary.Successful++
-		} else if detail.Status == "Error" {
-			tc.Summary.Errors++
-			tc.Summary.Score -= 150
-		} else if detail.Status == "CriticalError" {
-			tc.Summary.CriticalErrors++
-			tc.Summary.Score -= 250
-		} else if detail.Status == "Warning" {
-			tc.Summary.Errors++
-			tc.Summary.Score -= 50
-		} else if detail.Status == "Info" {
-			tc.Summary.Successful++
-		} else if detail.Status == "Unknown" {
-			tc.Summary.Errors++
-			tc.Summary.Score -= 50
-		} else {
-			tc.Summary.Errors++
-			tc.Summary.Score -= 100
+		if penalty, exists := scorePenalties[detail.Status]; exists {
+			tc.Summary.Score -= penalty
 		}
 		if tc.Summary.Score < 0 {
 			tc.Summary.Score = 0
@@ -321,7 +296,7 @@ func (tc *TypeCheckResult) ListenResults() {
 }
 
 func ProcessPackages(
-	processConfig g.CheckProcess,
+	processConfig CheckProcess,
 ) TypeCheckResult {
 	typeCheckResult := NewTypeCheckResult(processConfig)
 
@@ -341,6 +316,5 @@ func ProcessPackages(
 		typeCheckResult.Summary.Score,
 	)
 
-	// Save results to JSON file
 	return typeCheckResult.GenerateFinalResult()
 }

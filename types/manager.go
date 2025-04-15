@@ -28,7 +28,7 @@ type ITypeManager interface {
 	AddAction(IAction)
 	PrepareActions() error
 
-	StartChecking(int) error
+	StartChecking(int, bool) error
 	StopChecking()
 
 	LoadConfig() error

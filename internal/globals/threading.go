@@ -1,6 +1,7 @@
 package globals
 
 import (
+	u "github.com/faelmori/gastype/internal/utils"
 	t "github.com/faelmori/gastype/types"
 	"sync"
 )
@@ -87,15 +88,10 @@ func (k *Threading) UnlockFuncWithArgs(f func(interface{}), args interface{}) {
 }
 
 // Defer returns a function that will be executed when the mutex is unlocked
-func (k *Threading) Defer() func(f func(), args interface{}) func() error {
-	return func(f func(), args interface{}) func() error {
-		return func() error {
-			k.mu.Unlock()
-			if f != nil {
-				f()
-			}
-			return nil
-		}
+func (k *Threading) Defer(action func(...interface{})) func(...interface{}) {
+	return func(args ...interface{}) {
+		k.Unlock()
+		u.SafeExec(action, args...)
 	}
 }
 

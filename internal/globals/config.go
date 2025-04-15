@@ -2,6 +2,7 @@ package globals
 
 import (
 	"fmt"
+	tc "github.com/faelmori/gastype/internal/manager/type_check"
 	t "github.com/faelmori/gastype/types"
 	c "github.com/faelmori/kubex-interfaces/config"
 	m "github.com/faelmori/kubex-interfaces/module"
@@ -17,10 +18,10 @@ type Config struct {
 	workerCount int
 	workerLimit int
 	outputFile  string
-	results     []t.IResult
+	result      tc.TypeCheckResult
 	logger      l.Logger
 	chanCtl     chan interface{}
-	chanResult  chan t.IResult
+	chanResult  chan tc.CheckProcess
 	environment t.IEnvironment
 }
 
@@ -28,12 +29,19 @@ func NewConfig[T m.KubexModule](m T, logger l.Logger) t.IConfig {
 	if logger == nil {
 		logger = l.GetLogger("GasType")
 	}
+
 	cfg := &Config{
 		logger:     logger,
 		chanCtl:    make(chan interface{}, 50),
-		chanResult: make(chan t.IResult, 50),
-		results:    make([]t.IResult, 0),
+		chanResult: make(chan tc.CheckProcess, 50),
 	}
+	checkProcess := tc.NewCheckProcess(
+		nil,
+		make([]string, 0),
+		nil,
+		logger,
+	)
+
 	cfgFilePath := os.Getenv("GASTYPE_CONFIG_FILE")
 	if cfgFilePath != "" {
 		var err error
@@ -223,9 +231,10 @@ func (c *Config) SetEnvironment(environment t.IEnvironment) {
 	}
 	c.environment = environment
 }
-func (c *Config) GetResults() []t.IResult {
+func (c *Config) GetResults() g.CheckProcess {
 	if c.results == nil {
 		c.results = make([]t.IResult, 0)
 	}
+
 	return c.results
 }
