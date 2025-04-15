@@ -25,6 +25,8 @@ type TypeCheckAction struct {
 	Errors         []error
 	FileSet        *token.FileSet
 	results        map[string]g.Result
+	isRunning      bool
+	CancelChannel  chan struct{}
 	ResultsChannel chan t.IResult
 	ErrorChannel   chan error
 	DoneChannel    chan struct{}
@@ -141,6 +143,14 @@ func (tca *TypeCheckAction) GetResultsChannel() chan t.IResult {
 		tca.ResultsChannel = make(chan t.IResult, 50)
 	}
 	return tca.ResultsChannel
+}
+
+// GetCancelChannel returns the cancel channel
+func (tca *TypeCheckAction) GetCancelChannel() chan struct{} {
+	if tca.CancelChannel == nil {
+		tca.CancelChannel = make(chan struct{}, 2)
+	}
+	return tca.CancelChannel
 }
 
 // GetErrorChannel returns the error channel
