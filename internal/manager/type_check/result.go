@@ -124,7 +124,7 @@ type TypeCheckResult struct {
 	Duration   string             `json:"duration"`
 }
 
-func NewTypeCheckResult(processConfig g.ProcessConfig) *TypeCheckResult {
+func NewTypeCheckResult(processConfig g.CheckProcess) *TypeCheckResult {
 	if processConfig.Logger == nil {
 		processConfig.Logger = l.GetLogger("GasType")
 	}
@@ -321,7 +321,7 @@ func (tc *TypeCheckResult) ListenResults() {
 }
 
 func ProcessPackages(
-	processConfig g.ProcessConfig,
+	processConfig g.CheckProcess,
 ) TypeCheckResult {
 	typeCheckResult := NewTypeCheckResult(processConfig)
 

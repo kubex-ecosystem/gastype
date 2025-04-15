@@ -1,140 +1,146 @@
 package globals
 
 import (
-	"fmt"
 	t "github.com/faelmori/gastype/types"
 	l "github.com/faelmori/logz"
-	"go/ast"
-	"os"
 )
 
-type Result struct {
-	Package string    `json:"package"`            // Name of the package
-	Status  string    `json:"status"`             // Status of the type check (Success, Failed, Error)
-	Error   string    `json:"error,omitempty"`    // Error message if any
-	ASTFile *ast.File `json:"ast_file,omitempty"` // AST file if available
-	Info    t.IInfo   `json:"info,omitempty"`     // Additional information
+type CheckProcess struct {
+	Worker     t.IWorker
+	Packages   []string
+	Config     t.IConfig
+	ChanResult chan t.IResult
+	ChanError  chan error
+	ChanDone   chan bool
+	Logger     l.Logger
 }
 
-func NewResult(pkg, status string, err error, astFile *ast.File) t.IResult {
-	errorStr := ""
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
-	if err != nil {
-		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, err.Error()), map[string]interface{}{})
-		errorStr = err.Error()
-		status = "Error"
+func NewCheckProcess(worker t.IWorker, packages []string, config t.IConfig, logger l.Logger) *CheckProcess {
+	if logger == nil {
+		logger = l.GetLogger("GasType")
 	}
-	if status == "" {
-		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Status is empty"), nil)
-		status = "Error"
-	}
-	if pkg == "" {
-		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Package is empty"), nil)
-		pkg = "Unknown"
-	}
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
-	return &Result{
-		Package: pkg,
-		Status:  status,
-		Error:   errorStr,
-		ASTFile: astFile,
-		Info:    NewInfo(astFile),
+	return &CheckProcess{
+		Worker:     worker,
+		Packages:   packages,
+		Config:     config,
+		ChanResult: make(chan t.IResult, 50),
+		ChanError:  make(chan error, 50),
+		ChanDone:   make(chan bool, 50),
+		Logger:     logger,
 	}
 }
 
-func (c *Result) GetPackage() string { return c.Package }
-func (c *Result) GetStatus() string  { return c.Status }
-func (c *Result) GetError() string   { return c.Error }
-func (c *Result) GetAst() interface{} {
-	if c.ASTFile != nil {
-		return c.ASTFile
+func (p *CheckProcess) WatchResults() t.IResult {
+	if p.ChanResult == nil {
+		p.ChanResult = make(chan t.IResult, 50)
 	}
-	return nil
+	return <-p.ChanResult
 }
-func (c *Result) GetAstFile() string {
-	if c.ASTFile != nil {
-		return c.ASTFile.Name.Name
+func (p *CheckProcess) WatchErrors() error {
+	if p.ChanError == nil {
+		p.ChanError = make(chan error, 50)
 	}
-	return ""
+	return <-p.ChanError
 }
-func (c *Result) GetInfo() t.IInfo { return c.Info }
-
-func (c *Result) SetPackage(packageName string) { c.Package = packageName }
-func (c *Result) SetStatus(status string)       { c.Status = status }
-func (c *Result) SetError(err string)           { c.Error = err }
-
-func (c *Result) ToJSON(outputTarget string) string {
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to JSON %s", c.Package), nil)
-	if outputTarget == "" {
-		pwd, pwdErr := os.Getwd()
-		if pwdErr != nil {
-			l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
-			return ""
-		}
-		outputTarget = fmt.Sprintf("%s/%s.json", pwd, c.Package)
+func (p *CheckProcess) WatchDone() bool {
+	if p.ChanDone == nil {
+		p.ChanDone = make(chan bool, 50)
 	}
-	return fmt.Sprintf("%s/%s.json", outputTarget, c.Package)
-}
-func (c *Result) ToXML(outputTarget string) string {
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to XML %s", c.Package), nil)
-	if outputTarget == "" {
-		pwd, pwdErr := os.Getwd()
-		if pwdErr != nil {
-			l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
-			return ""
-		}
-		outputTarget = fmt.Sprintf("%s/%s.xml", pwd, c.Package)
-	}
-	return fmt.Sprintf("%s/%s.xml", outputTarget, c.Package)
-}
-func (c *Result) ToCSV(outputTarget string) string {
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to CSV %s", c.Package), nil)
-	if outputTarget == "" {
-		pwd, pwdErr := os.Getwd()
-		if pwdErr != nil {
-			l.ErrorCtx(fmt.Sprintf("Error getting current directory: %s", pwdErr.Error()), nil)
-			return ""
-		}
-		outputTarget = fmt.Sprintf("%s/%s.csv", pwd, c.Package)
-	}
-	return fmt.Sprintf("%s/%s.csv", outputTarget, c.Package)
-}
-func (c *Result) ToMap() map[string]interface{} {
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to map %s", c.Package), nil)
-	return map[string]interface{}{
-		"package": c.Package,
-		"status":  c.Status,
-		"error":   c.Error,
-	}
+	return <-p.ChanDone
 }
 
-func (c *Result) DataTable() error {
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to DataTable %s", c.Package), nil)
-	return nil
-}
-func (c *Result) GetStatusCode() int {
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Getting status code %s", c.Package), nil)
-	switch c.Status {
-	case "Success":
-		return 0
-	case "Failed":
-		return 1
-	case "Error":
-		return 2
-	default:
-		return 3
+func (p *CheckProcess) GetWorker() t.IWorker {
+	if p.Worker == nil {
+		p.Logger.ErrorCtx("Worker is nil", nil)
+		return nil
 	}
+	return p.Worker
 }
-func (c *Result) GetStatusText() string {
-	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Getting status text %s", c.Package), nil)
-	switch c.Status {
-	case "Success":
-		return "Success"
-	case "Failed":
-		return "Failed"
-	case "Error":
-		return "Error"
-	default:
-		return "Unknown"
+func (p *CheckProcess) GetPackages() []string {
+	if p.Packages == nil {
+		p.Logger.ErrorCtx("Packages is nil", nil)
+		return nil
 	}
+	return p.Packages
+}
+func (p *CheckProcess) GetConfig() t.IConfig {
+	if p.Config == nil {
+		p.Logger.ErrorCtx("Config is nil", nil)
+		return nil
+	}
+	return p.Config
+}
+func (p *CheckProcess) GetChanResult() chan t.IResult {
+	if p.ChanResult == nil {
+		p.ChanResult = make(chan t.IResult, 50)
+	}
+	return p.ChanResult
+}
+func (p *CheckProcess) GetChanError() chan error {
+	if p.ChanError == nil {
+		p.ChanError = make(chan error, 50)
+	}
+	return p.ChanError
+}
+func (p *CheckProcess) GetChanDone() chan bool {
+	if p.ChanDone == nil {
+		p.ChanDone = make(chan bool, 50)
+	}
+	return p.ChanDone
+}
+func (p *CheckProcess) GetLogger() l.Logger {
+	if p.Logger == nil {
+		p.Logger = l.GetLogger("GasType")
+	}
+	return p.Logger
+}
+
+func (p *CheckProcess) SetWorker(worker t.IWorker) {
+	if worker == nil {
+		p.Logger.ErrorCtx("Worker is nil", nil)
+		return
+	}
+	p.Worker = worker
+}
+func (p *CheckProcess) SetPackages(packages []string) {
+	if packages == nil {
+		p.Logger.ErrorCtx("Packages is nil", nil)
+		return
+	}
+	p.Packages = packages
+}
+func (p *CheckProcess) SetConfig(config t.IConfig) {
+	if config == nil {
+		p.Logger.ErrorCtx("Config is nil", nil)
+		return
+	}
+	p.Config = config
+}
+func (p *CheckProcess) SetChanResult(chanResult chan t.IResult) {
+	if chanResult == nil {
+		p.Logger.ErrorCtx("ChanResult is nil", nil)
+		return
+	}
+	p.ChanResult = chanResult
+}
+func (p *CheckProcess) SetChanError(chanError chan error) {
+	if chanError == nil {
+		p.Logger.ErrorCtx("ChanError is nil", nil)
+		return
+	}
+	p.ChanError = chanError
+}
+func (p *CheckProcess) SetChanDone(chanDone chan bool) {
+	if chanDone == nil {
+		p.Logger.ErrorCtx("ChanDone is nil", nil)
+		return
+	}
+	p.ChanDone = chanDone
+}
+func (p *CheckProcess) SetLogger(logger l.Logger) {
+	if logger == nil {
+		p.Logger = l.GetLogger("GasType")
+		return
+	}
+	p.Logger = logger
 }
