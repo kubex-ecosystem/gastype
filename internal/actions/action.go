@@ -8,12 +8,12 @@ import (
 // Base interface for all actions
 
 type IAction interface {
+	GetID() string
 	GetType() string
 	Execute() error
 	Cancel() error
 	CanExecute() bool
 	IsRunning() bool
-	GetID() string
 	GetResults() map[string]t.IResult
 	GetStatus() string
 	GetErrors() []error
@@ -92,5 +92,20 @@ func (a *Action) Cancel() error {
 		return nil
 	}
 	a.isRunning = false
+	return nil
+}
+func (a *Action) GetResultChannel() chan t.IResult {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return nil
+}
+func (a *Action) GetErrorChannel() chan error {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return nil
+}
+func (a *Action) GetDoneChannel() chan struct{} {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
 	return nil
 }

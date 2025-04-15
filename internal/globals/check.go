@@ -4,21 +4,25 @@ import (
 	"fmt"
 	t "github.com/faelmori/gastype/types"
 	l "github.com/faelmori/logz"
+	"go/ast"
 	"os"
 )
 
 type Result struct {
-	Package string `json:"package"`         // Name of the package
-	Status  string `json:"status"`          // Status of the type check (Success, Failed, Error)
-	Error   string `json:"error,omitempty"` // Error message if any
+	Package string    `json:"package"`            // Name of the package
+	Status  string    `json:"status"`             // Status of the type check (Success, Failed, Error)
+	Error   string    `json:"error,omitempty"`    // Error message if any
+	ASTFile *ast.File `json:"ast_file,omitempty"` // AST file if available
+	Info    t.IInfo   `json:"info,omitempty"`     // Additional information
 }
 
-func NewResult(pkg, status string, err error) t.IResult {
+func NewResult(pkg, status string, err error, astFile *ast.File) t.IResult {
 	errorStr := ""
-	l.GetLogger("GasType").NoticeCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	if err != nil {
 		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, err.Error()), map[string]interface{}{})
 		errorStr = err.Error()
+		status = "Error"
 	}
 	if status == "" {
 		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Status is empty"), nil)
@@ -28,50 +32,39 @@ func NewResult(pkg, status string, err error) t.IResult {
 		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Package is empty"), nil)
 		pkg = "Unknown"
 	}
-	if errorStr == "" {
-		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Error is empty"), nil)
-		errorStr = "No error"
-	}
-	if status == "Error" {
-		l.GetLogger("GasType").ErrorCtx(fmt.Sprintf("[ %s ] %s", pkg, "Status is Error"), nil)
-		errorStr = "Error"
-	}
-	l.GetLogger("GasType").NoticeCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("[ %s ] %s", pkg, status), map[string]interface{}{"package": pkg, "status": status})
 	return &Result{
 		Package: pkg,
 		Status:  status,
 		Error:   errorStr,
+		ASTFile: astFile,
+		Info:    NewInfo(astFile),
 	}
 }
 
-func (c *Result) GetPackage() string {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Getting package %s", c.Package), nil)
-	return c.Package
+func (c *Result) GetPackage() string { return c.Package }
+func (c *Result) GetStatus() string  { return c.Status }
+func (c *Result) GetError() string   { return c.Error }
+func (c *Result) GetAst() interface{} {
+	if c.ASTFile != nil {
+		return c.ASTFile
+	}
+	return nil
 }
-func (c *Result) GetStatus() string {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Getting status %s", c.Status), nil)
-	return c.Status
+func (c *Result) GetAstFile() string {
+	if c.ASTFile != nil {
+		return c.ASTFile.Name.Name
+	}
+	return ""
 }
-func (c *Result) GetError() string {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Getting error %s", c.Error), nil)
-	return c.Error
-}
+func (c *Result) GetInfo() t.IInfo { return c.Info }
 
-func (c *Result) SetPackage(packageName string) {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Setting package %s", packageName), nil)
-	c.Package = packageName
-}
-func (c *Result) SetStatus(status string) {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Setting status %s", status), nil)
-	c.Status = status
-}
-func (c *Result) SetError(err string) {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Setting error %s", err), nil)
-	c.Error = err
-}
+func (c *Result) SetPackage(packageName string) { c.Package = packageName }
+func (c *Result) SetStatus(status string)       { c.Status = status }
+func (c *Result) SetError(err string)           { c.Error = err }
 
 func (c *Result) ToJSON(outputTarget string) string {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to JSON %s", c.Package), nil)
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to JSON %s", c.Package), nil)
 	if outputTarget == "" {
 		pwd, pwdErr := os.Getwd()
 		if pwdErr != nil {
@@ -83,7 +76,7 @@ func (c *Result) ToJSON(outputTarget string) string {
 	return fmt.Sprintf("%s/%s.json", outputTarget, c.Package)
 }
 func (c *Result) ToXML(outputTarget string) string {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to XML %s", c.Package), nil)
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to XML %s", c.Package), nil)
 	if outputTarget == "" {
 		pwd, pwdErr := os.Getwd()
 		if pwdErr != nil {
@@ -95,7 +88,7 @@ func (c *Result) ToXML(outputTarget string) string {
 	return fmt.Sprintf("%s/%s.xml", outputTarget, c.Package)
 }
 func (c *Result) ToCSV(outputTarget string) string {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to CSV %s", c.Package), nil)
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to CSV %s", c.Package), nil)
 	if outputTarget == "" {
 		pwd, pwdErr := os.Getwd()
 		if pwdErr != nil {
@@ -107,7 +100,7 @@ func (c *Result) ToCSV(outputTarget string) string {
 	return fmt.Sprintf("%s/%s.csv", outputTarget, c.Package)
 }
 func (c *Result) ToMap() map[string]interface{} {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to map %s", c.Package), nil)
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to map %s", c.Package), nil)
 	return map[string]interface{}{
 		"package": c.Package,
 		"status":  c.Status,
@@ -116,6 +109,32 @@ func (c *Result) ToMap() map[string]interface{} {
 }
 
 func (c *Result) DataTable() error {
-	l.GetLogger("GasType").InfoCtx(fmt.Sprintf("Converting to DataTable %s", c.Package), nil)
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Converting to DataTable %s", c.Package), nil)
 	return nil
+}
+func (c *Result) GetStatusCode() int {
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Getting status code %s", c.Package), nil)
+	switch c.Status {
+	case "Success":
+		return 0
+	case "Failed":
+		return 1
+	case "Error":
+		return 2
+	default:
+		return 3
+	}
+}
+func (c *Result) GetStatusText() string {
+	l.GetLogger("GasType").DebugCtx(fmt.Sprintf("Getting status text %s", c.Package), nil)
+	switch c.Status {
+	case "Success":
+		return "Success"
+	case "Failed":
+		return "Failed"
+	case "Error":
+		return "Error"
+	default:
+		return "Unknown"
+	}
 }

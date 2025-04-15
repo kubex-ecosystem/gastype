@@ -36,9 +36,9 @@ type ITypeManager interface {
 
 	GetLogger() l.Logger
 
-	GetWorkerManager() IWorker
+	GetWorkerManager() IWorkerManager
 	GetWorkerPool() IWorkerPool
-	SetWorkerManager(IWorker)
+	SetWorkerManager(IWorkerManager)
 	SetWorkerPool(IWorkerPool)
 
 	GetFilesList(bool) ([]string, error)

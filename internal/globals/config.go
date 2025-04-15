@@ -71,7 +71,7 @@ func NewConfig[T m.KubexModule](m T, logger l.Logger) t.IConfig {
 		logger.ErrorCtx("Error setting up logger", map[string]interface{}{"error": setLoggerErr.Error()})
 		return nil
 	}
-	logger.NoticeCtx(fmt.Sprintf("Config path: %s", cfg.cfgSrv), nil)
+	//logger.DebugCtx(fmt.Sprintf("Config path: %s", cfg.cfgSrv.SaveConfig()), nil)
 	return cfg
 }
 
@@ -89,7 +89,7 @@ func NewConfigWithArgs[T m.KubexModule](dir string, workerLimit int, outputFile 
 		logger.ErrorCtx("Error loading configuration", map[string]interface{}{"error": loadErr.Error()})
 		return nil
 	} else {
-		logger.SuccessCtx("Configuration loaded successfully", nil)
+		logger.DebugCtx("Configuration loaded successfully", nil)
 		return cfg
 	}
 }
@@ -189,4 +189,43 @@ func (c *Config) GetChanCtl() chan interface{} {
 		c.chanCtl = make(chan interface{}, 50)
 	}
 	return c.chanCtl
+}
+func (c *Config) GetChanResult() chan t.IResult {
+	if c.chanResult == nil {
+		c.chanResult = make(chan t.IResult, 50)
+	}
+	return c.chanResult
+}
+func (c *Config) SetChanCtl(chanCtl chan interface{}) {
+	if chanCtl == nil {
+		c.logger.ErrorCtx("ChanCtl is not initialized", nil)
+		return
+	}
+	c.chanCtl = chanCtl
+}
+func (c *Config) SetChanResult(chanResult chan t.IResult) {
+	if chanResult == nil {
+		c.logger.ErrorCtx("ChanResult is not initialized", nil)
+		return
+	}
+	c.chanResult = chanResult
+}
+func (c *Config) GetEnvironment() t.IEnvironment {
+	if c.environment == nil {
+		c.environment = NewEnvironment()
+	}
+	return c.environment
+}
+func (c *Config) SetEnvironment(environment t.IEnvironment) {
+	if environment == nil {
+		c.logger.ErrorCtx("Environment is not initialized", nil)
+		return
+	}
+	c.environment = environment
+}
+func (c *Config) GetResults() []t.IResult {
+	if c.results == nil {
+		c.results = make([]t.IResult, 0)
+	}
+	return c.results
 }

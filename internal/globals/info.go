@@ -17,17 +17,18 @@ type Info struct {
 	FileVersions map[*ast.File]string
 }
 
-func NewInfo() *Info {
+func NewInfo(astFile *ast.File) *Info {
+	info := getFileInfoScopes(astFile)
 	return &Info{
-		Types:        make(map[ast.Expr]types.TypeAndValue),
 		Instances:    make(map[*ast.Ident]types.Object),
-		Defs:         make(map[*ast.Ident]types.Object),
-		Uses:         make(map[*ast.Ident]types.Object),
-		Implicits:    make(map[ast.Node]types.Object),
-		Selections:   make(map[*ast.SelectorExpr]*types.Selection),
-		Scopes:       make(map[ast.Node]*types.Scope),
-		InitOrder:    make([]*types.Initializer, 0),
-		FileVersions: make(map[*ast.File]string),
+		Types:        info.Types,
+		Defs:         info.Defs,
+		Uses:         info.Uses,
+		Implicits:    info.Implicits,
+		Selections:   info.Selections,
+		Scopes:       info.Scopes,
+		InitOrder:    info.InitOrder,
+		FileVersions: info.FileVersions,
 	}
 }
 
@@ -100,4 +101,67 @@ func (i *Info) Clear() {
 	i.Scopes = make(map[ast.Node]*types.Scope)
 	i.InitOrder = make([]*types.Initializer, 0)
 	i.FileVersions = make(map[*ast.File]string)
+}
+
+func getFileInfoScopes(astFile *ast.File) *types.Info {
+	info := types.Info{
+		Types:        make(map[ast.Expr]types.TypeAndValue),
+		Defs:         make(map[*ast.Ident]types.Object),
+		Uses:         make(map[*ast.Ident]types.Object),
+		Implicits:    make(map[ast.Node]types.Object),
+		Selections:   make(map[*ast.SelectorExpr]*types.Selection),
+		Scopes:       make(map[ast.Node]*types.Scope),
+		InitOrder:    make([]*types.Initializer, 0),
+		FileVersions: make(map[*ast.File]string),
+	}
+
+	// Initialize the Scopes for the AST file
+	for _, decl := range astFile.Decls {
+		if genDecl, ok := decl.(*ast.GenDecl); ok {
+			for _, spec := range genDecl.Specs {
+				if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+					info.Scopes[typeSpec.Name] = types.NewScope(nil, typeSpec.Name.NamePos, typeSpec.Pos(), typeSpec.Comment.Text())
+				}
+				if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+					for _, name := range valueSpec.Names {
+						info.Scopes[name] = types.NewScope(nil, name.NamePos, name.Pos(), valueSpec.Comment.Text())
+					}
+				}
+				if importSpec, ok := spec.(*ast.ImportSpec); ok {
+					if importSpec.Name != nil {
+						info.Scopes[importSpec.Name] = types.NewScope(nil, importSpec.Name.NamePos, importSpec.Pos(), importSpec.Comment.Text())
+					}
+				}
+				if funcDecl, ok := decl.(*ast.FuncDecl); ok {
+					if funcDecl.Name != nil {
+						info.Scopes[funcDecl.Name] = types.NewScope(nil, funcDecl.Name.NamePos, funcDecl.Pos(), "")
+					}
+				}
+				if badDecl, ok := decl.(*ast.BadDecl); ok {
+					if badDecl != nil {
+						info.Scopes[badDecl] = types.NewScope(nil, badDecl.Pos(), badDecl.Pos(), "")
+					}
+				}
+			}
+			if genDecl.Specs != nil {
+				for _, spec := range genDecl.Specs {
+					if typeSpec, ok := spec.(*ast.TypeSpec); ok {
+						info.Scopes[typeSpec.Name] = types.NewScope(nil, typeSpec.Name.NamePos, typeSpec.Pos(), typeSpec.Comment.Text())
+					}
+					if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+						for _, name := range valueSpec.Names {
+							info.Scopes[name] = types.NewScope(nil, name.NamePos, name.Pos(), valueSpec.Comment.Text())
+						}
+					}
+					if importSpec, ok := spec.(*ast.ImportSpec); ok {
+						if importSpec.Name != nil {
+							info.Scopes[importSpec.Name] = types.NewScope(nil, importSpec.Name.NamePos, importSpec.Pos(), importSpec.Comment.Text())
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return &info
 }

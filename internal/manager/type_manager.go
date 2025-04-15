@@ -3,18 +3,20 @@ package manager
 import (
 	"fmt"
 	a "github.com/faelmori/gastype/internal/actions"
+	j "github.com/faelmori/gastype/internal/jobs"
 	"github.com/faelmori/gastype/internal/manager/workers"
+	t "github.com/faelmori/gastype/types"
 	"github.com/faelmori/gastype/utils"
+	l "github.com/faelmori/logz"
 	"go/ast"
 	"net/mail"
 	"sync"
-
-	t "github.com/faelmori/gastype/types"
-	l "github.com/faelmori/logz"
+	"time"
 )
 
 // TypeManager with corrections
 type TypeManager struct {
+	mu            sync.RWMutex
 	notifierChan  chan interface{}
 	email         string
 	emailToken    string
@@ -24,10 +26,9 @@ type TypeManager struct {
 	actions       []t.IAction
 	files         []string
 	astFiles      []*ast.File
-	workerManager t.IWorker
 	workerPool    t.IWorkerPool
+	workerManager t.IWorkerManager
 	isRunning     bool
-	mu            sync.RWMutex
 }
 
 // NewTypeManager creates a new instance
@@ -61,17 +62,133 @@ func NewTypeManager(cfg t.IConfig, logger l.Logger) t.ITypeManager {
 
 // Getters
 
-func (tm *TypeManager) GetStopChannel() chan struct{} {
+func (tm *TypeManager) GetWorkerManager() t.IWorkerManager {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
 
+	if tm.workerManager == nil {
+		tm.logger.ErrorCtx("Worker manager not initialized", nil)
+		return nil
+	}
+	return tm.workerManager
+}
+func (tm *TypeManager) SetWorkerManager(wm t.IWorkerManager) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	if wm == nil {
+		tm.logger.ErrorCtx("Worker manager not initialized", nil)
+		return
+	}
+	tm.workerManager = wm
+}
+
+func (tm *TypeManager) SetWorkerPool(wp t.IWorkerPool) {
+	tm.mu.Lock()
+	defer tm.mu.Unlock()
+
+	if wp == nil {
+		tm.logger.ErrorCtx("Worker pool not initialized", nil)
+		return
+	}
+	tm.workerPool = wp
+}
+func (tm *TypeManager) GetWorkerPool() t.IWorkerPool {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	if tm.workerPool == nil {
+		tm.logger.ErrorCtx("Worker pool not initialized", nil)
+		return nil
+	}
+	return tm.workerPool
+}
+
+func (tm *TypeManager) GetJobChannel() chan t.IJob {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	if tm.workerManager == nil {
+		tm.logger.ErrorCtx("Worker manager not initialized", nil)
+		return nil
+	}
 	wp := tm.workerManager.GetWorkerPool()
 	if wp == nil {
 		tm.logger.ErrorCtx("Worker pool not initialized", nil)
 		return nil
 	}
+	return wp.GetJobChannel()
+}
+func (tm *TypeManager) GetResultsChannel() chan t.IResult {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	if tm.workerManager == nil {
+		tm.logger.ErrorCtx("Worker manager not initialized", nil)
+		return nil
+	}
+	wp := tm.workerManager.GetWorkerPool()
+	if wp == nil {
+		tm.logger.ErrorCtx("Worker pool not initialized", nil)
+		return nil
+	}
+	return wp.GetResultChannel()
+}
+func (tm *TypeManager) GetCancelChannel() chan struct{} {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	if tm.workerManager == nil {
+		tm.logger.ErrorCtx("Worker manager not initialized", nil)
+		return nil
+	}
+	wp := tm.workerManager.GetWorkerPool()
+	if wp == nil {
+		tm.logger.ErrorCtx("Worker pool not initialized", nil)
+		return nil
+	}
+	return wp.GetCancelChannel()
+}
+func (tm *TypeManager) GetStopChannel() chan struct{} {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	if tm.workerManager == nil {
+		tm.logger.ErrorCtx("Worker manager not initialized", nil)
+		return nil
+	}
+	wp := tm.workerManager.GetWorkerPool()
+	if wp == nil {
+		tm.logger.ErrorCtx("Worker pool not initialized", nil)
+		return nil
+	}
+	if wp.GetStopChannel() == nil {
+		tm.logger.ErrorCtx("Worker pool stop channel not initialized", nil)
+		return nil
+	}
 	return wp.GetStopChannel()
 }
+func (tm *TypeManager) GetFiles() []string {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	if tm.files == nil {
+		tm.logger.ErrorCtx("Files not initialized", nil)
+		return nil
+	}
+	return tm.files
+}
+func (tm *TypeManager) GetAstFiles() []*ast.File {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+
+	if tm.astFiles == nil {
+		tm.logger.ErrorCtx("AstFiles not initialized", nil)
+		return nil
+	}
+	return tm.astFiles
+}
+
 func (tm *TypeManager) GetNotifierChan() chan interface{} {
 	tm.mu.RLock()
 	defer tm.mu.RUnlock()
@@ -166,7 +283,7 @@ func (tm *TypeManager) SetEmail(email string) {
 		tm.logger.ErrorCtx(fmt.Sprintf("Invalid email format: %s", err.Error()), nil)
 		return
 	} else {
-		tm.logger.NoticeCtx(fmt.Sprintf("Email parsed successfully: %s", emailParsed), nil)
+		tm.logger.DebugCtx(fmt.Sprintf("Email parsed successfully: %s", emailParsed), nil)
 		tm.email = emailParsed.String()
 	}
 }
@@ -234,7 +351,7 @@ func (tm *TypeManager) CanNotify() bool {
 }
 
 func (tm *TypeManager) runWorkerManager(workerCount int) {
-	tm.logger.InfoCtx("Starting worker manager", nil)
+	tm.logger.DebugCtx("Starting worker manager", nil)
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
 
@@ -247,16 +364,28 @@ func (tm *TypeManager) runWorkerManager(workerCount int) {
 	if tm.workerPool.GetJobChannel() == nil {
 		tm.workerPool.SetJobChannel(make(chan t.IJob, 50))
 	}
-	if tm.workerManager.GetJobQueue() == nil {
-		tm.workerManager.SetJobQueue(make(chan t.IAction, 50))
+	if !tm.workerPool.IsRunning() {
+		tm.logger.InfoCtx(fmt.Sprintf("Worker manager starting with %d workers", workerCount), nil)
+		if setWorkerCountErr := tm.workerManager.SetWorkerCount(workerCount); setWorkerCountErr != nil {
+			tm.logger.ErrorCtx(fmt.Sprintf("Error setting worker count: %s", setWorkerCountErr.Error()), nil)
+			return
+		}
+		go tm.workerPool.StartWorkers()
+		time.Sleep(50 * time.Millisecond)
 	}
-
-	tm.logger.InfoCtx(fmt.Sprintf("Worker manager starting with %d workers", workerCount), nil)
-	go tm.workerManager.StartWorkers()
+	if !tm.workerPool.IsRunning() {
+		tm.logger.ErrorCtx("Worker pool not running", nil)
+		return
+	}
 
 	for _, action := range tm.actions {
 		if action.CanExecute() {
-			tm.workerManager.GetJobQueue() <- action
+			jb := j.NewJob(action, tm.GetCancelChannel(), nil, tm.logger)
+			tm.workerPool.SubmitJob(jb)
+			tm.logger.DebugCtx(fmt.Sprintf("Submitting job: %s", action.GetType()), nil)
+			if act, ok := action.(t.IAction); ok {
+				go tm.watchAction(act)
+			}
 		}
 	}
 
@@ -269,7 +398,7 @@ func (tm *TypeManager) runWorkerManager(workerCount int) {
 		for {
 			select {
 			case msg := <-tm.notifierChan:
-				tm.logger.NoticeCtx(fmt.Sprintf("Received notifier message: %v", msg), nil)
+				tm.logger.DebugCtx(fmt.Sprintf("Received notifier message: %v", msg), nil)
 			case <-tm.GetStopChannel():
 				tm.logger.InfoCtx("Stopping worker manager notification goroutine", nil)
 				return
@@ -282,32 +411,7 @@ func (tm *TypeManager) SetFiles(files []string) {
 	defer tm.mu.Unlock()
 	tm.files = files
 }
-func (tm *TypeManager) SetWorkerManager(wm t.IWorker) {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
 
-	if wm == nil {
-		tm.logger.ErrorCtx("Worker manager is nil", nil)
-		return
-	}
-	if wm.GetWorkerPool() == nil {
-		tm.logger.ErrorCtx("Worker pool is nil", nil)
-		return
-	}
-
-	tm.workerManager = wm
-}
-func (tm *TypeManager) SetWorkerPool(wp t.IWorkerPool) {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
-	if wp == nil {
-		tm.logger.ErrorCtx("Worker pool is nil", nil)
-		return
-	}
-
-	tm.workerPool = wp
-}
 func (tm *TypeManager) SetLogger(logger l.Logger) {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
@@ -317,38 +421,11 @@ func (tm *TypeManager) SetLogger(logger l.Logger) {
 	tm.logger = logger
 }
 
-func (tm *TypeManager) GetWorkerManager() t.IWorker {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
-	if tm.workerManager == nil {
-		tm.logger.ErrorCtx("Getting Worker manager not initialized", nil)
-		return nil
-	}
-
-	return tm.workerManager
-}
-func (tm *TypeManager) GetWorkerPool() t.IWorkerPool {
-	tm.mu.Lock()
-	defer tm.mu.Unlock()
-
-	if tm.workerPool == nil {
-		tm.logger.ErrorCtx("Worker pool not initialized", nil)
-		return nil
-	}
-
-	return tm.workerManager.GetWorkerPool()
-}
-
 func (tm *TypeManager) StartChecking(workerCount int) error {
 	lgr := l.GetLogger("GasType")
 	if tm.GetLogger() == nil {
 		tm.logger = lgr
 	}
-
-	//tm.mu.Lock()
-	//defer tm.mu.Unlock()
-
 	if tm.IsRunning() {
 		tm.logger.WarnCtx("TypeManager already running", nil)
 		return fmt.Errorf("manager already running")
@@ -364,27 +441,35 @@ func (tm *TypeManager) StartChecking(workerCount int) error {
 
 	go tm.runWorkerManager(workerCount)
 
-	if !tm.IsRunning() {
-		tm.logger.InfoCtx("Starting worker manager", nil)
-		tm.SetWorkerManager(tm.GetWorkerManager().StartWorkers())
-	}
-
-	if tm.IsRunning() {
-		for _, action := range tm.GetActions() {
-			if action.CanExecute() {
-				tm.GetWorkerManager().GetJobQueue() <- action
-			} else {
-				tm.logger.WarnCtx(fmt.Sprintf("Action %s cannot be executed", action.GetErrors()), nil)
+	go func(tm *TypeManager) {
+		tm.logger.DebugCtx("Starting notification goroutine", nil)
+		for {
+			select {
+			case msg := <-tm.notifierChan:
+				tm.logger.DebugCtx(fmt.Sprintf("Received notifier message: %v", msg), nil)
+			case <-tm.GetStopChannel():
+				tm.logger.InfoCtx("Stopping notification goroutine", nil)
+				tm.StopChecking()
+				tm.GetCancelChannel() <- struct{}{}
+				return
+			case <-tm.GetWorkerPool().GetJobChannel():
+				tm.logger.DebugCtx("Received job channel message", nil)
+				// Process job channel messages here
+			case <-tm.GetWorkerPool().GetResultChannel():
+				tm.logger.DebugCtx("Received result channel message", nil)
+				// Process result channel messages here
+			case <-tm.GetWorkerPool().GetMonitorChannel():
+				tm.logger.DebugCtx("Received monitor channel message", nil)
+				// Process monitor channel messages here
+			default:
+				time.Sleep(50 * time.Millisecond)
 			}
 		}
-	} else {
-		tm.logger.ErrorCtx("Starting Worker manager not initialized", nil)
-		return fmt.Errorf("worker manager not initialized")
-	}
+	}(tm)
 
-	tm.isRunning = true
 	return nil
 }
+
 func (tm *TypeManager) StopChecking() {
 	tm.mu.Lock()
 	defer tm.mu.Unlock()
@@ -394,10 +479,21 @@ func (tm *TypeManager) StopChecking() {
 		return
 	}
 
-	tm.workerManager.StopWorkers()
+	if tm.workerManager != nil {
+		tm.GetStopChannel() <- struct{}{}
+	}
+
+	if tm.GetWorkerPool().IsRunning() {
+		tm.GetWorkerPool().GetStopChannel() <- struct{}{}
+	}
+
 	close(tm.notifierChan)
+
 	tm.isRunning = false
+
 	tm.logger.InfoCtx("TypeManager stopped successfully", nil)
+
+	return
 }
 
 func (tm *TypeManager) PrepareActions() error {
@@ -408,27 +504,57 @@ func (tm *TypeManager) PrepareActions() error {
 		tm.files = files
 	}
 
-	tm.logger.NoticeCtx(fmt.Sprintf("Preparing actions for %d files", len(tm.files)), nil)
+	tm.logger.DebugCtx(fmt.Sprintf("Preparing actions for %d files", len(tm.files)), nil)
 
 	for _, file := range tm.files {
 		if file == "" {
 			tm.logger.WarnCtx("Empty file name", nil)
 			continue
 		}
-		tm.logger.NoticeCtx(fmt.Sprintf("Preparing action for file: %s", file), nil)
+		tm.logger.DebugCtx(fmt.Sprintf("Preparing action for file: %s", file), nil)
 
-		action := a.NewTypeCheckAction(tm.files, tm.cfg, tm.logger)
+		action := a.NewTypeCheckAction(file, tm.cfg, tm.logger)
 
 		tm.AddAction(action)
-
-		//tm.logger.NoticeCtx(fmt.Sprintf("Submitting job for file: %s", file), nil)
-		//tm.workerManager.GetJobQueue() <- action
-
-		//tm.logger.NoticeCtx(fmt.Sprintf("Preparing job for file: %s", file), nil)
-		//tm.workerPool.SubmitJob(j.NewJob(action))
 	}
 
-	tm.logger.NoticeCtx(fmt.Sprintf("Actions prepared: %d", len(tm.actions)), nil)
+	tm.logger.DebugCtx(fmt.Sprintf("Actions prepared: %d", len(tm.actions)), nil)
 
 	return nil
+}
+
+func (tm *TypeManager) watchAction(action t.IAction) {
+	time.Sleep(50 * time.Millisecond)
+
+	if tm.CanNotify() {
+		tm.GetNotifierChan() <- fmt.Sprintf("Action %s started", action.GetType())
+	}
+
+	for {
+		select {
+		case result := <-action.GetResultsChannel():
+			tm.logger.DebugCtx(fmt.Sprintf("Received result: %v", result), nil)
+			if tm.CanNotify() {
+				tm.GetNotifierChan() <- fmt.Sprintf("Action %s completed", action.GetType())
+			}
+		case err := <-action.GetErrorChannel():
+			tm.logger.ErrorCtx(fmt.Sprintf("Error: %s", err.Error()), nil)
+			if tm.CanNotify() {
+				tm.GetNotifierChan() <- fmt.Sprintf("Action %s failed", action.GetType())
+			}
+		case <-tm.GetStopChannel():
+			tm.logger.InfoCtx("Stopping action goroutine", nil)
+			return
+		}
+
+		time.Sleep(50 * time.Millisecond)
+
+		if !action.IsRunning() || action.GetStatus() == fmt.Sprintf("Completed") {
+			tm.logger.InfoCtx(fmt.Sprintf("Action %s completed", action.GetType()), nil)
+			if tm.CanNotify() {
+				tm.GetNotifierChan() <- fmt.Sprintf("Action %s completed", action.GetType())
+			}
+			return
+		}
+	}
 }

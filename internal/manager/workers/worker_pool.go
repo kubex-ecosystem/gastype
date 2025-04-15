@@ -11,10 +11,14 @@ import (
 
 // WorkerPool manages workers and their assigned jobs
 type WorkerPool struct {
+	t.IWorkerPool
+	*g.Threading
+
 	workerCount    int
 	workerLimit    int
 	workerPool     map[int]t.IWorker
 	jobChannel     chan t.IJob
+	cancelChannel  chan struct{}
 	resultChannel  chan t.IResult
 	monitorChannel chan t.MonitorMessage
 	stopChannel    chan struct{}
@@ -26,6 +30,7 @@ type WorkerPool struct {
 // NewWorkerPool creates a new WorkerPool instance
 func NewWorkerPool(workerLimit int, logger l.Logger) t.IWorkerPool {
 	return &WorkerPool{
+		Threading:      g.NewThreading(),
 		workerLimit:    workerLimit,
 		jobChannel:     make(chan t.IJob, 50),
 		resultChannel:  make(chan t.IResult, 50),
@@ -37,51 +42,9 @@ func NewWorkerPool(workerLimit int, logger l.Logger) t.IWorkerPool {
 	}
 }
 
-// NewJob creates a new job and adds it to the jobChannel
-func (wp *WorkerPool) NewJob(job t.IJob) {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
-
-	if wp.jobChannel == nil {
-		wp.logger.ErrorCtx("job channel is not initialized", nil)
-		return
-	}
-
-	if job == nil {
-		wp.logger.ErrorCtx("job is nil", nil)
-		return
-	}
-
-	select {
-	case wp.jobChannel <- job:
-		wp.logger.NoticeCtx(fmt.Sprintf("Job %s created successfully", job.GetID()), nil)
-	default:
-		wp.logger.WarnCtx(fmt.Sprintf("Job %s could not be created, worker limit reached", job.GetID()), nil)
-	}
-}
-
-// SubmitJob adds a job to the jobChannel for processing
-func (wp *WorkerPool) SubmitJob(job t.IJob) {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
-
-	if wp.jobChannel == nil {
-		wp.logger.ErrorCtx("job channel is not initialized", nil)
-		return
-	}
-
-	select {
-	case wp.jobChannel <- job:
-		wp.logger.NoticeCtx(fmt.Sprintf("Job %s submitted successfully", job.GetID()), nil)
-	default:
-		wp.logger.WarnCtx(fmt.Sprintf("Job %s could not be submitted, worker limit reached", job.GetID()), nil)
-	}
-}
-
-// StartWorkers initializes workers and begins processing jobs
 func (wp *WorkerPool) StartWorkers() t.IWorkerPool {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+	wp.Lock()
+	defer wp.Unlock()
 
 	if wp.isRunning {
 		wp.logger.WarnCtx("WorkerPool is already running", nil)
@@ -92,19 +55,22 @@ func (wp *WorkerPool) StartWorkers() t.IWorkerPool {
 	var wg sync.WaitGroup
 
 	for i := 0; i < wp.workerLimit; i++ {
-		wg.Add(1)
-		go func(workerID int) {
-			defer wg.Done()
-			wp.logger.NoticeCtx(fmt.Sprintf("Worker %d started", workerID), nil)
+		wp.Add(1)
+
+		go func(worker t.IWorker, dfer func()) {
+			if dfer != nil {
+				defer dfer()
+			}
+			wp.logger.NoticeCtx(fmt.Sprintf("Worker %d started", worker.GetID()), nil)
 
 			for {
 				select {
-				case <-wp.stopChannel:
-					wp.logger.NoticeCtx(fmt.Sprintf("Worker %d stopped", workerID), nil)
+				case <-worker.GetStopChannel():
+					wp.logger.NoticeCtx(fmt.Sprintf("Worker %d stopped", worker.GetID()), nil)
 					return
-				case job, ok := <-wp.jobChannel:
+				case job, ok := <-worker.GetJobQueue():
 					if !ok {
-						wp.logger.WarnCtx(fmt.Sprintf("Worker %d received nil job", workerID), nil)
+						wp.logger.WarnCtx(fmt.Sprintf("Worker %d received nil job", worker.GetID()), nil)
 						return
 					}
 
@@ -112,14 +78,10 @@ func (wp *WorkerPool) StartWorkers() t.IWorkerPool {
 						wp.logger.ErrorCtx(fmt.Sprintf("Error executing job %s: %v", job.GetID(), err), nil)
 					} else {
 						wp.logger.NoticeCtx(fmt.Sprintf("Job %s completed successfully", job.GetID()), nil)
-
-						result := g.NewResult(job.GetID(), "Success ✅", nil)
-
-						wp.resultChannel <- result
 					}
 				}
 			}
-		}(i)
+		}(wp.GetWorker(i), wp.Done)
 	}
 
 	wp.logger.NoticeCtx("All workers started successfully", nil)
@@ -134,11 +96,9 @@ func (wp *WorkerPool) StartWorkers() t.IWorkerPool {
 
 	return wp
 }
-
-// StopWorkers stops all workers and closes necessary channels
 func (wp *WorkerPool) StopWorkers() {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+	wp.Lock()
+	defer wp.Unlock()
 
 	if !wp.isRunning {
 		wp.logger.WarnCtx("WorkerPool is not running", nil)
@@ -151,11 +111,114 @@ func (wp *WorkerPool) StopWorkers() {
 	wp.logger.NoticeCtx("WorkerPool stopped successfully", nil)
 }
 
-// Getters
+func (wp *WorkerPool) GetWorker(workerID int) t.IWorker {
+	wp.RLock()
+	defer wp.RUnlock()
+	if _, ok := wp.workerPool[workerID]; !ok {
+		wp.workerPool[workerID] = NewWorker(workerID, wp.GetStopChannel(), wp.logger)
+	}
+	return wp.workerPool[workerID]
+}
+func (wp *WorkerPool) GetWorkerPool() t.IWorkerPool {
+	wp.RLock()
+	defer wp.RUnlock()
+	return wp
+}
+
+func (wp *WorkerPool) GetStopChannel() chan struct{} {
+	wp.RLock()
+	defer wp.RUnlock()
+	return wp.stopChannel
+}
+func (wp *WorkerPool) SetStopChannel(stopChannel chan struct{}) {
+	wp.Lock()
+	defer wp.Unlock()
+	if stopChannel == nil {
+		wp.logger.ErrorCtx("stop channel is nil", nil)
+		return
+	}
+	wp.stopChannel = stopChannel
+}
+
+func (wp *WorkerPool) GetCancelChannel() chan struct{} {
+	wp.RLock()
+	defer wp.RUnlock()
+	return wp.cancelChannel
+}
+func (wp *WorkerPool) SetCancelChannel(cancelChannel chan struct{}) {
+	wp.Lock()
+	defer wp.Unlock()
+	if cancelChannel == nil {
+		wp.logger.ErrorCtx("cancel channel is nil", nil)
+		return
+	}
+	wp.cancelChannel = cancelChannel
+}
+
+func (wp *WorkerPool) GetMonitorChannel() chan t.MonitorMessage {
+	wp.RLock()
+	defer wp.RUnlock()
+	return wp.monitorChannel
+}
+func (wp *WorkerPool) SetMonitorChannel(monitorChannel chan t.MonitorMessage) {
+	wp.Lock()
+	defer wp.Unlock()
+	if monitorChannel == nil {
+		wp.logger.ErrorCtx("monitor channel is nil", nil)
+		return
+	}
+	wp.monitorChannel = monitorChannel
+}
+
+func (wp *WorkerPool) SubmitJob(job t.IJob) {
+	wp.Lock()
+	defer wp.Unlock()
+
+	if wp.jobChannel == nil {
+		wp.logger.ErrorCtx("job channel is not initialized", nil)
+		return
+	}
+
+	select {
+	case wp.jobChannel <- job:
+		wp.logger.NoticeCtx(fmt.Sprintf("Job %s submitted successfully", job.GetID()), nil)
+	default:
+		wp.logger.WarnCtx(fmt.Sprintf("Job %s could not be submitted, worker limit reached", job.GetID()), nil)
+	}
+}
+func (wp *WorkerPool) GetJobChannel() chan t.IJob {
+	wp.RLock()
+	defer wp.RUnlock()
+	return wp.jobChannel
+}
+func (wp *WorkerPool) SetJobChannel(jobChannel chan t.IJob) {
+	wp.Lock()
+	defer wp.Unlock()
+	if jobChannel == nil {
+		wp.logger.ErrorCtx("job channel is nil", nil)
+		return
+	}
+	wp.jobChannel = jobChannel
+}
+
+func (wp *WorkerPool) GetResultChannel() chan t.IResult {
+	wp.RLock()
+	defer wp.RUnlock()
+	return wp.resultChannel
+}
+func (wp *WorkerPool) SetResultChannel(resultChannel chan t.IResult) {
+	wp.Lock()
+	defer wp.Unlock()
+	if resultChannel == nil {
+		wp.logger.ErrorCtx("result channel is nil", nil)
+		return
+	}
+	wp.resultChannel = resultChannel
+}
 
 func (wp *WorkerPool) GetBuffersSize() int {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
+	wp.RLock()
+	defer wp.RUnlock()
 	if wp.jobChannel == nil || wp.resultChannel == nil || wp.monitorChannel == nil {
 		wp.logger.ErrorCtx("One of the channels is not initialized", nil)
 		return 0
@@ -167,9 +230,9 @@ func (wp *WorkerPool) GetBuffersSize() int {
 	}
 	return len(wp.jobChannel) + len(wp.resultChannel) + len(wp.monitorChannel)
 }
-func (wp *WorkerPool) AjustBufferSize(autoSize bool, size int) {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+func (wp *WorkerPool) AdjustBufferSize(autoSize bool, size int) {
+	wp.Lock()
+	defer wp.Unlock()
 
 	if autoSize {
 		wp.logger.NoticeCtx("Auto-sizing buffer size", nil)
@@ -210,66 +273,24 @@ func (wp *WorkerPool) AjustBufferSize(autoSize bool, size int) {
 		wp.monitorChannel = make(chan t.MonitorMessage, size)
 	}
 }
-func (wp *WorkerPool) GetStopChannel() chan struct{} {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
-	return wp.stopChannel
-}
 func (wp *WorkerPool) GetLogger() l.Logger {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
+	wp.RLock()
+	defer wp.RUnlock()
 	return wp.logger
 }
-func (wp *WorkerPool) GetMonitorChannel() chan t.MonitorMessage {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
-	return wp.monitorChannel
-}
-func (wp *WorkerPool) GetJobChannel() chan t.IJob {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
-	return wp.jobChannel
-}
-func (wp *WorkerPool) SetJobChannel(jobChannel chan t.IJob) {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
-	if jobChannel == nil {
-		wp.logger.ErrorCtx("job channel is nil", nil)
-		return
-	}
-	wp.jobChannel = jobChannel
-}
-func (wp *WorkerPool) GetResultChannel() chan t.IResult {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
-	return wp.resultChannel
-}
 func (wp *WorkerPool) GetWorkerCount() int {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
+	wp.RLock()
+	defer wp.RUnlock()
 	return len(wp.workerPool)
 }
 func (wp *WorkerPool) GetWorkerLimit() int {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
+	wp.RLock()
+	defer wp.RUnlock()
 	return wp.workerLimit
 }
-func (wp *WorkerPool) GetWorkerPool() map[int]t.IWorker {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
-	return wp.workerPool
-}
-func (wp *WorkerPool) IsRunning() bool {
-	wp.mu.RLock()
-	defer wp.mu.RUnlock()
-	return wp.isRunning
-}
-
-// Setters
-
 func (wp *WorkerPool) SetWorkerLimit(workerLimit int) error {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
+	wp.Lock()
+	defer wp.Unlock()
 	if workerLimit <= 0 {
 		return fmt.Errorf("worker limit must be greater than 0")
 	} else if workerLimit > 100 {
@@ -280,4 +301,10 @@ func (wp *WorkerPool) SetWorkerLimit(workerLimit int) error {
 		wp.workerLimit = workerLimit
 		return nil
 	}
+}
+
+func (wp *WorkerPool) IsRunning() bool {
+	wp.RLock()
+	defer wp.RUnlock()
+	return wp.isRunning
 }

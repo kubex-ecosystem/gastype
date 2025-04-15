@@ -16,4 +16,9 @@ type IConfig interface {
 	GetLogger() l.Logger
 	SetLogger(l.Logger)
 	GetChanCtl() chan interface{}
+	GetChanResult() chan IResult
+	SetChanCtl(chan interface{})
+	SetChanResult(chan IResult)
+	GetEnvironment() IEnvironment
+	SetEnvironment(IEnvironment)
 }
