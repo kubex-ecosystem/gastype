@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "original_file": "examples/example_discord.go",
+      "transpiled_file": "examples/example_discord_bitwise.go",
+      "optimizations": [
+        {
+          "type": "BitfieldConversion",
+          "description": "Convert 8 bool fields to bitwise flags in struct DiscordConfig",
+          "location": "examples/example_discord.go:4",
+          "bytes_saved": 56,
+          "speedup_factor": 2.5
+        },
+        {
+          "type": "BitfieldConversion",
+          "description": "Convert 3 bool fields to bitwise flags in struct UserSettings",
+          "location": "examples/example_discord.go:16",
+          "bytes_saved": 21,
+          "speedup_factor": 2.5
+        }
+      ],
+      "security_features": [
+        {
+          "description": "Obfuscated struct DiscordConfig with bitwise operations",
+          "strength": "Medium"
+        },
+        {
+          "description": "Obfuscated struct UserSettings with bitwise operations",
+          "strength": "Medium"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "average_speedup_factor": 2.5,
+    "estimated_bytes_saved": 77,
+    "files_analyzed": 1,
+    "security_features": 2,
+    "timestamp": "2025-08-04",
+    "total_optimizations": 2
+  }
+}
