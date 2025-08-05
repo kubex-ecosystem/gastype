@@ -76,10 +76,13 @@ func (p *FieldAccessToBitwisePass) transformSelectorExpr(expr ast.Expr, ctx *ast
 		return nil
 	}
 
-	// Ensure we are accessing a struct field that was mapped to flags
-	if info, exists := ctx.Structs[sel.X.(*ast.Ident).Name]; exists {
+	ident := astutil.GetRootIdent(sel.X)
+	if ident == nil {
+		return nil
+	}
+
+	if info, exists := ctx.Structs[ident.Name]; exists {
 		if flagName, ok := info.FlagMapping[sel.Sel.Name]; ok {
-			// ✅ Transform to: (obj.flags & FlagStruct_Field) != 0
 			return &ast.BinaryExpr{
 				X: &ast.ParenExpr{
 					X: &ast.BinaryExpr{

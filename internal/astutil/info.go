@@ -31,17 +31,87 @@ func NewInfo() *Info {
 	}
 }
 
-func (i *Info) GetTypes() map[ast.Expr]types.TypeAndValue { return i.Types }
-func (i *Info) GetInstances() map[*ast.Ident]types.Object { return i.Instances }
-func (i *Info) GetDefs() map[*ast.Ident]types.Object      { return i.Defs }
-func (i *Info) GetUses() map[*ast.Ident]types.Object      { return i.Uses }
-func (i *Info) GetImplicits() map[ast.Node]types.Object   { return i.Implicits }
+func (i *Info) GetTypes() map[ast.Expr]types.TypeAndValue {
+	if i == nil {
+		return nil
+	}
+	if i.Types == nil {
+		return make(map[ast.Expr]types.TypeAndValue)
+	}
+	return i.Types
+}
+func (i *Info) GetInstances() map[*ast.Ident]types.Object {
+	if i == nil {
+		return nil
+	}
+	if i.Instances == nil {
+		return make(map[*ast.Ident]types.Object)
+	}
+	return i.Instances
+}
+func (i *Info) GetDefs() map[*ast.Ident]types.Object {
+	if i == nil {
+		return nil
+	}
+	if i.Defs == nil {
+		return make(map[*ast.Ident]types.Object)
+	}
+	return i.Defs
+}
+func (i *Info) GetUses() map[*ast.Ident]types.Object {
+	if i == nil {
+		return nil
+	}
+	if i.Uses == nil {
+		return make(map[*ast.Ident]types.Object)
+	}
+	return i.Uses
+}
+func (i *Info) GetImplicits() map[ast.Node]types.Object {
+	if i == nil {
+		return nil
+	}
+	if i.Implicits == nil {
+		return make(map[ast.Node]types.Object)
+	}
+	return i.Implicits
+}
 func (i *Info) GetSelections() map[*ast.SelectorExpr]*types.Selection {
+	if i == nil {
+		return nil
+	}
+	if i.Selections == nil {
+		return make(map[*ast.SelectorExpr]*types.Selection)
+	}
 	return i.Selections
 }
-func (i *Info) GetScopes() map[ast.Node]*types.Scope  { return i.Scopes }
-func (i *Info) GetInitOrder() []*types.Initializer    { return i.InitOrder }
-func (i *Info) GetFileVersions() map[*ast.File]string { return i.FileVersions }
+func (i *Info) GetScopes() map[ast.Node]*types.Scope {
+	if i == nil {
+		return nil
+	}
+	if i.Scopes == nil {
+		return make(map[ast.Node]*types.Scope)
+	}
+	return i.Scopes
+}
+func (i *Info) GetInitOrder() []*types.Initializer {
+	if i == nil {
+		return nil
+	}
+	if i.InitOrder == nil {
+		return make([]*types.Initializer, 0)
+	}
+	return i.InitOrder
+}
+func (i *Info) GetFileVersions() map[*ast.File]string {
+	if i == nil {
+		return nil
+	}
+	if i.FileVersions == nil {
+		return make(map[*ast.File]string)
+	}
+	return i.FileVersions
+}
 
 func (i *Info) SetTypes(types map[ast.Expr]types.TypeAndValue) { i.Types = types }
 func (i *Info) SetInstances(instances map[*ast.Ident]types.Object) {
