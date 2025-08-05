@@ -51,15 +51,15 @@ func (acg *AdvancedCodeGenerator) GenerateAdvancedCode(filename string, contexts
 		if context.Transpilable {
 			switch context.Type {
 			case "struct":
-				output.WriteString(acg.generateOptimizedStruct(context))
+				output.WriteString(acg.GenerateOptimizedStruct(context))
 			case "function":
-				output.WriteString(acg.generateOptimizedFunction(context))
+				output.WriteString(acg.GenerateOptimizedFunction(context))
 			case "auth_logic":
-				output.WriteString(acg.generateObfuscatedAuth(context))
+				output.WriteString(acg.GenerateObfuscatedAuth(context))
 			case "if_chain":
-				output.WriteString(acg.generateJumpTable(context))
+				output.WriteString(acg.GenerateJumpTable(context))
 			case "switch":
-				output.WriteString(acg.generateBitwiseSwitch(context))
+				output.WriteString(acg.GenerateBitwiseSwitch(context))
 			}
 		}
 	}
@@ -202,8 +202,8 @@ func (acg *AdvancedCodeGenerator) generateObfuscatedUtilities() string {
 	return output.String()
 }
 
-// generateOptimizedStruct gera struct otimizada (já implementado, mas aprimorado)
-func (acg *AdvancedCodeGenerator) generateOptimizedStruct(context LogicalContext) string {
+// GenerateOptimizedStruct gera struct otimizada (já implementado, mas aprimorado)
+func (acg *AdvancedCodeGenerator) GenerateOptimizedStruct(context LogicalContext) string {
 	var output strings.Builder
 
 	structName := context.Name
@@ -242,8 +242,8 @@ func (acg *AdvancedCodeGenerator) generateOptimizedStruct(context LogicalContext
 	return output.String()
 }
 
-// generateObfuscatedAuth gera autenticação obfuscada (como no manifesto)
-func (acg *AdvancedCodeGenerator) generateObfuscatedAuth(context LogicalContext) string {
+// GenerateObfuscatedAuth gera autenticação obfuscada (como no manifesto)
+func (acg *AdvancedCodeGenerator) GenerateObfuscatedAuth(context LogicalContext) string {
 	var output strings.Builder
 
 	originalName := context.Name
@@ -265,8 +265,8 @@ func (acg *AdvancedCodeGenerator) generateObfuscatedAuth(context LogicalContext)
 	return output.String()
 }
 
-// generateJumpTable gera jump table para if/else chains
-func (acg *AdvancedCodeGenerator) generateJumpTable(context LogicalContext) string {
+// GenerateJumpTable gera jump table para if/else chains
+func (acg *AdvancedCodeGenerator) GenerateJumpTable(context LogicalContext) string {
 	var output strings.Builder
 
 	jumpTableName := acg.obfuscateName("jumpTable_" + context.Name)
@@ -297,8 +297,8 @@ func (acg *AdvancedCodeGenerator) generateJumpTable(context LogicalContext) stri
 	return output.String()
 }
 
-// generateBitwiseSwitch gera switch otimizado com bitwise
-func (acg *AdvancedCodeGenerator) generateBitwiseSwitch(context LogicalContext) string {
+// GenerateBitwiseSwitch gera switch otimizado com bitwise
+func (acg *AdvancedCodeGenerator) GenerateBitwiseSwitch(context LogicalContext) string {
 	var output strings.Builder
 
 	switchName := acg.obfuscateName("bitwiseSwitch_" + context.Name)
@@ -320,8 +320,8 @@ func (acg *AdvancedCodeGenerator) generateBitwiseSwitch(context LogicalContext) 
 	return output.String()
 }
 
-// generateOptimizedFunction gera função otimizada
-func (acg *AdvancedCodeGenerator) generateOptimizedFunction(context LogicalContext) string {
+// GenerateOptimizedFunction gera função otimizada
+func (acg *AdvancedCodeGenerator) GenerateOptimizedFunction(context LogicalContext) string {
 	var output strings.Builder
 
 	originalName := context.Name
