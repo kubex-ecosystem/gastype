@@ -32,6 +32,28 @@ func (p *StringObfuscatePass) Apply(file *ast.File, fset *token.FileSet, ctx *Tr
 		}
 	}
 
+	// Track const declarations to skip obfuscating const strings
+	constStrings := make(map[*ast.BasicLit]bool)
+	for _, decl := range file.Decls {
+		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.CONST {
+			ast.Inspect(genDecl, func(n ast.Node) bool {
+				if bl, ok := n.(*ast.BasicLit); ok && bl.Kind == token.STRING {
+					constStrings[bl] = true
+				}
+				return true
+			})
+		}
+	}
+
+	// Track struct tags to skip obfuscating them
+	structTags := make(map[*ast.BasicLit]bool)
+	ast.Inspect(file, func(n ast.Node) bool {
+		if field, ok := n.(*ast.Field); ok && field.Tag != nil {
+			structTags[field.Tag] = true
+		}
+		return true
+	})
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		bl, ok := n.(*ast.BasicLit)
 		if !ok || bl.Kind != token.STRING {
@@ -40,6 +62,16 @@ func (p *StringObfuscatePass) Apply(file *ast.File, fset *token.FileSet, ctx *Tr
 
 		// Skip import paths completely
 		if importSpecs[bl] {
+			return true
+		}
+
+		// Skip const strings to avoid compilation errors
+		if constStrings[bl] {
+			return true
+		}
+
+		// Skip struct tags to avoid compilation errors
+		if structTags[bl] {
 			return true
 		}
 

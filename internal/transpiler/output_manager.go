@@ -85,23 +85,16 @@ func (om *OutputManager) writeGoFile(dst string, f *ast.File) error {
 // rewriteImports ajusta imports locais para refletir o module path do go.mod
 // INTELLIGENT: Só modifica imports locais, preserva stdlib e externos!
 func (om *OutputManager) rewriteImports(file *ast.File) {
-	// Standard library packages - não devem ser modificados
-	stdLibs := map[string]bool{
-		"fmt": true, "os": true, "io": true, "net": true, "strings": true,
-		"strconv": true, "time": true, "log": true, "errors": true, "context": true,
-		"sync": true, "path": true, "filepath": true, "encoding": true, "json": true,
-		"bufio": true, "bytes": true, "crypto": true, "database": true, "debug": true,
-		"go": true, "hash": true, "html": true, "image": true, "index": true, "math": true,
-		"mime": true, "plugin": true, "reflect": true, "regexp": true,
-		"runtime": true, "sort": true, "syscall": true, "testing": true, "text": true,
-		"unicode": true, "unsafe": true,
-	}
-
 	for _, imp := range file.Imports {
 		path := strings.Trim(imp.Path.Value, `"`)
 
-		// Skip if it's stdlib or external package (contains .)
-		if stdLibs[path] || strings.Contains(path, ".") {
+		// 🚀 REVOLUTIONARY: Skip stdlib packages!
+		if om.isStdLib(path) {
+			continue
+		}
+
+		// Skip external packages (contains .)
+		if strings.Contains(path, ".") {
 			continue
 		}
 
@@ -116,7 +109,60 @@ func (om *OutputManager) rewriteImports(file *ast.File) {
 	}
 }
 
-// readModulePath lê o module path do go.mod
+// isStdLib detects Go standard library packages
+// GENIUS: Prevents stdlib hijacking by detecting standard packages!
+func (om *OutputManager) isStdLib(importPath string) bool {
+	// Standard library packages don't contain dots and match known patterns
+	if strings.Contains(importPath, ".") {
+		return false // External package
+	}
+
+	// Common stdlib packages (comprehensive list)
+	stdLibPackages := map[string]bool{
+		// Core packages
+		"fmt": true, "os": true, "io": true, "log": true, "errors": true,
+		"strings": true, "strconv": true, "time": true, "context": true,
+		"sync": true, "path": true, "runtime": true, "reflect": true,
+		"unsafe": true, "sort": true, "math": true, "bytes": true,
+
+		// Network packages
+		"net": true, "http": true,
+
+		// Encoding packages
+		"encoding": true, "json": true, "xml": true, "base64": true,
+
+		// Crypto packages
+		"crypto": true, "md5": true, "sha1": true, "sha256": true,
+
+		// System packages
+		"syscall": true, "signal": true,
+
+		// Testing
+		"testing": true,
+
+		// Build/compile time
+		"embed": true, "flag": true,
+
+		// Others
+		"regexp": true, "unicode": true, "bufio": true, "image": true,
+		"html": true, "text": true, "mime": true, "plugin": true,
+		"go": true, "debug": true, "hash": true, "index": true,
+		"database": true,
+	}
+
+	// Check direct match
+	if stdLibPackages[importPath] {
+		return true
+	}
+
+	// Check for nested stdlib packages (e.g., "encoding/json", "net/http")
+	parts := strings.Split(importPath, "/")
+	if len(parts) > 0 && stdLibPackages[parts[0]] {
+		return true
+	}
+
+	return false
+} // readModulePath lê o module path do go.mod
 // SMART: Descobre automaticamente o module do projeto
 func readModulePath(goModPath string) (string, error) {
 	f, err := os.Open(goModPath)
