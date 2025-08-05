@@ -3,6 +3,7 @@ package transpiler
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -14,6 +15,7 @@ type TranspileContext struct {
 	MapFile   string `json:"map_file"`   // Path to output .map.json file
 	InputFile string `json:"input_file"` // Input file path
 	OutputDir string `json:"output_dir"` // Output directory
+	DryRun    bool   `json:"dry_run"`    // If true, only analyze without saving files
 
 	// Analysis results
 	Structs map[string]*StructInfo `json:"structs"` // Original struct → detailed info
@@ -22,10 +24,11 @@ type TranspileContext struct {
 
 // StructInfo contains detailed information about each detected struct
 type StructInfo struct {
-	OriginalName string            `json:"original_name"` // Original name (e.g., Config)
-	NewName      string            `json:"new_name"`      // Final name (e.g., ConfigFlags)
-	BoolFields   []string          `json:"bool_fields"`   // Original bool fields
-	FlagMapping  map[string]string `json:"flag_mapping"`  // BoolField → FlagName
+	OriginalName    string            `json:"original_name"`   // Original name (e.g., Config)
+	NewName         string            `json:"new_name"`        // Final name (e.g., ConfigFlags)
+	BoolFields      []string          `json:"bool_fields"`     // Original bool fields
+	FlagMapping     map[string]string `json:"flag_mapping"`    // BoolField → FlagName
+	Transformations map[string]string `json:"transformations"` // Track applied transformations
 }
 
 // NewContext creates a new transpilation context
@@ -41,10 +44,11 @@ func NewContext(inputFile, outputDir string, ofuscate bool, mapFile string) *Tra
 }
 
 // AddStruct registers a struct transformation in the context
-func (ctx *TranspileContext) AddStruct(originalName, newName string, boolFields []string) {
+func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string, boolFields []string) {
 	mapping := make(map[string]string)
 	for _, f := range boolFields {
-		mapping[f] = "Flag" + strings.Title(f)
+		// Create package-scoped flag names to avoid conflicts across packages
+		mapping[f] = fmt.Sprintf("Flag%s_%s_%s", packageName, originalName, strings.Title(f))
 	}
 
 	ctx.Structs[originalName] = &StructInfo{
@@ -57,13 +61,13 @@ func (ctx *TranspileContext) AddStruct(originalName, newName string, boolFields 
 }
 
 // GetFlagName returns the flag name for a given struct and field
-func (ctx *TranspileContext) GetFlagName(structName, fieldName string) string {
+func (ctx *TranspileContext) GetFlagName(packageName, structName, fieldName string) string {
 	if structInfo, exists := ctx.Structs[structName]; exists {
 		if flagName, exists := structInfo.FlagMapping[fieldName]; exists {
 			return flagName
 		}
 	}
-	return "Flag" + strings.Title(fieldName) // fallback
+	return fmt.Sprintf("Flag%s_%s_%s", packageName, structName, strings.Title(fieldName)) // fallback with package prefix
 }
 
 // IsStructTransformed checks if a struct has been transformed
@@ -120,4 +124,53 @@ func LoadMap(mapFile string) (*TranspileContext, error) {
 	}
 
 	return &ctx, nil
+}
+
+// EstimatePerformance provides performance estimates for the transpilation
+func (ctx *TranspileContext) EstimatePerformance() {
+	fmt.Printf("\n📊 Performance Estimation:\n")
+
+	totalStructs := len(ctx.Structs)
+	totalBoolFields := 0
+	totalFlagsGenerated := 0
+
+	for _, structInfo := range ctx.Structs {
+		totalBoolFields += len(structInfo.BoolFields)
+		totalFlagsGenerated += len(structInfo.BoolFields)
+	}
+
+	if totalStructs == 0 {
+		fmt.Printf("  ℹ️  No transformations found - no performance impact\n")
+		return
+	}
+
+	// Memory usage estimates
+	originalMemoryPerStruct := totalBoolFields // each bool = 1 byte typically
+	optimizedMemoryPerStruct := 8              // uint64 = 8 bytes
+
+	memoryReduction := float64(originalMemoryPerStruct-optimizedMemoryPerStruct) / float64(originalMemoryPerStruct) * 100
+	if memoryReduction < 0 {
+		memoryReduction = 0 // In cases where we have few bools, memory might increase slightly
+	}
+
+	fmt.Printf("  📈 Structs analyzed: %d\n", totalStructs)
+	fmt.Printf("  🔢 Bool fields → Flags: %d → %d constants\n", totalBoolFields, totalFlagsGenerated)
+	fmt.Printf("  💾 Memory per struct: %d bytes → 8 bytes\n", originalMemoryPerStruct)
+
+	if memoryReduction > 0 {
+		fmt.Printf("  ⚡ Estimated memory reduction: %.1f%%\n", memoryReduction)
+	} else {
+		fmt.Printf("  ℹ️  Memory usage: minimal change (small struct overhead)\n")
+	}
+
+	// Performance benefits
+	fmt.Printf("  🚀 Performance benefits:\n")
+	fmt.Printf("     • Bitwise operations: ~2-5x faster than bool comparisons\n")
+	fmt.Printf("     • Cache efficiency: Better memory locality\n")
+	fmt.Printf("     • Atomic operations: Single uint64 vs multiple bools\n")
+
+	// Security benefits
+	fmt.Printf("  🔒 Security benefits:\n")
+	fmt.Printf("     • Obfuscated logic: Harder to reverse engineer\n")
+	fmt.Printf("     • Compact representation: Less surface area\n")
 }

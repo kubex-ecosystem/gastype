@@ -27,14 +27,15 @@ type TranspileConfig struct {
 	BackupOriginal bool   `json:"backup_original"`
 	NoObfuscate    bool   `json:"no_obfuscate"` // Stage 1: transpile without obfuscation
 	MapFile        string `json:"map_file"`     // Path to context mapping file
+
+	// Engine-specific configurations
+	DryRun       bool     `json:"dry_run"`       // Only analyze, don't save files
+	EstimatePerf bool     `json:"estimate_perf"` // Estimate performance gains
+	Passes       []string `json:"passes"`        // List of passes to apply
 }
 
 // generatePreservedMainFile preserves the original main.go structure while adding optimizations
 func generatePreservedMainFile(filename string, contexts []transpiler.LogicalContext, generator *transpiler.AdvancedCodeGenerator) (string, error) {
-	if len(contexts) == 0 {
-		// No contexts - will read original content below
-	}
-
 	// For now, we will simulate the original content
 	originalContent, err := os.ReadFile(filename)
 	if err != nil {
@@ -127,6 +128,9 @@ type FullProjectStats struct {
 func transpileCmd() *cobra.Command {
 	var config TranspileConfig
 
+	// Initialize Passes slice with revolutionary defaults
+	config.Passes = []string{"revolution"}
+
 	cmd := &cobra.Command{
 		Use:   "transpile",
 		Short: "Transpile Go code to bitwise-optimized equivalent",
@@ -183,6 +187,14 @@ Examples:
 	cmd.Flags().StringVar(&config.MapFile, "map", "",
 		"Generate context mapping JSON file for transpilation tracking")
 
+	// Engine flags
+	cmd.Flags().BoolVar(&config.DryRun, "dry-run", false,
+		"Run transpilation in dry-run mode without modifying files")
+	cmd.Flags().BoolVar(&config.EstimatePerf, "estimate-perf", false,
+		"Estimate performance impact of transpilation")
+	cmd.Flags().StringSliceVar(&config.Passes, "passes", config.Passes,
+		"Specify transpilation passes to run (comma-separated)")
+
 	// Utility flags
 	cmd.Flags().BoolVarP(&config.Verbose, "verbose", "v", false,
 		"Show detailed logs of analysis and transpilation process")
@@ -196,6 +208,11 @@ func runTranspileCommand(config *TranspileConfig) error {
 		l.Info(fmt.Sprintf("🚀 Starting GASType transpilation in mode: %s", config.Mode), nil)
 		l.Info(fmt.Sprintf("📁 Input: %s", config.InputPath), nil)
 		l.Info(fmt.Sprintf("📁 Output: %s", config.OutputPath), nil)
+	}
+
+	// Check if using new engine architecture
+	if config.DryRun || config.EstimatePerf || len(config.Passes) > 0 {
+		return runEngineTranspilation(config)
 	}
 
 	// Validate input path
@@ -1470,6 +1487,84 @@ func generateFullProjectReport(config *TranspileConfig, stats *FullProjectStats)
 	}
 
 	fmt.Printf("✅ Relatório de transpilação salvo em: %s\n", reportPath)
+	return nil
+}
+
+// runEngineTranspilation executes transpilation using the new engine architecture
+func runEngineTranspilation(config *TranspileConfig) error {
+	if config.Verbose {
+		l.Info("🎯 Using new engine architecture for transpilation", nil)
+	}
+
+	// Create transpile context
+	context := &transpiler.TranspileContext{
+		InputFile: config.InputPath,
+		OutputDir: config.OutputPath,
+		DryRun:    config.DryRun,
+		Structs:   make(map[string]*transpiler.StructInfo),
+		Flags:     make(map[string][]string),
+	}
+
+	// Add map file if specified
+	if config.MapFile != "" {
+		context.MapFile = config.MapFile
+	}
+
+	// Create engine
+	engine := transpiler.NewEngine(context)
+
+	// Add requested passes
+	for _, passName := range config.Passes {
+		switch passName {
+		case "bool-to-flags", "bool2flags":
+			engine.AddPass(&transpiler.BoolToFlagsPass{})
+		case "if-to-bitwise", "if2bitwise":
+			engine.AddPass(&transpiler.IfToBitwisePass{})
+		case "assign-to-bitwise", "assign2bitwise":
+			engine.AddPass(&transpiler.AssignToBitwisePass{})
+		case "string-obfuscate", "stringobf":
+			engine.AddPass(&transpiler.StringObfuscatePass{})
+		case "jump-table", "jumptable":
+			engine.AddPass(&transpiler.JumpTablePass{})
+		case "revolution":
+			// Add ALL passes for maximum revolution!
+			engine.AddPass(&transpiler.BoolToFlagsPass{})
+			engine.AddPass(&transpiler.IfToBitwisePass{})
+			engine.AddPass(&transpiler.AssignToBitwisePass{})
+			engine.AddPass(&transpiler.StringObfuscatePass{})
+			engine.AddPass(&transpiler.JumpTablePass{})
+		default:
+			if config.Verbose {
+				l.Info(fmt.Sprintf("⚠️ Unknown pass: %s", passName), nil)
+			}
+		}
+	}
+
+	// Performance estimation
+	if config.EstimatePerf {
+		if config.Verbose {
+			l.Info("📊 Estimating performance impact...", nil)
+		}
+		context.EstimatePerformance()
+		fmt.Printf("🚀 Performance estimation completed\n")
+	}
+
+	// Run engine
+	if config.Verbose {
+		l.Info(fmt.Sprintf("🔧 Running transpilation with %d passes", len(engine.Passes)), nil)
+	}
+
+	err := engine.Run(config.InputPath)
+	if err != nil {
+		return fmt.Errorf("engine transpilation failed: %w", err)
+	}
+
+	if config.DryRun {
+		l.Info("✅ Dry-run completed successfully (no files modified)", nil)
+	} else {
+		l.Info("✅ Engine transpilation completed successfully", nil)
+	}
+
 	return nil
 }
 
