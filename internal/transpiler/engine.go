@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"go/ast"
 	"go/parser"
-	"go/printer"
 	"go/token"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -67,8 +65,8 @@ func (e *Engine) Run(root string) error {
 
 	for _, filePath := range files {
 		fmt.Printf("🔍 Processing %s\n", filePath)
-		fset := token.NewFileSet()
-		astFile, err := parser.ParseFile(fset, filePath, nil, parser.ParseComments)
+		// 🚀 REVOLUTIONARY: Use shared FileSet from context
+		astFile, err := parser.ParseFile(e.Ctx.Fset, filePath, nil, parser.ParseComments)
 		if err != nil {
 			fmt.Printf("  ⚠️  Failed to parse %s: %v\n", filePath, err)
 			continue
@@ -77,7 +75,8 @@ func (e *Engine) Run(root string) error {
 		fileTransformed := false
 		for _, pass := range e.Passes {
 			fmt.Printf("  ⚙️  Applying pass: %s\n", pass.Name())
-			if err := pass.Apply(astFile, fset, e.Ctx); err != nil {
+			// 🚀 REVOLUTIONARY: Use shared FileSet in passes
+			if err := pass.Apply(astFile, e.Ctx.Fset, e.Ctx); err != nil {
 				return fmt.Errorf("pass %s failed on %s: %w", pass.Name(), filePath, err)
 			}
 			fileTransformed = true
@@ -85,38 +84,16 @@ func (e *Engine) Run(root string) error {
 
 		if fileTransformed {
 			transformedFiles++
-		}
-
-		if !e.Ctx.DryRun && fileTransformed {
-			// Preserve directory structure in output
-			relPath, err := filepath.Rel(root, filePath)
-			if err != nil {
-				relPath = filepath.Base(filePath)
-			}
-
-			outPath := filepath.Join(e.Ctx.OutputDir, relPath)
-			if err := os.MkdirAll(filepath.Dir(outPath), 0755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
-			}
-
-			outFile, err := os.Create(outPath)
-			if err != nil {
-				return fmt.Errorf("failed to create output file %s: %w", outPath, err)
-			}
-
-			if err := printer.Fprint(outFile, fset, astFile); err != nil {
-				outFile.Close()
-				return fmt.Errorf("failed to write transformed file %s: %w", outPath, err)
-			}
-			outFile.Close()
-
-			fmt.Printf("  ✅ Saved transformed file: %s\n", outPath)
+			// 🚀 REVOLUTIONARY: Store transformed files for OutputManager
+			e.Ctx.GeneratedFiles[filePath] = astFile
+			fmt.Printf("  ✅ File transformed and stored: %s\n", filePath)
 		}
 
 		processedFiles++
 	}
 
 	fmt.Printf("📊 Engine summary: %d files processed, %d transformed\n", processedFiles, transformedFiles)
+	fmt.Printf("🎯 Ready for OutputManager: %d files stored\n", len(e.Ctx.GeneratedFiles))
 
 	// Save context map if configured
 	if e.Ctx.MapFile != "" {

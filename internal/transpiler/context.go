@@ -4,6 +4,8 @@ package transpiler
 import (
 	"encoding/json"
 	"fmt"
+	"go/ast"
+	"go/token"
 	"os"
 	"strings"
 )
@@ -20,6 +22,10 @@ type TranspileContext struct {
 	// Analysis results
 	Structs map[string]*StructInfo `json:"structs"` // Original struct → detailed info
 	Flags   map[string][]string    `json:"flags"`   // Struct → list of generated flags
+
+	// 🚀 REVOLUTIONARY FIELDS for OutputManager
+	GeneratedFiles map[string]*ast.File `json:"-"` // File path → transpiled AST
+	Fset           *token.FileSet       `json:"-"` // Token file set for all files
 }
 
 // StructInfo contains detailed information about each detected struct
@@ -34,12 +40,14 @@ type StructInfo struct {
 // NewContext creates a new transpilation context
 func NewContext(inputFile, outputDir string, ofuscate bool, mapFile string) *TranspileContext {
 	return &TranspileContext{
-		Ofuscate:  ofuscate,
-		MapFile:   mapFile,
-		InputFile: inputFile,
-		OutputDir: outputDir,
-		Structs:   make(map[string]*StructInfo),
-		Flags:     make(map[string][]string),
+		Ofuscate:       ofuscate,
+		MapFile:        mapFile,
+		InputFile:      inputFile,
+		OutputDir:      outputDir,
+		Structs:        make(map[string]*StructInfo),
+		Flags:          make(map[string][]string),
+		GeneratedFiles: make(map[string]*ast.File), // 🚀 REVOLUTIONARY: Store transpiled files
+		Fset:           token.NewFileSet(),         // 🚀 REVOLUTIONARY: Share FileSet across all operations
 	}
 }
 

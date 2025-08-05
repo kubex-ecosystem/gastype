@@ -281,7 +281,7 @@ func (acg *AdvancedCodeGenerator) GenerateJumpTable(context LogicalContext) stri
 	}
 
 	output.WriteString("\t}\n")
-	output.WriteString(fmt.Sprintf("\tif fn, exists := table[condition]; exists {\n"))
+	output.WriteString("\tif fn, exists := table[condition]; exists {\n")
 	output.WriteString("\t\tfn()\n")
 	output.WriteString("\t}\n")
 	output.WriteString("}\n\n")
@@ -311,7 +311,7 @@ func (acg *AdvancedCodeGenerator) GenerateBitwiseSwitch(context LogicalContext) 
 		bitMask := 1 << uint64(i)
 		output.WriteString(fmt.Sprintf("\tcase selector&%d != 0:\n", bitMask))
 		output.WriteString(fmt.Sprintf("\t\t// Case %d: optimized logic\n", i))
-		output.WriteString(fmt.Sprintf("\t\t// Bitwise operation here\n"))
+		output.WriteString("\t\t// Bitwise operation here\n")
 	}
 
 	output.WriteString("\t}\n")
@@ -357,7 +357,7 @@ func (acg *AdvancedCodeGenerator) generateOptimizedMain() string {
 	setStateName := acg.obfuscateName("setState")
 	initStateName := acg.obfuscateName("SystemInit")
 
-	output.WriteString(fmt.Sprintf("\t// Initialize ultra-fast state system\n"))
+	output.WriteString("\t// Initialize ultra-fast state system\n")
 	output.WriteString(fmt.Sprintf("\t%s(%s)\n\n", setStateName, initStateName))
 
 	// Demonstração de performance
@@ -371,7 +371,7 @@ func (acg *AdvancedCodeGenerator) generateOptimizedMain() string {
 	// Exemplo de jump table
 	if len(acg.jumpTableRegistry) > 0 {
 		for tableName := range acg.jumpTableRegistry {
-			output.WriteString(fmt.Sprintf("\t// Execute ultra-fast jump table\n"))
+			output.WriteString("\t// Execute ultra-fast jump table\n")
 			output.WriteString(fmt.Sprintf("\t%s(perfState)\n", tableName))
 			break // Apenas um exemplo
 		}

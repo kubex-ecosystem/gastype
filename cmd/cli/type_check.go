@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+
 	g "github.com/faelmori/gastype/internal/globals"
 	m "github.com/faelmori/gastype/internal/manager"
 	l "github.com/faelmori/logz"
@@ -30,7 +31,7 @@ func commandCheckType() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			// Create a new configuration
 			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
-				l.Error(fmt.Sprintf("Error creating configuration"), nil)
+				l.Error("Error creating configuration", nil)
 			} else {
 
 				// Create a new type manager
