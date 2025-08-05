@@ -4,7 +4,7 @@
 validate_versions() {
     local _GO_SETUP='https://raw.githubusercontent.com/rafa-mori/gosetup/main/go.sh'
     local go_version
-    go_version=$(go version | awk '{print $3}' | tr -d 'go' || echo "")
+    go_version="$(go version | awk '{print $3}' | tr -d 'go' || echo "")"
     if [[ -z "$go_version" ]]; then
         log error "Go is not installed or not found in PATH."
         return 1
@@ -18,7 +18,7 @@ validate_versions() {
     if [[ "$go_version" != "$version_target" ]]; then
       local _go_installation_output
       if [[ -t 0 ]]; then
-        _go_installation_output="$(bash -c "$(curl -sSfL "${_GO_SETUP}")" -s --version "$version_target)"
+        _go_installation_output="$(bash -c "$(curl -sSfL "${_GO_SETUP}")" -s --version "$version_target")"
       else
         _go_installation_output="$(export NON_INTERACTIVE=true; bash -c "$(curl -sSfL "${_GO_SETUP}")" -s --version "$version_target")"
       fi
@@ -35,7 +35,7 @@ validate_versions() {
 check_dependencies() {
   for dep in "$@"; do
     if ! command -v "$dep" > /dev/null; then
-      if [[ ! $(dpkg -l --selected-only "$dep" | grep "$dep" -q >/dev/null) ]]; then
+      if [[ ! $(dpkg -l --selected-only "$dep" | grep "$dep" -q 2>/dev/null) ]]; then
         log error "$dep is not installed." true
         if [[ -z "${_NON_INTERACTIVE:-}" ]]; then
           log warn "$dep is required for this script to run." true
