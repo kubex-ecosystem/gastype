@@ -17,6 +17,8 @@ func DefaultPipeline(passes string) []TranspilePass {
 			selected = append(selected, &IfToBitwisePass{})
 		case "assign2bitwise", "assign-to-bitwise":
 			selected = append(selected, &AssignToBitwisePass{})
+		case "field2bitwise", "field-to-bitwise":
+			selected = append(selected, &FieldAccessToBitwisePass{})
 		case "stringobf", "string-obfuscate":
 			selected = append(selected, &StringObfuscatePass{})
 		case "jumptable", "jump-table":
@@ -30,11 +32,12 @@ func DefaultPipeline(passes string) []TranspilePass {
 // RevolutionPipeline returns all available passes for maximum transformation
 func RevolutionPipeline() []TranspilePass {
 	return []TranspilePass{
-		&BoolToFlagsPass{},     // Convert bool fields to bitwise flags
-		&IfToBitwisePass{},     // Convert bool conditions to bitwise checks
-		&AssignToBitwisePass{}, // Convert bool assignments to bitwise operations
-		&StringObfuscatePass{}, // Obfuscate string literals
-		&JumpTablePass{},       // Optimize if-chains to jump tables
+		&BoolToFlagsPass{},          // Convert bool fields to bitwise flags
+		&IfToBitwisePass{},          // Convert bool conditions to bitwise checks
+		&AssignToBitwisePass{},      // Convert bool assignments to bitwise operations
+		&FieldAccessToBitwisePass{}, // 🚀 REVOLUTIONARY: Convert field access to bitwise checks
+		&StringObfuscatePass{},      // Obfuscate string literals
+		&JumpTablePass{},            // Optimize if-chains to jump tables
 	}
 }
 
@@ -44,6 +47,7 @@ func GetAvailablePasses() []string {
 		"bool2flags",
 		"if2bitwise",
 		"assign2bitwise",
+		"field2bitwise", // 🚀 REVOLUTIONARY: Field access transformation
 		"stringobf",
 		"jumptable",
 	}
