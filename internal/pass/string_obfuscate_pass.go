@@ -1,19 +1,24 @@
-// Package transpiler provides StringObfuscatePass for obfuscating string literals
-package transpiler
+// Package pass provides StringObfuscatePass for obfuscating string literals
+package pass
 
 import (
 	"fmt"
 	"go/ast"
 	"go/token"
 	"strconv"
-	"strings"
+
+	stdastutil "golang.org/x/tools/go/ast/astutil"
 
 	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // StringObfuscatePass converts string literals to byte array reconstructions
-// Transforms: "password123" → string([]byte{112, 97, 115, 115, 119, 111, 114, 100, 49, 50, 51})
+// Example: "password123" → string([]byte{112,97,115,115,119,111,114,100,49,50,51})
 type StringObfuscatePass struct{}
+
+func NewStringObfuscatePass() *StringObfuscatePass {
+	return &StringObfuscatePass{}
+}
 
 func (p *StringObfuscatePass) Name() string {
 	return "StringObfuscate"
@@ -22,73 +27,71 @@ func (p *StringObfuscatePass) Name() string {
 func (p *StringObfuscatePass) Apply(file *ast.File, fset *token.FileSet, ctx *astutil.TranspileContext) error {
 	transformations := 0
 
-	// Track import declarations to skip obfuscating import paths
-	importSpecs := make(map[*ast.BasicLit]bool)
+	// ========== FASE 1: Identificação ==========
+	// Mapeia literais que não devem ser obfuscadas
+	skip := make(map[*ast.BasicLit]bool)
+
+	// Import paths
 	for _, decl := range file.Decls {
 		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
 			for _, spec := range genDecl.Specs {
 				if importSpec, ok := spec.(*ast.ImportSpec); ok && importSpec.Path != nil {
-					importSpecs[importSpec.Path] = true
+					if importSpec.Path.ValuePos.IsValid() && importSpec.Path.Value != "" {
+						basicLit := importSpec.Path
+						if basicLit != nil && basicLit.Kind == token.STRING {
+							skip[basicLit] = true
+						}
+					}
 				}
 			}
 		}
 	}
 
-	// Track const declarations to skip obfuscating const strings
-	constStrings := make(map[*ast.BasicLit]bool)
+	// Const strings
 	for _, decl := range file.Decls {
 		if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.CONST {
 			ast.Inspect(genDecl, func(n ast.Node) bool {
 				if bl, ok := n.(*ast.BasicLit); ok && bl.Kind == token.STRING {
-					constStrings[bl] = true
+					skip[bl] = true
 				}
 				return true
 			})
 		}
 	}
 
-	// Track struct tags to skip obfuscating them
-	structTags := make(map[*ast.BasicLit]bool)
+	// Struct tags
 	ast.Inspect(file, func(n ast.Node) bool {
 		if field, ok := n.(*ast.Field); ok && field.Tag != nil {
-			structTags[field.Tag] = true
+			fdTag := field.Tag.Value
+			if fdTag != "" {
+				skip[field.Tag] = true
+			}
 		}
 		return true
 	})
 
-	ast.Inspect(file, func(n ast.Node) bool {
-		bl, ok := n.(*ast.BasicLit)
+	// ========== FASE 2: Substituição ==========
+	stdastutil.Apply(file, func(cr *stdastutil.Cursor) bool {
+		bl, ok := cr.Node().(*ast.BasicLit)
 		if !ok || bl.Kind != token.STRING {
 			return true
 		}
 
-		// Skip import paths completely
-		if importSpecs[bl] {
+		// Skip casos protegidos
+		if skip[bl] {
 			return true
 		}
 
-		// Skip const strings to avoid compilation errors
-		if constStrings[bl] {
-			return true
-		}
-
-		// Skip struct tags to avoid compilation errors
-		if structTags[bl] {
-			return true
-		}
-
-		// Unquote the string to get actual value
+		// Valor puro
 		val, err := strconv.Unquote(bl.Value)
 		if err != nil {
 			return true
 		}
 
-		// Skip small strings or very common ones
+		// Regras de exclusão adicionais
 		if val == "" || len(val) < 4 {
 			return true
 		}
-
-		// Skip very common words that would look suspicious if obfuscated
 		commonWords := []string{"main", "func", "package", "import", "var", "const", "if", "else", "for", "range"}
 		for _, word := range commonWords {
 			if val == word {
@@ -96,13 +99,13 @@ func (p *StringObfuscatePass) Apply(file *ast.File, fset *token.FileSet, ctx *as
 			}
 		}
 
-		// Convert string to byte array
+		// Monta byte array
 		var byteVals []string
 		for _, b := range []byte(val) {
 			byteVals = append(byteVals, strconv.Itoa(int(b)))
 		}
 
-		// Create the obfuscated expression: string([]byte{...})
+		// Novo nó AST → string([]byte{...})
 		obfuscated := &ast.CallExpr{
 			Fun: ast.NewIdent("string"),
 			Args: []ast.Expr{
@@ -124,23 +127,19 @@ func (p *StringObfuscatePass) Apply(file *ast.File, fset *token.FileSet, ctx *as
 			},
 		}
 
-		// Replace the original string with obfuscated version
-		// We need to replace in the parent node, but this is a complex operation
-		// For now, we'll modify the Value directly as a string representation
-		bl.Value = fmt.Sprintf("string([]byte{%s})", strings.Join(byteVals, ", "))
-		bl.Kind = token.STRING // Keep as string but with obfuscated content
+		// Substitui no AST
+		cr.Replace(obfuscated)
 
 		transformations++
 		fmt.Printf("    🔒 Obfuscated string literal: %q → byte array\n", val)
 
-		_ = obfuscated // Suppress unused variable warning for now
-
 		return true
-	})
+	}, nil)
 
 	if transformations > 0 {
 		fmt.Printf("  🔄 StringObfuscatePass: %d transformations applied\n", transformations)
 	}
 
 	return nil
+
 }

@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rafa-mori/gastype/internal/transpiler"
+	"github.com/rafa-mori/gastype/internal/engine"
 )
 
 // ProjectTranspiler handles complete project transpilation
 type ProjectTranspiler struct {
-	transpiler    *transpiler.BitwiseTranspiler
-	analyzer      *transpiler.ContextAnalyzer
-	generator     *transpiler.AdvancedCodeGenerator
+	transpiler    *engine.BitwiseTranspiler
+	analyzer      *engine.ContextAnalyzer
+	generator     *engine.AdvancedCodeGenerator
 	sourceProject string
 	targetProject string
 	stats         *TranspilationStats
@@ -44,9 +44,9 @@ type TranspilationStats struct {
 // NewProjectTranspiler creates a new complete project transpiler
 func NewProjectTranspiler(sourceProject, targetProject string) *ProjectTranspiler {
 	return &ProjectTranspiler{
-		transpiler:    transpiler.NewBitwiseTranspiler(),
-		analyzer:      transpiler.NewContextAnalyzer(),
-		generator:     transpiler.NewAdvancedCodeGenerator(3), // 3 = HIGH obfuscation
+		transpiler:    engine.NewBitwiseTranspiler(),
+		analyzer:      engine.NewContextAnalyzer(),
+		generator:     engine.NewAdvancedCodeGenerator(3), // 3 = HIGH obfuscation
 		sourceProject: sourceProject,
 		targetProject: targetProject,
 		stats: &TranspilationStats{
@@ -246,10 +246,10 @@ func (pt *ProjectTranspiler) copyFile(src, dst string) error {
 }
 
 // analyzeProjectContexts analyzes the entire project for transpilable contexts
-func (pt *ProjectTranspiler) analyzeProjectContexts() (map[string][]transpiler.LogicalContext, error) {
+func (pt *ProjectTranspiler) analyzeProjectContexts() (map[string][]engine.LogicalContext, error) {
 	fmt.Printf("🧠 Analisando contextos lógicos do projeto...\n")
 
-	allContexts := make(map[string][]transpiler.LogicalContext)
+	allContexts := make(map[string][]engine.LogicalContext)
 
 	err := filepath.Walk(pt.sourceProject, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -287,7 +287,7 @@ func (pt *ProjectTranspiler) analyzeProjectContexts() (map[string][]transpiler.L
 }
 
 // transpileAllGoFiles transpiles all Go files using found contexts
-func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpiler.LogicalContext) error {
+func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]engine.LogicalContext) error {
 	fmt.Printf("⚡ Transpilando arquivos Go...\n")
 
 	err := filepath.Walk(pt.sourceProject, func(path string, info os.FileInfo, err error) error {

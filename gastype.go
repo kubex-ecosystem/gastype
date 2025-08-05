@@ -1,12 +1,14 @@
+// Package gastype provides functionalities for type checking Go code and saving results to JSON files.
 package gastype
 
 import (
 	"encoding/json"
 	"fmt"
-	t "github.com/rafa-mori/gastype/types"
 	"log"
 	"os"
 	"path/filepath"
+
+	t "github.com/rafa-mori/gastype/interfaces"
 )
 
 var ()

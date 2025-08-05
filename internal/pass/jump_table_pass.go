@@ -1,5 +1,5 @@
-// Package transpiler provides JumpTablePass for optimizing if-chains to jump tables
-package transpiler
+// Package pass provides JumpTablePass for optimizing if-chains to jump tables
+package pass
 
 import (
 	"fmt"
@@ -13,6 +13,10 @@ import (
 // Transforms: if cmd == "start" { startService() } else if cmd == "stop" { stopService() }
 // To: var cmdTable = map[string]func(){"start": startService, "stop": stopService}; if fn, ok := cmdTable[cmd]; ok { fn() }
 type JumpTablePass struct{}
+
+func NewJumpTablePass() *JumpTablePass {
+	return &JumpTablePass{}
+}
 
 func (p *JumpTablePass) Name() string {
 	return "JumpTable"

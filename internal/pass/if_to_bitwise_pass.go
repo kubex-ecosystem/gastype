@@ -1,5 +1,5 @@
-// Package transpiler provides IfToBitwisePass for converting bool conditions to bitwise checks
-package transpiler
+// Package pass provides IfToBitwisePass for converting bool conditions to bitwise checks
+package pass
 
 import (
 	"go/ast"
@@ -11,6 +11,10 @@ import (
 // IfToBitwisePass converts bool field conditions to bitwise flag checks
 // Transforms: if cfg.Debug → if cfg.flags & FlagDebug != 0
 type IfToBitwisePass struct{}
+
+func NewIfToBitwisePass() *IfToBitwisePass {
+	return &IfToBitwisePass{}
+}
 
 func (p *IfToBitwisePass) Name() string {
 	return "IfToBitwise"

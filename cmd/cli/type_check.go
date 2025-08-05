@@ -3,9 +3,9 @@ package cli
 import (
 	"fmt"
 
+	l "github.com/faelmori/logz"
 	g "github.com/rafa-mori/gastype/internal/globals"
 	m "github.com/rafa-mori/gastype/internal/manager"
-	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"
 )
 
@@ -30,25 +30,21 @@ func commandCheckType() *cobra.Command {
 		Example: `gastype check -d ./example -w 4 -o type_check_results.json`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// Create a new configuration
-			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
-				l.Error("Error creating configuration", nil)
-			} else {
+			// Create a new type manager
+			tc := m.NewTypeManager(nil)
 
-				// Create a new type manager
-				tc := m.NewTypeManager(cfg)
-
-				// Load the actions
-				if prepareErr := tc.PrepareActions(); prepareErr != nil {
-					l.Error(fmt.Sprintf("Error preparing actions: %s", prepareErr.Error()), nil)
-					return
-				}
-
-				// Start checking the Go files
-				if err := tc.StartChecking(workerCount); err != nil {
-					l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
-					return
-				}
+			// Load the actions
+			if prepareErr := tc.PrepareActions(); prepareErr != nil {
+				l.Error(fmt.Sprintf("Error preparing actions: %s", prepareErr.Error()), nil)
+				return
 			}
+
+			// Start checking the Go files
+			if err := tc.StartChecking(workerCount); err != nil {
+				l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
+				return
+			}
+
 		},
 	}
 

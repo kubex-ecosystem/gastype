@@ -1,12 +1,13 @@
+// Package utils provides utility functions and types for the project
 package utils
 
 import (
 	"fmt"
 	"sync"
 
-	g "github.com/rafa-mori/gastype/internal/globals"
-	t "github.com/rafa-mori/gastype/types"
 	l "github.com/faelmori/logz"
+	t "github.com/rafa-mori/gastype/interfaces"
+	g "github.com/rafa-mori/gastype/internal/globals"
 )
 
 // WorkerPool manages workers and their assigned jobs
@@ -119,6 +120,7 @@ func (wp *WorkerPool) StopWorkers() {
 }
 
 // Getters
+
 func (wp *WorkerPool) GetJobChannel() chan t.IJob       { return wp.jobChannel }
 func (wp *WorkerPool) GetResultChannel() chan t.IResult { return wp.resultChannel }
 func (wp *WorkerPool) GetWorkerCount() int              { return len(wp.workerPool) }
@@ -127,6 +129,7 @@ func (wp *WorkerPool) GetWorkerPool() []t.IWorker       { return wp.workerPool }
 func (wp *WorkerPool) IsRunning() bool                  { return wp.isRunning }
 
 // Setters
+
 func (wp *WorkerPool) SetWorkerLimit(workerLimit int) {
 	//wp.mu.Lock()
 	//defer wp.mu.Unlock()

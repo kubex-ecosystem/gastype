@@ -1,4 +1,4 @@
-package transpiler
+package pass
 
 import (
 	"go/ast"
@@ -10,6 +10,10 @@ import (
 // FieldAccessToBitwisePass transforms any field access to bitwise operations
 // REVOLUTIONARY: Catches field access in function arguments, returns, etc!
 type FieldAccessToBitwisePass struct{}
+
+func NewFieldAccessToBitwisePass() *FieldAccessToBitwisePass {
+	return &FieldAccessToBitwisePass{}
+}
 
 func (p *FieldAccessToBitwisePass) Name() string {
 	return "FieldAccessToBitwise"

@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	l "github.com/faelmori/logz"
+	l "github.com/rafa-mori/logz"
 	"github.com/spf13/cobra"
 )
 

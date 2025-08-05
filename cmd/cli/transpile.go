@@ -10,9 +10,10 @@ import (
 	"strings"
 	"time"
 
-	l "github.com/faelmori/logz"
 	"github.com/rafa-mori/gastype/internal/astutil"
-	"github.com/rafa-mori/gastype/internal/transpiler"
+	transpiler "github.com/rafa-mori/gastype/internal/engine"
+	"github.com/rafa-mori/gastype/internal/pass"
+	l "github.com/rafa-mori/logz"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +37,7 @@ type TranspileConfig struct {
 }
 
 // generatePreservedMainFile preserves the original main.go structure while adding optimizations
-func generatePreservedMainFile(filename string, contexts []transpiler.LogicalContext, generator *transpiler.AdvancedCodeGenerator) (string, error) {
+func generatePreservedMainFile(filename string, contexts []astutil.LogicalContext, generator *transpiler.AdvancedCodeGenerator) (string, error) {
 	// For now, we will simulate the original content
 	originalContent, err := os.ReadFile(filename)
 	if err != nil {
@@ -1508,25 +1509,25 @@ func runEngineTranspilation(config *TranspileConfig) error {
 	for _, passName := range config.Passes {
 		switch passName {
 		case "bool-to-flags", "bool2flags":
-			engine.AddPass(&transpiler.BoolToFlagsPass{})
+			engine.AddPass(pass.NewBoolToFlagsPass())
 		case "if-to-bitwise", "if2bitwise":
-			engine.AddPass(&transpiler.IfToBitwisePass{})
+			engine.AddPass(pass.NewIfToBitwisePass())
 		case "assign-to-bitwise", "assign2bitwise":
-			engine.AddPass(&transpiler.AssignToBitwisePass{})
+			engine.AddPass(pass.NewAssignToBitwisePass())
 		case "field-to-bitwise", "field2bitwise":
-			engine.AddPass(&transpiler.FieldAccessToBitwisePass{})
+			engine.AddPass(pass.NewFieldAccessToBitwisePass())
 		case "string-obfuscate", "stringobf":
-			engine.AddPass(&transpiler.StringObfuscatePass{})
+			engine.AddPass(pass.NewStringObfuscatePass())
 		case "jump-table", "jumptable":
-			engine.AddPass(&transpiler.JumpTablePass{})
+			engine.AddPass(pass.NewJumpTablePass())
 		case "revolution":
 			// Add ALL passes for maximum revolution!
-			engine.AddPass(&transpiler.BoolToFlagsPass{})
-			engine.AddPass(&transpiler.IfToBitwisePass{})
-			engine.AddPass(&transpiler.AssignToBitwisePass{})
-			engine.AddPass(&transpiler.FieldAccessToBitwisePass{}) // 🚀 REVOLUTIONARY!
-			engine.AddPass(&transpiler.StringObfuscatePass{})
-			engine.AddPass(&transpiler.JumpTablePass{})
+			engine.AddPass(pass.NewBoolToFlagsPass())
+			engine.AddPass(pass.NewIfToBitwisePass())
+			engine.AddPass(pass.NewAssignToBitwisePass())
+			engine.AddPass(pass.NewFieldAccessToBitwisePass()) // 🚀 REVOLUTIONARY!
+			engine.AddPass(pass.NewStringObfuscatePass())
+			engine.AddPass(pass.NewJumpTablePass())
 		default:
 			if config.Verbose {
 				l.Info(fmt.Sprintf("⚠️ Unknown pass: %s", passName), nil)

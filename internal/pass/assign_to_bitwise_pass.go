@@ -1,5 +1,5 @@
-// Package transpiler provides AssignToBitwisePass for converting bool assignments to bitwise operations
-package transpiler
+// Package pass provides AssignToBitwisePass for converting bool assignments to bitwise operations
+package pass
 
 import (
 	"go/ast"
@@ -12,6 +12,10 @@ import (
 // Transforms: cfg.Debug = true → cfg.flags |= FlagDebug
 // Transforms: cfg.Debug = false → cfg.flags &^= FlagDebug
 type AssignToBitwisePass struct{}
+
+func NewAssignToBitwisePass() *AssignToBitwisePass {
+	return &AssignToBitwisePass{}
+}
 
 func (p *AssignToBitwisePass) Name() string {
 	return "AssignToBitwise"
