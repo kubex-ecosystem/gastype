@@ -108,31 +108,31 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 
 		// Caso seja constante → converte para var + init()
 		if constName, isConst := constStrings[bl]; isConst {
-			// Sempre trata string-like const como var + init()
-			bl.Value = constName
-			bl.Kind = token.IDENT
 			// Valida se é alias de string
 			if !astutil.DetectStringLikeConst(&ast.ValueSpec{
 				Names:  []*ast.Ident{ast.NewIdent(constName)},
 				Values: []ast.Expr{},
 				Type:   ast.NewIdent("string"),
 			}, ctx) {
-				// Não é alias, converte para var
-				// Substitui declaração const por var
-				for _, decl := range file.Decls {
-					if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok == token.CONST {
-						for i, spec := range gd.Specs {
-							vs, ok := spec.(*ast.ValueSpec)
-							if !ok || len(vs.Names) == 0 || vs.Names[0].Name != constName {
-								continue
+				if isConst {
+					// Se for alias de string, não faz nada
+					// bl.Value = constName
+					// bl.Kind = token.IDENT
+					return true
+				} else {
+					// Não é alias, converte para var
+					// Substitui declaração const por var
+					for _, decl := range file.Decls {
+						if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok == token.CONST {
+							for i, spec := range gd.Specs {
+								vs, ok := spec.(*ast.ValueSpec)
+								if !ok || len(vs.Names) == 0 || vs.Names[0].Name != constName {
+									continue
+								}
+								gd.Tok = token.VAR
+								gd.Specs[i] = vs
+								break
 							}
-							gd.Tok = token.VAR
-							gd.Specs[i] = &ast.ValueSpec{
-								Names:  vs.Names,
-								Type:   ast.NewIdent("string"),
-								Values: []ast.Expr{},
-							}
-							break
 						}
 					}
 				}
@@ -166,12 +166,17 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 				transformations++
 				return true
 			}
+
 		}
 
-		// Caso normal → inline
-		bl.Value = fmt.Sprintf("string([]byte{%s})", strings.Join(byteVals, ", "))
-		transformations++
-		return true
+		if !bl.Kind.IsLiteral() {
+			// Caso literal → inline
+			bl.Value = fmt.Sprintf("string([]byte{%s})", strings.Join(byteVals, ", "))
+			transformations++
+			return true
+		}
+
+		return false
 	})
 
 	if len(initStmts) > 0 {
