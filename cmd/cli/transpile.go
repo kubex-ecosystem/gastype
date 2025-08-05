@@ -37,7 +37,7 @@ type TranspileConfig struct {
 }
 
 // generatePreservedMainFile preserves the original main.go structure while adding optimizations
-func generatePreservedMainFile(filename string, contexts []astutil.LogicalContext, generator *transpiler.AdvancedCodeGenerator) (string, error) {
+func generatePreservedMainFile(filename string, contexts []transpiler.LogicalContext, generator *transpiler.AdvancedCodeGenerator) (string, error) {
 	// For now, we will simulate the original content
 	originalContent, err := os.ReadFile(filename)
 	if err != nil {

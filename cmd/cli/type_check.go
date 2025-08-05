@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	l "github.com/faelmori/logz"
-	g "github.com/rafa-mori/gastype/internal/globals"
 	m "github.com/rafa-mori/gastype/internal/manager"
 	"github.com/spf13/cobra"
 )
@@ -71,24 +70,21 @@ func commandWatch() *cobra.Command {
 		}, false),
 		Example: `gastype watch -d ./example -w 4 -o type_check_results.json`,
 		Run: func(cmd *cobra.Command, args []string) {
-			if cfg := g.NewConfigWithArgs(dir, workerCount, outputFile); cfg == nil {
-				l.Error("Error creating configuration", nil)
+
+			// Create a new type manager
+			tc := m.NewTypeManager(nil)
+
+			// Set the email notifications
+			tc.SetEmail(email)
+			tc.SetEmailToken(emailToken)
+			tc.SetNotify(notify)
+
+			// Start checking the Go files
+			if err := tc.StartChecking(workerCount); err != nil {
+				l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
 				return
-			} else {
-				// Create a new type manager
-				tc := m.NewTypeManager(cfg)
-
-				// Set the email notifications
-				tc.SetEmail(email)
-				tc.SetEmailToken(emailToken)
-				tc.SetNotify(notify)
-
-				// Start checking the Go files
-				if err := tc.StartChecking(workerCount); err != nil {
-					l.Error(fmt.Sprintf("Error checking Go files: %s", err.Error()), nil)
-					return
-				}
 			}
+
 		},
 	}
 

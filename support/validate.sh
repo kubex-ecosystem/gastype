@@ -18,7 +18,7 @@ validate_versions() {
     if [[ "$go_version" != "$version_target" ]]; then
       local _go_installation_output
       if [[ -t 0 ]]; then
-        _go_installation_output="$(bash -c "$(curl -sSfL "${_GO_SETUP}")" -s --version "$version_target" >/dev/tty)"
+        _go_installation_output="$(bash -c "$(curl -sSfL "${_GO_SETUP}")" -s --version "$version_target)"
       else
         _go_installation_output="$(export NON_INTERACTIVE=true; bash -c "$(curl -sSfL "${_GO_SETUP}")" -s --version "$version_target")"
       fi
