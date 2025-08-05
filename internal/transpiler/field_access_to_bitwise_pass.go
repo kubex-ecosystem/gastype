@@ -49,7 +49,7 @@ func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ct
 
 	if transformations > 0 {
 		// Simple log for now - could be enhanced with proper logging
-		// ctx.logVerbose(fset, "🔄 FieldAccessToBitwisePass: %d transformations applied", transformations)
+		ctx.logVerbose(fset, "🔄 FieldAccessToBitwisePass: %d transformations applied", transformations)
 	}
 
 	return nil

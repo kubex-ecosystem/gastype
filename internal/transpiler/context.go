@@ -26,6 +26,9 @@ type TranspileContext struct {
 	// 🚀 REVOLUTIONARY FIELDS for OutputManager
 	GeneratedFiles map[string]*ast.File `json:"-"` // File path → transpiled AST
 	Fset           *token.FileSet       `json:"-"` // Token file set for all files
+
+	// 🔥 PACKAGE-SCOPED CONSTANTS TRACKING
+	PackageConstantsAdded map[string]bool `json:"-"` // Package → constants added (prevents duplicates)
 }
 
 // StructInfo contains detailed information about each detected struct
@@ -55,8 +58,8 @@ func NewContext(inputFile, outputDir string, ofuscate bool, mapFile string) *Tra
 func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string, boolFields []string) {
 	mapping := make(map[string]string)
 	for _, f := range boolFields {
-		// Use user's superior centralized approach: FlagStruct_Field
-		mapping[f] = fmt.Sprintf("Flag%s_%s", originalName, strings.Title(f))
+		// 🚀 REVOLUTIONARY: Include package name to avoid conflicts
+		mapping[f] = fmt.Sprintf("Flag%s_%s_%s", strings.Title(packageName), originalName, strings.Title(f))
 	}
 
 	ctx.Structs[originalName] = &StructInfo{
@@ -87,7 +90,8 @@ func (ctx *TranspileContext) GetFlagName(packageName, structName, fieldName stri
 			return flagName
 		}
 	}
-	return fmt.Sprintf("Flag%s_%s", structName, strings.Title(fieldName)) // user's cleaner approach
+	// 🚀 REVOLUTIONARY: Include package name to avoid conflicts between packages
+	return fmt.Sprintf("Flag%s_%s_%s", strings.Title(packageName), structName, strings.Title(fieldName))
 }
 
 // IsStructTransformed checks if a struct has been transformed

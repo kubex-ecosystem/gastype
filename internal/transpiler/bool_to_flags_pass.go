@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
-	"strings"
 )
 
 // BoolToFlagsPass transforms boolean struct fields to bitwise flags
@@ -31,7 +30,9 @@ func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *Transp
 	p.transformFieldAccess(file, ctx)
 
 	return nil
-} // transformStructs encontra structs com bool fields e os transforma
+}
+
+// transformStructs encontra structs com bool fields e os transforma
 func (p *BoolToFlagsPass) transformStructs(file *ast.File, ctx *TranspileContext) {
 	ast.Inspect(file, func(n ast.Node) bool {
 		ts, ok := n.(*ast.TypeSpec)
@@ -59,15 +60,17 @@ func (p *BoolToFlagsPass) transformStructs(file *ast.File, ctx *TranspileContext
 		// Nome da struct original e da nova
 		structName := ts.Name.Name
 		newName := structName + "Flags"
+		packageName := file.Name.Name // 🚀 REVOLUTIONARY: Get package name from file
 
 		// Cria mapping centralizado
 		for i, field := range boolFields {
-			flagName := fmt.Sprintf("Flag%s_%s", structName, strings.Title(field))
+			// 🚀 REVOLUTIONARY: Use GetFlagName to get consistent naming
+			flagName := ctx.GetFlagName(packageName, structName, field)
 			ctx.AddFlagMapping(structName, field, flagName, 1<<i)
 		}
 
 		// Registra no contexto
-		ctx.AddStruct("", structName, newName, boolFields)
+		ctx.AddStruct(packageName, structName, newName, boolFields)
 
 		// Troca struct para usar flags
 		ts.Name.Name = newName
@@ -82,8 +85,19 @@ func (p *BoolToFlagsPass) transformStructs(file *ast.File, ctx *TranspileContext
 	})
 }
 
-// addFlagConstants adiciona as constantes das flags no arquivo
+// addFlagConstants adiciona as constantes das flags no arquivo (package-scoped)
 func (p *BoolToFlagsPass) addFlagConstants(file *ast.File, ctx *TranspileContext) {
+	// Verificar se as constantes já foram adicionadas neste package
+	packageName := file.Name.Name
+	if ctx.PackageConstantsAdded == nil {
+		ctx.PackageConstantsAdded = make(map[string]bool)
+	}
+
+	// Se já adicionamos constantes para este package, pular
+	if ctx.PackageConstantsAdded[packageName] {
+		return
+	}
+
 	for structName, structInfo := range ctx.Structs {
 		if len(structInfo.BoolFields) == 0 {
 			continue
@@ -91,7 +105,8 @@ func (p *BoolToFlagsPass) addFlagConstants(file *ast.File, ctx *TranspileContext
 
 		specs := []ast.Spec{}
 		for i, field := range structInfo.BoolFields {
-			flagName := fmt.Sprintf("Flag%s_%s", structName, strings.Title(field))
+			// 🚀 REVOLUTIONARY: Use GetFlagName to get consistent naming
+			flagName := ctx.GetFlagName(packageName, structName, field)
 
 			spec := &ast.ValueSpec{
 				Names: []*ast.Ident{ast.NewIdent(flagName)},
@@ -127,13 +142,16 @@ func (p *BoolToFlagsPass) addFlagConstants(file *ast.File, ctx *TranspileContext
 			}
 		}
 
-		// Inserir a declaração const
+		// Inserir as constantes
 		newDecls := make([]ast.Decl, 0, len(file.Decls)+1)
 		newDecls = append(newDecls, file.Decls[:insertPos]...)
 		newDecls = append(newDecls, constDecl)
 		newDecls = append(newDecls, file.Decls[insertPos:]...)
 		file.Decls = newDecls
 	}
+
+	// Marcar que constantes foram adicionadas para este package
+	ctx.PackageConstantsAdded[packageName] = true
 }
 
 // transformStructLiterals transforma inicialização de structs
