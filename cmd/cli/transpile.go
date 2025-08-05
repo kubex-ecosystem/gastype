@@ -1496,19 +1496,9 @@ func runEngineTranspilation(config *TranspileConfig) error {
 		l.Info("🎯 Using new engine architecture for transpilation", nil)
 	}
 
-	// Create transpile context
-	context := &transpiler.TranspileContext{
-		InputFile: config.InputPath,
-		OutputDir: config.OutputPath,
-		DryRun:    config.DryRun,
-		Structs:   make(map[string]*transpiler.StructInfo),
-		Flags:     make(map[string][]string),
-	}
-
-	// Add map file if specified
-	if config.MapFile != "" {
-		context.MapFile = config.MapFile
-	}
+	// Create transpile context using our REVOLUTIONARY constructor
+	context := transpiler.NewContext(config.InputPath, config.OutputPath, !config.NoObfuscate, config.MapFile)
+	context.DryRun = config.DryRun // Set dry run after construction
 
 	// Create engine
 	engine := transpiler.NewEngine(context)

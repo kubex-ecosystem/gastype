@@ -83,13 +83,34 @@ func (om *OutputManager) writeGoFile(dst string, f *ast.File) error {
 }
 
 // rewriteImports ajusta imports locais para refletir o module path do go.mod
-// INTELLIGENT: Zero configuração manual necessária!
+// INTELLIGENT: Só modifica imports locais, preserva stdlib e externos!
 func (om *OutputManager) rewriteImports(file *ast.File) {
+	// Standard library packages - não devem ser modificados
+	stdLibs := map[string]bool{
+		"fmt": true, "os": true, "io": true, "net": true, "strings": true,
+		"strconv": true, "time": true, "log": true, "errors": true, "context": true,
+		"sync": true, "path": true, "filepath": true, "encoding": true, "json": true,
+		"bufio": true, "bytes": true, "crypto": true, "database": true, "debug": true,
+		"go": true, "hash": true, "html": true, "image": true, "index": true, "math": true,
+		"mime": true, "plugin": true, "reflect": true, "regexp": true,
+		"runtime": true, "sort": true, "syscall": true, "testing": true, "text": true,
+		"unicode": true, "unsafe": true,
+	}
+
 	for _, imp := range file.Imports {
 		path := strings.Trim(imp.Path.Value, `"`)
-		if strings.Contains(path, ".") { // já é import externo
+
+		// Skip if it's stdlib or external package (contains .)
+		if stdLibs[path] || strings.Contains(path, ".") {
 			continue
 		}
+
+		// Skip if it's already a full module path (starts with our module)
+		if strings.HasPrefix(path, om.ModulePath) {
+			continue
+		}
+
+		// Only rewrite local relative imports
 		newPath := filepath.ToSlash(filepath.Join(om.ModulePath, path))
 		imp.Path.Value = strconv.Quote(newPath)
 	}
