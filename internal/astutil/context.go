@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+type AssignTransformation struct {
+	File     string `json:"file"`
+	Field    string `json:"field"`
+	FlagName string `json:"flag_name"`
+	Value    string `json:"value"`
+}
+
 // TranspileContext tracks all information about a transpilation operation
 type TranspileContext struct {
 	*Info
@@ -30,6 +37,8 @@ type TranspileContext struct {
 
 	// 🔥 PACKAGE-SCOPED CONSTANTS TRACKING
 	PackageConstantsAdded map[string]bool `json:"-"` // Package → constants added (prevents duplicates)
+
+	AssignTransformations []AssignTransformation `json:"assign_transformations"` // Track all assign transformations
 }
 
 // StructInfo contains detailed information about each detected struct
@@ -133,6 +142,24 @@ func (ctx *TranspileContext) SaveMap() error {
 	}
 
 	return os.WriteFile(ctx.MapFile, data, 0644)
+}
+
+// RegisterAssignToBitwise registra uma conversão de atribuição bool para bitwise flag
+func (ctx *TranspileContext) RegisterAssignToBitwise(file, field, flagName, value string) {
+	ctx.AssignTransformations = append(ctx.AssignTransformations, AssignTransformation{
+		File:     file,
+		Field:    field,
+		FlagName: flagName,
+		Value:    value,
+	})
+
+	// Log imediato se verbose
+	ctx.LogVerbose(nil, "    ⚡ AssignToBitwise: %s → %s (%s = %s)", field, flagName, field, value)
+}
+
+// GetAssignTransformations retorna todas as transformações registradas
+func (ctx *TranspileContext) GetAssignTransformations() []AssignTransformation {
+	return ctx.AssignTransformations
 }
 
 // LoadMap loads a context from a JSON map file
