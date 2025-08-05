@@ -70,6 +70,8 @@ func (m *GasType) Command() *cobra.Command {
 
 	cmd.AddCommand(c.TranspileCmds()...)
 
+	cmd.AddCommand(c.PipelineCmds()...)
+
 	// Set usage definitions for the command and its subcommands
 	setUsageDefinition(cmd)
 	for _, subCmd := range cmd.Commands() {
