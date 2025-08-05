@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strings"
 )
 
 // BoolToFlagsPass transforms boolean struct fields to bitwise flags
@@ -15,12 +16,23 @@ func (p *BoolToFlagsPass) Name() string {
 	return "BoolToFlags"
 }
 
-// Apply executes the bool-to-flags transformation on the AST
+// Apply executa a transformação bool-to-flags completa
 func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *TranspileContext) error {
-	structsFound := 0
-	fieldsTransformed := 0
+	// Fase 1: Transformar structs
+	p.transformStructs(file, ctx)
 
-	// First pass: Find and transform struct definitions
+	// Fase 2: Adicionar constantes
+	p.addFlagConstants(file, ctx)
+
+	// Fase 3: Transformar struct literals
+	p.transformStructLiterals(file, ctx)
+
+	// Fase 4: Transformar field access
+	p.transformFieldAccess(file, ctx)
+
+	return nil
+} // transformStructs encontra structs com bool fields e os transforma
+func (p *BoolToFlagsPass) transformStructs(file *ast.File, ctx *TranspileContext) {
 	ast.Inspect(file, func(n ast.Node) bool {
 		ts, ok := n.(*ast.TypeSpec)
 		if !ok {
@@ -40,62 +52,50 @@ func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *Transp
 			}
 		}
 
-		if len(boolFields) > 0 {
-			originalName := ts.Name.Name
-			newName := originalName + "Flags"
-			packageName := file.Name.Name
-
-			// Register in context
-			ctx.AddStruct(packageName, originalName, newName, boolFields)
-
-			fmt.Printf("    📝 Converting struct %s → %s (%d bool fields)\n",
-				originalName, newName, len(boolFields))
-
-			// Transform struct name
-			ts.Name.Name = newName
-
-			// Replace bool fields with single flags field
-			st.Fields.List = []*ast.Field{
-				{
-					Names: []*ast.Ident{{Name: "flags"}},
-					Type:  &ast.Ident{Name: "uint64"},
-				},
-			}
-
-			structsFound++
-			fieldsTransformed += len(boolFields)
+		if len(boolFields) == 0 {
+			return true
 		}
+
+		// Nome da struct original e da nova
+		structName := ts.Name.Name
+		newName := structName + "Flags"
+
+		// Cria mapping centralizado
+		for i, field := range boolFields {
+			flagName := fmt.Sprintf("Flag%s_%s", structName, strings.Title(field))
+			ctx.AddFlagMapping(structName, field, flagName, 1<<i)
+		}
+
+		// Registra no contexto
+		ctx.AddStruct("", structName, newName, boolFields)
+
+		// Troca struct para usar flags
+		ts.Name.Name = newName
+		st.Fields.List = []*ast.Field{
+			{
+				Names: []*ast.Ident{ast.NewIdent("flags")},
+				Type:  ast.NewIdent("uint64"),
+			},
+		}
+
 		return true
 	})
-
-	// Second pass: Add flag constants
-	if structsFound > 0 {
-		p.addFlagConstants(file, ctx)
-	}
-
-	// Third pass: Transform usage patterns
-	if structsFound > 0 {
-		p.transformUsagePatterns(file, ctx)
-	}
-
-	if structsFound > 0 {
-		fmt.Printf("    ✅ BoolToFlags: %d structs, %d fields transformed\n", structsFound, fieldsTransformed)
-	}
-
-	return nil
 }
 
-// addFlagConstants adds flag constant declarations to the file
+// addFlagConstants adiciona as constantes das flags no arquivo
 func (p *BoolToFlagsPass) addFlagConstants(file *ast.File, ctx *TranspileContext) {
 	for structName, structInfo := range ctx.Structs {
-		specs := []ast.Spec{}
+		if len(structInfo.BoolFields) == 0 {
+			continue
+		}
 
+		specs := []ast.Spec{}
 		for i, field := range structInfo.BoolFields {
-			flagName := structInfo.FlagMapping[field]
+			flagName := fmt.Sprintf("Flag%s_%s", structName, strings.Title(field))
 
 			spec := &ast.ValueSpec{
-				Names: []*ast.Ident{{Name: flagName}},
-				Type:  &ast.Ident{Name: "uint64"},
+				Names: []*ast.Ident{ast.NewIdent(flagName)},
+				Type:  ast.NewIdent("uint64"),
 				Values: []ast.Expr{
 					&ast.BinaryExpr{
 						X: &ast.BasicLit{
@@ -113,13 +113,13 @@ func (p *BoolToFlagsPass) addFlagConstants(file *ast.File, ctx *TranspileContext
 			specs = append(specs, spec)
 		}
 
-		// Create const declaration
+		// Criar declaração const
 		constDecl := &ast.GenDecl{
 			Tok:   token.CONST,
 			Specs: specs,
 		}
 
-		// Insert after imports
+		// Inserir após imports
 		insertPos := 0
 		for i, decl := range file.Decls {
 			if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
@@ -127,144 +127,70 @@ func (p *BoolToFlagsPass) addFlagConstants(file *ast.File, ctx *TranspileContext
 			}
 		}
 
-		// Insert the const declaration
+		// Inserir a declaração const
 		newDecls := make([]ast.Decl, 0, len(file.Decls)+1)
 		newDecls = append(newDecls, file.Decls[:insertPos]...)
 		newDecls = append(newDecls, constDecl)
 		newDecls = append(newDecls, file.Decls[insertPos:]...)
 		file.Decls = newDecls
-
-		flagNames := make([]string, len(structInfo.BoolFields))
-		for i, field := range structInfo.BoolFields {
-			flagNames[i] = structInfo.FlagMapping[field]
-		}
-		fmt.Printf("      🏷️  Added constants for %s: %v\n", structName, flagNames)
 	}
 }
 
-// transformUsagePatterns transforms struct usage patterns (assignments, conditions, etc.)
-func (p *BoolToFlagsPass) transformUsagePatterns(file *ast.File, ctx *TranspileContext) {
-	transformedAssignments := 0
-	transformedConditions := 0
-
+// transformStructLiterals transforma inicialização de structs
+func (p *BoolToFlagsPass) transformStructLiterals(file *ast.File, ctx *TranspileContext) {
 	ast.Inspect(file, func(n ast.Node) bool {
-		switch node := n.(type) {
-		case *ast.CompositeLit:
-			// Transform struct literals
-			if ident, ok := node.Type.(*ast.Ident); ok {
-				if structInfo, exists := ctx.Structs[ident.Name]; exists {
-					p.transformCompositeLit(node, structInfo)
+		cl, ok := n.(*ast.CompositeLit)
+		if !ok {
+			return true
+		}
+
+		// Verifica se é uma struct que foi transformada
+		if ident, ok := cl.Type.(*ast.Ident); ok {
+			for originalName, structInfo := range ctx.Structs {
+				if ident.Name == originalName {
+					// Mudar o tipo para a nova struct
+					cl.Type = ast.NewIdent(structInfo.NewName)
+
+					// Converter elementos para flags
+					var flagsValue uint64
+					for _, elt := range cl.Elts {
+						if kv, ok := elt.(*ast.KeyValueExpr); ok {
+							if key, ok := kv.Key.(*ast.Ident); ok {
+								if val, ok := kv.Value.(*ast.Ident); ok && val.Name == "true" {
+									// Encontrar o bit position para este field
+									for i, field := range structInfo.BoolFields {
+										if field == key.Name {
+											flagsValue |= 1 << i
+											break
+										}
+									}
+								}
+							}
+						}
+					}
+
+					// Substituir por inicialização flags
+					cl.Elts = []ast.Expr{
+						&ast.KeyValueExpr{
+							Key: ast.NewIdent("flags"),
+							Value: &ast.BasicLit{
+								Kind:  token.INT,
+								Value: fmt.Sprintf("%d", flagsValue),
+							},
+						},
+					}
+					return false
 				}
-			}
-		case *ast.AssignStmt:
-			// Transform assignments like cfg.Debug = true
-			if p.transformAssignment(node, ctx) {
-				transformedAssignments++
-			}
-		case *ast.IfStmt:
-			// Transform if conditions like if cfg.Debug
-			if p.transformIfCondition(node, ctx) {
-				transformedConditions++
 			}
 		}
 		return true
 	})
-
-	if transformedAssignments > 0 || transformedConditions > 0 {
-		fmt.Printf("      ⚡ Transformed: %d assignments, %d conditions\n",
-			transformedAssignments, transformedConditions)
-	}
 }
 
-// transformCompositeLit transforms struct literal initialization
-func (p *BoolToFlagsPass) transformCompositeLit(node *ast.CompositeLit, structInfo *StructInfo) {
-	// Change type to new flags type
-	node.Type = &ast.Ident{Name: structInfo.NewName}
-
-	// Clear elements - will need statement-level transformation for proper initialization
-	node.Elts = nil
-
-	fmt.Printf("        🔄 Transformed struct literal for %s\n", structInfo.OriginalName)
-}
-
-// transformAssignment transforms assignments like cfg.Debug = true/false
-func (p *BoolToFlagsPass) transformAssignment(node *ast.AssignStmt, ctx *TranspileContext) bool {
-	if len(node.Lhs) != 1 || len(node.Rhs) != 1 {
-		return false
-	}
-
-	sel, ok := node.Lhs[0].(*ast.SelectorExpr)
-	if !ok {
-		return false
-	}
-
-	val, ok := node.Rhs[0].(*ast.Ident)
-	if !ok {
-		return false
-	}
-
-	fieldName := sel.Sel.Name
-
-	// Check if this is a bool field assignment using context
-	for _, structInfo := range ctx.Structs {
-		if ctx.IsBoolField(structInfo.OriginalName, fieldName) {
-			flagName := structInfo.FlagMapping[fieldName]
-
-			if val.Name == "true" {
-				// Transform to: obj.flags |= FlagField
-				node.Lhs[0] = &ast.SelectorExpr{
-					X:   sel.X,
-					Sel: &ast.Ident{Name: "flags"},
-				}
-				node.Tok = token.OR_ASSIGN
-				node.Rhs[0] = &ast.Ident{Name: flagName}
-			} else if val.Name == "false" {
-				// Transform to: obj.flags &^= FlagField
-				node.Lhs[0] = &ast.SelectorExpr{
-					X:   sel.X,
-					Sel: &ast.Ident{Name: "flags"},
-				}
-				node.Tok = token.AND_NOT_ASSIGN
-				node.Rhs[0] = &ast.Ident{Name: flagName}
-			}
-			return true
-		}
-	}
-	return false
-}
-
-// transformIfCondition transforms if conditions to use bitwise checks
-func (p *BoolToFlagsPass) transformIfCondition(node *ast.IfStmt, ctx *TranspileContext) bool {
-	// Look for conditions like "if cfg.Debug"
-	if sel, ok := node.Cond.(*ast.SelectorExpr); ok {
-		if ident, ok := sel.X.(*ast.Ident); ok {
-			fieldName := sel.Sel.Name
-
-			// Check if this is a flag field using context
-			for _, structInfo := range ctx.Structs {
-				if ctx.IsBoolField(structInfo.OriginalName, fieldName) {
-					flagName := structInfo.FlagMapping[fieldName]
-
-					// Transform to bitwise check: cfg.flags & FlagDebug != 0
-					node.Cond = &ast.BinaryExpr{
-						X: &ast.BinaryExpr{
-							X: &ast.SelectorExpr{
-								X:   &ast.Ident{Name: ident.Name},
-								Sel: &ast.Ident{Name: "flags"},
-							},
-							Op: token.AND,
-							Y:  &ast.Ident{Name: flagName},
-						},
-						Op: token.NEQ,
-						Y: &ast.BasicLit{
-							Kind:  token.INT,
-							Value: "0",
-						},
-					}
-					return true
-				}
-			}
-		}
-	}
-	return false
+// transformFieldAccess transforma acessos a campos bool transformados
+func (p *BoolToFlagsPass) transformFieldAccess(file *ast.File, ctx *TranspileContext) {
+	ast.Inspect(file, func(n ast.Node) bool {
+		// Não implementamos ainda - deixar IfToBitwisePass handle field access
+		return true
+	})
 }

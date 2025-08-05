@@ -77,7 +77,8 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 				originalName, newName, len(boolFields))
 
 			// Register in context
-			t.context.AddStruct(originalName, newName, boolFields)
+			packageName := f.Name.Name
+			t.context.AddStruct(packageName, originalName, newName, boolFields)
 
 			structsToTransform[originalName] = boolFields
 
@@ -184,6 +185,8 @@ func (t *RealBitwiseTranspiler) addFlagConstants(f *ast.File, structs map[string
 
 // transformStructUsage transforms struct literals and field access
 func (t *RealBitwiseTranspiler) transformStructUsage(f *ast.File, structs map[string][]string) {
+	packageName := f.Name.Name
+
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch node := n.(type) {
 		case *ast.CompositeLit:
@@ -201,7 +204,7 @@ func (t *RealBitwiseTranspiler) transformStructUsage(f *ast.File, structs map[st
 			t.transformIfCondition(node, structs)
 		case *ast.AssignStmt:
 			// Transform assignments like cfg.Debug = true
-			t.transformAssignment(node, structs)
+			t.transformAssignment(node, packageName, structs)
 		}
 		return true
 	})
@@ -300,11 +303,12 @@ func (t *RealBitwiseTranspiler) transformIfCondition(node *ast.IfStmt, structs m
 }
 
 // transformAssignment transforms assignments like cfg.Debug = true/false
-func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, structs map[string][]string) {
+func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, packageName string, structs map[string][]string) {
 	if len(node.Lhs) != 1 || len(node.Rhs) != 1 {
 		return
 	}
 
+	// Check if left side is a selector expression (e.g., cfg.Debug)
 	sel, ok := node.Lhs[0].(*ast.SelectorExpr)
 	if !ok {
 		return
@@ -320,7 +324,7 @@ func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, struct
 	// Check if this is a bool field assignment using context
 	for structName := range t.context.Structs {
 		if t.context.IsBoolField(structName, fieldName) {
-			flagName := t.context.GetFlagName(structName, fieldName)
+			flagName := t.context.GetFlagName(packageName, structName, fieldName)
 
 			if val.Name == "true" {
 				// Transform to: obj.flags |= FlagField

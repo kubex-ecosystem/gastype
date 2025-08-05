@@ -47,8 +47,8 @@ func NewContext(inputFile, outputDir string, ofuscate bool, mapFile string) *Tra
 func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string, boolFields []string) {
 	mapping := make(map[string]string)
 	for _, f := range boolFields {
-		// Create package-scoped flag names to avoid conflicts across packages
-		mapping[f] = fmt.Sprintf("Flag%s_%s_%s", packageName, originalName, strings.Title(f))
+		// Use user's superior centralized approach: FlagStruct_Field
+		mapping[f] = fmt.Sprintf("Flag%s_%s", originalName, strings.Title(f))
 	}
 
 	ctx.Structs[originalName] = &StructInfo{
@@ -60,6 +60,18 @@ func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string
 	ctx.Flags[newName] = boolFields
 }
 
+// AddFlagMapping adds a flag mapping for a specific struct and field (cleaner approach)
+func (ctx *TranspileContext) AddFlagMapping(structName, fieldName, flagName string, bitPos int) {
+	if ctx.Structs[structName] == nil {
+		ctx.Structs[structName] = &StructInfo{
+			OriginalName: structName,
+			BoolFields:   []string{},
+			FlagMapping:  map[string]string{},
+		}
+	}
+	ctx.Structs[structName].FlagMapping[fieldName] = flagName
+}
+
 // GetFlagName returns the flag name for a given struct and field
 func (ctx *TranspileContext) GetFlagName(packageName, structName, fieldName string) string {
 	if structInfo, exists := ctx.Structs[structName]; exists {
@@ -67,7 +79,7 @@ func (ctx *TranspileContext) GetFlagName(packageName, structName, fieldName stri
 			return flagName
 		}
 	}
-	return fmt.Sprintf("Flag%s_%s_%s", packageName, structName, strings.Title(fieldName)) // fallback with package prefix
+	return fmt.Sprintf("Flag%s_%s", structName, strings.Title(fieldName)) // user's cleaner approach
 }
 
 // IsStructTransformed checks if a struct has been transformed
