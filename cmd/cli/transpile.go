@@ -1512,6 +1512,8 @@ func runEngineTranspilation(config *TranspileConfig) error {
 			engine.AddPass(&transpiler.IfToBitwisePass{})
 		case "assign-to-bitwise", "assign2bitwise":
 			engine.AddPass(&transpiler.AssignToBitwisePass{})
+		case "field-to-bitwise", "field2bitwise":
+			engine.AddPass(&transpiler.FieldAccessToBitwisePass{})
 		case "string-obfuscate", "stringobf":
 			engine.AddPass(&transpiler.StringObfuscatePass{})
 		case "jump-table", "jumptable":
@@ -1521,6 +1523,7 @@ func runEngineTranspilation(config *TranspileConfig) error {
 			engine.AddPass(&transpiler.BoolToFlagsPass{})
 			engine.AddPass(&transpiler.IfToBitwisePass{})
 			engine.AddPass(&transpiler.AssignToBitwisePass{})
+			engine.AddPass(&transpiler.FieldAccessToBitwisePass{}) // 🚀 REVOLUTIONARY!
 			engine.AddPass(&transpiler.StringObfuscatePass{})
 			engine.AddPass(&transpiler.JumpTablePass{})
 		default:
