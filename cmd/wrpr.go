@@ -1,8 +1,8 @@
 package main
 
 import (
-	c "github.com/faelmori/gastype/cmd/cli"
-	"github.com/faelmori/gastype/version"
+	c "github.com/rafa-mori/gastype/cmd/cli"
+	"github.com/rafa-mori/gastype/version"
 	s "github.com/faelmori/gkbxsrv/services"
 	l "github.com/faelmori/logz"
 	"github.com/spf13/cobra"

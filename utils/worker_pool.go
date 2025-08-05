@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sync"
 
-	g "github.com/faelmori/gastype/internal/globals"
-	t "github.com/faelmori/gastype/types"
+	g "github.com/rafa-mori/gastype/internal/globals"
+	t "github.com/rafa-mori/gastype/types"
 	l "github.com/faelmori/logz"
 )
 

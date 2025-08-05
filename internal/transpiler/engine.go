@@ -9,18 +9,20 @@ import (
 	"io/fs"
 	"path/filepath"
 	"strings"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // Engine coordinates passes and context for transpilation
 type Engine struct {
-	Ctx    *TranspileContext
+	Ctx    *astutil.TranspileContext
 	Passes []TranspilePass
 }
 
 // TranspilePass interface for any AST transformation
 type TranspilePass interface {
 	Name() string
-	Apply(file *ast.File, fset *token.FileSet, ctx *TranspileContext) error
+	Apply(file *ast.File, fset *token.FileSet, ctx *astutil.TranspileContext) error
 }
 
 // DiscoverGoFiles discovers all Go files recursively
@@ -39,7 +41,7 @@ func DiscoverGoFiles(root string) ([]string, error) {
 }
 
 // NewEngine creates a new transpilation engine
-func NewEngine(ctx *TranspileContext) *Engine {
+func NewEngine(ctx *astutil.TranspileContext) *Engine {
 	return &Engine{
 		Ctx:    ctx,
 		Passes: make([]TranspilePass, 0),

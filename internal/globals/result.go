@@ -1,9 +1,11 @@
+// Package globals provides a Result struct that encapsulates the result of a type check operation.
 package globals
 
 import (
 	"fmt"
-	t "github.com/faelmori/gastype/types"
+
 	l "github.com/faelmori/logz"
+	t "github.com/rafa-mori/gastype/interfaces"
 )
 
 type Result struct {

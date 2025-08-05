@@ -12,7 +12,7 @@ func DefaultPipeline(passes string) []TranspilePass {
 	for _, p := range strings.Split(passes, ",") {
 		switch strings.TrimSpace(p) {
 		case "bool2flags", "bool-to-flags":
-			selected = append(selected, &BoolToFlagsPass{})
+			selected = append(selected, NewBoolToFlagsPass())
 		case "if2bitwise", "if-to-bitwise":
 			selected = append(selected, &IfToBitwisePass{})
 		case "assign2bitwise", "assign-to-bitwise":

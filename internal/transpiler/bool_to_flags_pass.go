@@ -1,214 +1,159 @@
-// Package transpiler provides pass-based AST transformations
 package transpiler
 
 import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"strings"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
+	stdastutil "golang.org/x/tools/go/ast/astutil"
 )
 
-// BoolToFlagsPass transforms boolean struct fields to bitwise flags
+// BoolToFlagsPass converte campos bool em flags bitwise
 type BoolToFlagsPass struct{}
 
-// Name returns the name of this pass
+func NewBoolToFlagsPass() *BoolToFlagsPass {
+	return &BoolToFlagsPass{}
+}
+
 func (p *BoolToFlagsPass) Name() string {
 	return "BoolToFlags"
 }
 
-// Apply executa a transformação bool-to-flags completa
-func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *TranspileContext) error {
-	// Fase 1: Transformar structs
-	p.transformStructs(file, ctx)
+func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *astutil.TranspileContext) error {
+	// Guarda mapeamento struct → campos booleanos convertidos
+	convertedStructs := make(map[string][]string)
 
-	// Fase 2: Adicionar constantes
-	p.addFlagConstants(file, ctx)
-
-	// Fase 3: Transformar struct literals
-	p.transformStructLiterals(file, ctx)
-
-	// Fase 4: Transformar field access
-	p.transformFieldAccess(file, ctx)
-
-	return nil
-}
-
-// transformStructs encontra structs com bool fields e os transforma
-func (p *BoolToFlagsPass) transformStructs(file *ast.File, ctx *TranspileContext) {
+	// === 1️⃣ Identifica e converte structs com bools ===
 	ast.Inspect(file, func(n ast.Node) bool {
-		ts, ok := n.(*ast.TypeSpec)
-		if !ok {
-			return true
-		}
-		st, ok := ts.Type.(*ast.StructType)
+		typeDecl, ok := n.(*ast.TypeSpec)
 		if !ok {
 			return true
 		}
 
-		var boolFields []string
-		for _, field := range st.Fields.List {
-			if ident, ok := field.Type.(*ast.Ident); ok && ident.Name == "bool" {
+		structType, ok := typeDecl.Type.(*ast.StructType)
+		if !ok {
+			return true
+		}
+
+		structName := typeDecl.Name.Name
+		boolFields := []string{}
+
+		// Usa IInfo para checar tipo real
+		for _, field := range structType.Fields.List {
+			if len(field.Names) == 0 {
+				continue
+			}
+			if tv, ok := ctx.GetTypes()[field.Type]; ok && tv.Type.String() == "bool" {
 				for _, name := range field.Names {
 					boolFields = append(boolFields, name.Name)
 				}
 			}
 		}
 
-		if len(boolFields) == 0 {
+		if !astutil.DeveConverterBools(len(boolFields)) {
 			return true
 		}
 
-		// Nome da struct original e da nova
-		structName := ts.Name.Name
-		newName := structName + "Flags"
-		packageName := file.Name.Name // 🚀 REVOLUTIONARY: Get package name from file
+		convertedStructs[structName] = boolFields
 
-		// Cria mapping centralizado
-		for i, field := range boolFields {
-			// 🚀 REVOLUTIONARY: Use GetFlagName to get consistent naming
-			flagName := ctx.GetFlagName(packageName, structName, field)
-			ctx.AddFlagMapping(structName, field, flagName, 1<<i)
-		}
+		// Determina tipo ideal (uint8, uint16, uint32, uint64)
+		flagType := astutil.MenorTipoParaFlags(len(boolFields))
 
-		// Registra no contexto
-		ctx.AddStruct(packageName, structName, newName, boolFields)
+		// === 2️⃣ Cria constantes AST reais ===
+		constDecls := []ast.Decl{}
+		for i, fieldName := range boolFields {
+			constName := fmt.Sprintf("Flag%s_%s", structName, fieldName)
 
-		// Troca struct para usar flags
-		ts.Name.Name = newName
-		st.Fields.List = []*ast.Field{
-			{
-				Names: []*ast.Ident{ast.NewIdent("flags")},
-				Type:  ast.NewIdent("uint64"),
-			},
-		}
-
-		return true
-	})
-}
-
-// addFlagConstants adiciona as constantes das flags no arquivo (package-scoped)
-func (p *BoolToFlagsPass) addFlagConstants(file *ast.File, ctx *TranspileContext) {
-	// Verificar se as constantes já foram adicionadas neste package
-	packageName := file.Name.Name
-	if ctx.PackageConstantsAdded == nil {
-		ctx.PackageConstantsAdded = make(map[string]bool)
-	}
-
-	// Se já adicionamos constantes para este package, pular
-	if ctx.PackageConstantsAdded[packageName] {
-		return
-	}
-
-	for structName, structInfo := range ctx.Structs {
-		if len(structInfo.BoolFields) == 0 {
-			continue
-		}
-
-		specs := []ast.Spec{}
-		for i, field := range structInfo.BoolFields {
-			// 🚀 REVOLUTIONARY: Use GetFlagName to get consistent naming
-			flagName := ctx.GetFlagName(packageName, structName, field)
-
-			spec := &ast.ValueSpec{
-				Names: []*ast.Ident{ast.NewIdent(flagName)},
-				Type:  ast.NewIdent("uint64"),
+			constSpec := &ast.ValueSpec{
+				Names: []*ast.Ident{ast.NewIdent(constName)},
+				Type:  ast.NewIdent(flagType),
 				Values: []ast.Expr{
 					&ast.BinaryExpr{
-						X: &ast.BasicLit{
-							Kind:  token.INT,
-							Value: "1",
-						},
+						X:  &ast.BasicLit{Kind: token.INT, Value: "1"},
 						Op: token.SHL,
-						Y: &ast.BasicLit{
-							Kind:  token.INT,
-							Value: fmt.Sprintf("%d", i),
-						},
+						Y:  &ast.BasicLit{Kind: token.INT, Value: fmt.Sprintf("%d", i)},
 					},
 				},
 			}
-			specs = append(specs, spec)
-		}
 
-		// Criar declaração const
-		constDecl := &ast.GenDecl{
-			Tok:   token.CONST,
-			Specs: specs,
-		}
+			constDecls = append(constDecls, &ast.GenDecl{
+				Tok:   token.CONST,
+				Specs: []ast.Spec{constSpec},
+			})
 
-		// Inserir após imports
-		insertPos := 0
-		for i, decl := range file.Decls {
-			if genDecl, ok := decl.(*ast.GenDecl); ok && genDecl.Tok == token.IMPORT {
-				insertPos = i + 1
+			ctx.AddDef(ast.NewIdent(constName), nil)
+			fmt.Printf("🏷️  Added constant: %s (%s)\n", constName, flagType)
+		}
+		file.Decls = append(constDecls, file.Decls...) // insere no topo
+
+		// === 3️⃣ Substitui campo bool por "flags" ===
+		newFields := []*ast.Field{
+			{
+				Names: []*ast.Ident{ast.NewIdent("flags")},
+				Type:  ast.NewIdent(flagType),
+			},
+		}
+		for _, field := range structType.Fields.List {
+			if tv, ok := ctx.GetTypes()[field.Type]; ok && tv.Type.String() == "bool" {
+				continue
 			}
+			newFields = append(newFields, field)
 		}
+		structType.Fields.List = newFields
 
-		// Inserir as constantes
-		newDecls := make([]ast.Decl, 0, len(file.Decls)+1)
-		newDecls = append(newDecls, file.Decls[:insertPos]...)
-		newDecls = append(newDecls, constDecl)
-		newDecls = append(newDecls, file.Decls[insertPos:]...)
-		file.Decls = newDecls
-	}
+		return true
+	})
 
-	// Marcar que constantes foram adicionadas para este package
-	ctx.PackageConstantsAdded[packageName] = true
-}
-
-// transformStructLiterals transforma inicialização de structs
-func (p *BoolToFlagsPass) transformStructLiterals(file *ast.File, ctx *TranspileContext) {
-	ast.Inspect(file, func(n ast.Node) bool {
-		cl, ok := n.(*ast.CompositeLit)
+	// === 4️⃣ Substitui acessos cfg.Debug → cfg.flags & FlagStruct_Debug != 0 ===
+	stdastutil.Apply(file, func(cr *stdastutil.Cursor) bool {
+		sel, ok := cr.Node().(*ast.SelectorExpr)
 		if !ok {
 			return true
 		}
 
-		// Verifica se é uma struct que foi transformada
-		if ident, ok := cl.Type.(*ast.Ident); ok {
-			for originalName, structInfo := range ctx.Structs {
-				if ident.Name == originalName {
-					// Mudar o tipo para a nova struct
-					cl.Type = ast.NewIdent(structInfo.NewName)
+		selInfo := ctx.GetSelections()[sel]
+		if selInfo == nil || selInfo.Obj() == nil {
+			return true
+		}
 
-					// Converter elementos para flags
-					var flagsValue uint64
-					for _, elt := range cl.Elts {
-						if kv, ok := elt.(*ast.KeyValueExpr); ok {
-							if key, ok := kv.Key.(*ast.Ident); ok {
-								if val, ok := kv.Value.(*ast.Ident); ok && val.Name == "true" {
-									// Encontrar o bit position para este field
-									for i, field := range structInfo.BoolFields {
-										if field == key.Name {
-											flagsValue |= 1 << i
-											break
-										}
-									}
-								}
-							}
-						}
-					}
+		fieldName := selInfo.Obj().Name()
+		if fieldName == "" {
+			return true
+		}
 
-					// Substituir por inicialização flags
-					cl.Elts = []ast.Expr{
-						&ast.KeyValueExpr{
-							Key: ast.NewIdent("flags"),
-							Value: &ast.BasicLit{
-								Kind:  token.INT,
-								Value: fmt.Sprintf("%d", flagsValue),
-							},
+		// Verifica se o campo pertence a uma struct que foi convertida
+		for structName, boolFields := range convertedStructs {
+			if contains(boolFields, fieldName) {
+				recvType := selInfo.Recv().String()
+				if recvType == structName || recvType == "*"+structName {
+					// Substituir o acesso pelo bitwise check
+					cr.Replace(&ast.BinaryExpr{
+						X: &ast.BinaryExpr{
+							X:  &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("flags")},
+							Op: token.AND,
+							Y:  ast.NewIdent(fmt.Sprintf("Flag%s_%s", structName, fieldName)),
 						},
-					}
-					return false
+						Op: token.NEQ,
+						Y:  &ast.BasicLit{Kind: token.INT, Value: "0"},
+					})
 				}
 			}
 		}
+
 		return true
-	})
+	}, nil)
+
+	return nil
 }
 
-// transformFieldAccess transforma acessos a campos bool transformados
-func (p *BoolToFlagsPass) transformFieldAccess(file *ast.File, ctx *TranspileContext) {
-	ast.Inspect(file, func(n ast.Node) bool {
-		// Não implementamos ainda - deixar IfToBitwisePass handle field access
-		return true
-	})
+// contains verifica se s está em slice arr
+func contains(arr []string, s string) bool {
+	for _, v := range arr {
+		if strings.EqualFold(v, s) {
+			return true
+		}
+	}
+	return false
 }

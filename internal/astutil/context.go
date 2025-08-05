@@ -1,5 +1,4 @@
-// Package transpiler provides context tracking for transpilation operations
-package transpiler
+package astutil
 
 import (
 	"encoding/json"
@@ -12,6 +11,8 @@ import (
 
 // TranspileContext tracks all information about a transpilation operation
 type TranspileContext struct {
+	*Info
+
 	// General configuration
 	Ofuscate  bool   `json:"ofuscate"`   // If true, names and structure will be obfuscated
 	MapFile   string `json:"map_file"`   // Path to output .map.json file
@@ -197,4 +198,28 @@ func (ctx *TranspileContext) EstimatePerformance() {
 	fmt.Printf("  🔒 Security benefits:\n")
 	fmt.Printf("     • Obfuscated logic: Harder to reverse engineer\n")
 	fmt.Printf("     • Compact representation: Less surface area\n")
+}
+
+// GetFlagForField Retorna o nome da flag de um campo já registrado no contexto
+func GetFlagForField(ctx *TranspileContext, structName, fieldName string) (string, bool) {
+	if s, ok := ctx.Structs[structName]; ok {
+		flag, exists := s.FlagMapping[fieldName]
+		return flag, exists
+	}
+	return "", false
+}
+
+// AddFlagMapping Registra um mapeamento de campo -> flag no contexto
+func AddFlagMapping(ctx *TranspileContext, structName, fieldName, flagName string, bitIndex int) {
+	ctx.AddFlagMapping(structName, fieldName, flagName, 1<<bitIndex)
+}
+
+// LogVerbose helper to log transformations (if verbose logging exists in context)
+func (ctx *TranspileContext) LogVerbose(fset *token.FileSet, format string, args ...interface{}) {
+	// For now, just print - could be enhanced with proper logging
+	if len(args) > 0 {
+		// Use a simple printf for now
+		_ = fset // avoid unused warning
+		// fmt.Printf(format+"\n", args...)
+	}
 }

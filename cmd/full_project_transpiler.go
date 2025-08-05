@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/faelmori/gastype/internal/transpiler"
+	"github.com/rafa-mori/gastype/internal/transpiler"
 )
 
 // ProjectTranspiler handles complete project transpilation

@@ -1,4 +1,4 @@
-package globals
+package astutil
 
 import (
 	"go/ast"

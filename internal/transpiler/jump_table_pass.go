@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // JumpTablePass converts chained if-else statements to jump table optimizations
@@ -16,7 +18,7 @@ func (p *JumpTablePass) Name() string {
 	return "JumpTable"
 }
 
-func (p *JumpTablePass) Apply(file *ast.File, fset *token.FileSet, ctx *TranspileContext) error {
+func (p *JumpTablePass) Apply(file *ast.File, fset *token.FileSet, ctx *astutil.TranspileContext) error {
 	transformations := 0
 	candidates := 0
 

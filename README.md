@@ -52,7 +52,7 @@ Requirements:
 
 ```bash
 # Clone this repository
-git clone https://github.com/faelmori/gastype.git
+git clone https://github.com/rafa-mori/gastype.git
 
 # Navigate to the project directory
 cd gastype

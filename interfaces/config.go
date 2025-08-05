@@ -1,4 +1,4 @@
-package types
+package interfaces
 
 type IConfig interface {
 	Load() error

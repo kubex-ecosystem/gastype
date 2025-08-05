@@ -2,12 +2,13 @@ package manager
 
 import (
 	"fmt"
-	"github.com/faelmori/gastype/internal/actions"
-	"github.com/faelmori/gastype/utils"
 	"sync"
 
-	t "github.com/faelmori/gastype/types"
+	"github.com/rafa-mori/gastype/internal/actions"
+	"github.com/rafa-mori/gastype/utils"
+
 	l "github.com/faelmori/logz"
+	t "github.com/rafa-mori/gastype/interfaces"
 )
 
 // TypeManager manages type-related actions and notifications

@@ -1,4 +1,4 @@
-package types
+package interfaces
 
 type IWorker interface {
 	StartWorkers()

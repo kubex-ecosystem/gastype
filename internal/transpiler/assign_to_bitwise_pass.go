@@ -4,6 +4,8 @@ package transpiler
 import (
 	"go/ast"
 	"go/token"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // AssignToBitwisePass converts bool field assignments to bitwise flag operations
@@ -15,7 +17,7 @@ func (p *AssignToBitwisePass) Name() string {
 	return "AssignToBitwise"
 }
 
-func (p *AssignToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *TranspileContext) error {
+func (p *AssignToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *astutil.TranspileContext) error {
 	ast.Inspect(file, func(n ast.Node) bool {
 		as, ok := n.(*ast.AssignStmt)
 		if !ok || len(as.Lhs) != 1 || len(as.Rhs) != 1 {

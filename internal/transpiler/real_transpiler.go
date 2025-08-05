@@ -8,12 +8,14 @@ import (
 	"go/printer"
 	"go/token"
 	"os"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // RealBitwiseTranspiler performs actual code transformation
 type RealBitwiseTranspiler struct {
 	fset    *token.FileSet
-	context *TranspileContext
+	context *astutil.TranspileContext
 }
 
 // NewRealBitwiseTranspiler creates a new real transpiler
@@ -24,7 +26,7 @@ func NewRealBitwiseTranspiler() *RealBitwiseTranspiler {
 }
 
 // NewRealBitwiseTranspilerWithContext creates a new real transpiler with context
-func NewRealBitwiseTranspilerWithContext(ctx *TranspileContext) *RealBitwiseTranspiler {
+func NewRealBitwiseTranspilerWithContext(ctx *astutil.TranspileContext) *RealBitwiseTranspiler {
 	return &RealBitwiseTranspiler{
 		fset:    token.NewFileSet(),
 		context: ctx,
@@ -35,7 +37,7 @@ func NewRealBitwiseTranspilerWithContext(ctx *TranspileContext) *RealBitwiseTran
 func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile string) error {
 	// Create default context if none provided
 	if t.context == nil {
-		t.context = NewContext(inputFile, outputFile, false, "")
+		t.context = astutil.NewContext(inputFile, outputFile, false, "")
 	}
 
 	fmt.Printf("🔄 Transpiling %s → %s\n", inputFile, outputFile)
@@ -179,7 +181,7 @@ func (t *RealBitwiseTranspiler) addFlagConstants(f *ast.File, structs map[string
 		newDecls = append(newDecls, f.Decls[insertPos:]...)
 		f.Decls = newDecls
 
-		fmt.Printf("    🏷️  Added constants: %v\n", getConstNames(fields))
+		fmt.Printf("    🏷️  Added constants: %v\n", astutil.GetConstNames(fields))
 	}
 }
 
@@ -350,15 +352,6 @@ func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, packag
 			return
 		}
 	}
-}
-
-// getConstNames returns the constant names for fields
-func getConstNames(fields []string) []string {
-	names := make([]string, len(fields))
-	for i, field := range fields {
-		names[i] = "Flag" + field
-	}
-	return names
 }
 
 // TranspileFile transpiles a single file using the real transpiler

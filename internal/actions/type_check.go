@@ -1,3 +1,4 @@
+// Package actions implements various actions for type checking in Go projects.
 package actions
 
 import (
@@ -6,11 +7,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/faelmori/gastype/types"
-	log "github.com/faelmori/logz"
 	"go/ast"
 	"go/parser"
 	"go/token"
+
+	log "github.com/faelmori/logz"
+	types "github.com/rafa-mori/gastype/interfaces"
 )
 
 // TypeCheckAction defines a type-checking action

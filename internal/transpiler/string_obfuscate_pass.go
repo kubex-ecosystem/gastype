@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"strconv"
 	"strings"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // StringObfuscatePass converts string literals to byte array reconstructions
@@ -17,7 +19,7 @@ func (p *StringObfuscatePass) Name() string {
 	return "StringObfuscate"
 }
 
-func (p *StringObfuscatePass) Apply(file *ast.File, fset *token.FileSet, ctx *TranspileContext) error {
+func (p *StringObfuscatePass) Apply(file *ast.File, fset *token.FileSet, ctx *astutil.TranspileContext) error {
 	transformations := 0
 
 	// Track import declarations to skip obfuscating import paths

@@ -3,7 +3,7 @@ package gastype
 import (
 	"encoding/json"
 	"fmt"
-	t "github.com/faelmori/gastype/types"
+	t "github.com/rafa-mori/gastype/types"
 	"log"
 	"os"
 	"path/filepath"

@@ -2,11 +2,12 @@ package globals
 
 import (
 	"fmt"
-	t "github.com/faelmori/gastype/types"
-	l "github.com/faelmori/logz"
 	"os"
 	"runtime"
 	"syscall"
+
+	l "github.com/faelmori/logz"
+	t "github.com/rafa-mori/gastype/interfaces"
 )
 
 type Environment struct {
@@ -19,7 +20,7 @@ type Environment struct {
 
 func NewEnvironment() t.IEnvironment { return &Environment{} }
 
-func (e *Environment) CpuCount() int {
+func (e *Environment) CPUCount() int {
 	if e.cpuCount == 0 {
 		e.cpuCount = runtime.NumCPU()
 	}
@@ -52,7 +53,7 @@ func (e *Environment) Hostname() string {
 	return e.hostname
 }
 
-func (e *Environment) Os() string {
+func (e *Environment) OS() string {
 	if e.os == "" {
 		e.os = runtime.GOOS
 	}

@@ -4,6 +4,8 @@ package transpiler
 import (
 	"go/ast"
 	"go/token"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // IfToBitwisePass converts bool field conditions to bitwise flag checks
@@ -14,7 +16,7 @@ func (p *IfToBitwisePass) Name() string {
 	return "IfToBitwise"
 }
 
-func (p *IfToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *TranspileContext) error {
+func (p *IfToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *astutil.TranspileContext) error {
 	ast.Inspect(file, func(n ast.Node) bool {
 		ifStmt, ok := n.(*ast.IfStmt)
 		if !ok {

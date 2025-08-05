@@ -1,13 +1,14 @@
-package globals
+package astutil
 
 import (
-	t "github.com/faelmori/gastype/types"
-	s "github.com/faelmori/gkbxsrv/services"
+	"fmt"
 	"os"
+
+	t "github.com/rafa-mori/gastype/interfaces"
+	"github.com/rafa-mori/gastype/internal/globals"
 )
 
 type Config struct {
-	cfgSrv      s.ConfigService
 	dir         string
 	workerCount int
 	outputFile  string
@@ -16,12 +17,12 @@ type Config struct {
 
 func NewConfig() t.IConfig {
 	cfg := &Config{}
-	cfg.enviroment = NewEnvironment()
+	cfg.enviroment = globals.NewEnvironment()
 	return cfg
 }
 
 func NewConfigWithArgs(dir string, workerCount int, outputFile string) t.IConfig {
-	env := NewEnvironment()
+	env := globals.NewEnvironment()
 	cfg := &Config{
 		dir:         dir,
 		workerCount: workerCount,
@@ -41,7 +42,7 @@ func (c *Config) Load() error {
 		c.dir = "./"
 	}
 	if c.workerCount == 0 {
-		cpuCount := c.enviroment.CpuCount()
+		cpuCount := c.enviroment.CPUCount()
 		if cpuCount > 0 {
 			if cpuCount >= 4 {
 				c.workerCount = 4
@@ -56,10 +57,10 @@ func (c *Config) Load() error {
 			homeDir, homeDirErr = os.UserCacheDir()
 			if homeDirErr != nil {
 				c.outputFile = "type_check_results.json"
-			} else {
-				c.outputFile = homeDir + "/tmp/type_check_results.json"
+				return nil
 			}
 		}
+		c.outputFile = fmt.Sprintf("%s/tmp/type_check_results.json", homeDir)
 	}
 	return nil
 }

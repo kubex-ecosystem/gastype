@@ -10,8 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/faelmori/gastype/internal/transpiler"
 	l "github.com/faelmori/logz"
+	"github.com/rafa-mori/gastype/internal/astutil"
+	"github.com/rafa-mori/gastype/internal/transpiler"
 	"github.com/spf13/cobra"
 )
 
@@ -447,7 +448,7 @@ func performRealTranspilation(config *TranspileConfig) error {
 	}
 
 	// Create transpilation context
-	ctx := transpiler.NewContext(config.InputPath, config.OutputPath, !config.NoObfuscate, config.MapFile)
+	ctx := astutil.NewContext(config.InputPath, config.OutputPath, !config.NoObfuscate, config.MapFile)
 
 	// Initialize the real transpiler with context
 	realTranspiler := transpiler.NewRealBitwiseTranspilerWithContext(ctx)
@@ -1497,7 +1498,7 @@ func runEngineTranspilation(config *TranspileConfig) error {
 	}
 
 	// Create transpile context using our REVOLUTIONARY constructor
-	context := transpiler.NewContext(config.InputPath, config.OutputPath, !config.NoObfuscate, config.MapFile)
+	context := astutil.NewContext(config.InputPath, config.OutputPath, !config.NoObfuscate, config.MapFile)
 	context.DryRun = config.DryRun // Set dry run after construction
 
 	// Create engine

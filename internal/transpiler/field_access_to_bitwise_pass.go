@@ -3,6 +3,8 @@ package transpiler
 import (
 	"go/ast"
 	"go/token"
+
+	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
 // FieldAccessToBitwisePass transforms any field access to bitwise operations
@@ -13,7 +15,7 @@ func (p *FieldAccessToBitwisePass) Name() string {
 	return "FieldAccessToBitwise"
 }
 
-func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ctx *TranspileContext) error {
+func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ctx *astutil.TranspileContext) error {
 	transformations := 0
 
 	// We need to transform expressions in place by replacing in parent nodes
@@ -49,14 +51,14 @@ func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ct
 
 	if transformations > 0 {
 		// Simple log for now - could be enhanced with proper logging
-		ctx.logVerbose(fset, "🔄 FieldAccessToBitwisePass: %d transformations applied", transformations)
+		ctx.LogVerbose(fset, "🔄 FieldAccessToBitwisePass: %d transformations applied", transformations)
 	}
 
 	return nil
 }
 
 // transformSelectorExpr checks if an expression is a selector that needs transformation
-func (p *FieldAccessToBitwisePass) transformSelectorExpr(expr ast.Expr, ctx *TranspileContext) ast.Expr {
+func (p *FieldAccessToBitwisePass) transformSelectorExpr(expr ast.Expr, ctx *astutil.TranspileContext) ast.Expr {
 	sel, ok := expr.(*ast.SelectorExpr)
 	if !ok {
 		return nil
@@ -92,14 +94,4 @@ func (p *FieldAccessToBitwisePass) transformSelectorExpr(expr ast.Expr, ctx *Tra
 	}
 
 	return nil
-}
-
-// logVerbose helper to log transformations (if verbose logging exists in context)
-func (ctx *TranspileContext) logVerbose(fset *token.FileSet, format string, args ...interface{}) {
-	// For now, just print - could be enhanced with proper logging
-	if len(args) > 0 {
-		// Use a simple printf for now
-		_ = fset // avoid unused warning
-		// fmt.Printf(format+"\n", args...)
-	}
 }

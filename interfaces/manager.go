@@ -1,4 +1,4 @@
-package types
+package interfaces
 
 type ITypeManager interface {
 	GetNotifierChan() chan string
