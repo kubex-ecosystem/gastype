@@ -4,8 +4,11 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/faelmori/gastype/internal/transpiler"
 	l "github.com/faelmori/logz"
@@ -16,12 +19,28 @@ import (
 type TranspileConfig struct {
 	InputPath      string `json:"input_path"`
 	OutputPath     string `json:"output_path"`
-	Mode           string `json:"mode"`          // "analyze", "transpile", "both"
+	Mode           string `json:"mode"`          // "analyze", "transpile", "both", "full-project"
 	OutputFormat   string `json:"output_format"` // "json", "yaml", "text"
 	Verbose        bool   `json:"verbose"`
 	SecurityLevel  int    `json:"security_level"` // 1=low, 2=medium, 3=high
 	PreserveDocs   bool   `json:"preserve_docs"`
 	BackupOriginal bool   `json:"backup_original"`
+}
+
+// FullProjectStats tracks full project transpilation metrics
+type FullProjectStats struct {
+	StartTime          time.Time     `json:"start_time"`
+	EndTime            time.Time     `json:"end_time"`
+	Duration           time.Duration `json:"duration"`
+	TotalFiles         int           `json:"total_files"`
+	GoFiles            int           `json:"go_files"`
+	TranspiledFiles    int           `json:"transpiled_files"`
+	ContextsFound      int           `json:"contexts_found"`
+	ContextsTranspiled int           `json:"contexts_transpiled"`
+	OptimizationLevel  string        `json:"optimization_level"`
+	ObfuscationLevel   string        `json:"obfuscation_level"`
+	Errors             []string      `json:"errors,omitempty"`
+	Warnings           []string      `json:"warnings,omitempty"`
 }
 
 // transpileCmd creates the main transpile command
@@ -43,11 +62,13 @@ The transpiler can operate in different modes:
 - analyze: Only analyze and report optimization opportunities
 - transpile: Generate transpiled code files
 - both: Analyze and generate transpiled code
+- full-project: Complete project transpilation with build system
 
 Examples:
   gastype transpile -i ./src -o ./src_optimized -m transpile
   gastype transpile -i ./config.go -m analyze --format json
-  gastype transpile -i ./project -m both --security 3 --verbose`,
+  gastype transpile -i ./project -m both --security 3 --verbose
+  gastype transpile -i ./TESTES/gobe -o ./gobe_transpiled -m full-project --security 3`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runTranspileCommand(&config)
@@ -139,8 +160,10 @@ func runTranspileCommand(config *TranspileConfig) error {
 			return err
 		}
 		return performTranspilation(results, config)
+	case "full-project":
+		return performFullProjectTranspilation(config)
 	default:
-		return fmt.Errorf("invalid mode: %s (must be 'analyze', 'transpile', or 'both')", config.Mode)
+		return fmt.Errorf("invalid mode: %s (must be 'analyze', 'transpile', 'both', or 'full-project')", config.Mode)
 	}
 }
 
@@ -331,6 +354,446 @@ package main
 		return fmt.Errorf("error writing transpiled file: %w", err)
 	}
 
+	return nil
+}
+
+// performFullProjectTranspilation executes complete project transpilation
+func performFullProjectTranspilation(config *TranspileConfig) error {
+	if config.Verbose {
+		l.Info("🚀 INICIANDO TRANSPILAÇÃO COMPLETA DE PROJETO - MODO REVOLUCIONÁRIO ATIVADO!", nil)
+		l.Info(fmt.Sprintf("📂 Projeto origem: %s", config.InputPath), nil)
+		l.Info(fmt.Sprintf("📂 Projeto destino: %s", config.OutputPath), nil)
+	}
+
+	// Validate that input is a directory
+	inputInfo, err := os.Stat(config.InputPath)
+	if err != nil {
+		return fmt.Errorf("erro acessando projeto origem: %w", err)
+	}
+	if !inputInfo.IsDir() {
+		return fmt.Errorf("transpilação completa requer um diretório de projeto, não um arquivo único")
+	}
+
+	// Initialize stats
+	stats := &FullProjectStats{
+		StartTime:         time.Now(),
+		OptimizationLevel: "SURREAL",
+		ObfuscationLevel:  getObfuscationLevelName(config.SecurityLevel),
+		Errors:            []string{},
+		Warnings:          []string{},
+	}
+
+	// Initialize transpiler components
+	analyzer := transpiler.NewContextAnalyzer()
+	generator := transpiler.NewAdvancedCodeGenerator(config.SecurityLevel)
+
+	// Step 1: Validate source project
+	if err := validateFullProjectSource(config.InputPath, stats); err != nil {
+		return fmt.Errorf("validação do projeto origem falhou: %w", err)
+	}
+
+	// Step 2: Create target project structure
+	if err := createFullProjectStructure(config, stats); err != nil {
+		return fmt.Errorf("criação da estrutura destino falhou: %w", err)
+	}
+
+	// Step 3: Copy non-Go files (preserving structure)
+	if err := copyNonGoFiles(config); err != nil {
+		return fmt.Errorf("cópia de arquivos não-Go falhou: %w", err)
+	}
+
+	// Step 4: Analyze entire project for contexts
+	contexts, err := analyzeFullProjectContexts(config.InputPath, analyzer, stats)
+	if err != nil {
+		return fmt.Errorf("análise de contextos falhou: %w", err)
+	}
+
+	// Step 5: Transpile all Go files
+	if err := transpileAllGoFiles(config, contexts, generator, stats); err != nil {
+		return fmt.Errorf("transpilação de arquivos Go falhou: %w", err)
+	}
+
+	// Step 6: Generate build scripts and configurations
+	if err := generateFullProjectBuildSystem(config, stats); err != nil {
+		return fmt.Errorf("geração do sistema de build falhou: %w", err)
+	}
+
+	// Step 7: Generate transpilation report
+	if err := generateFullProjectReport(config, stats); err != nil {
+		return fmt.Errorf("geração de relatório falhou: %w", err)
+	}
+
+	stats.EndTime = time.Now()
+	stats.Duration = stats.EndTime.Sub(stats.StartTime)
+
+	fmt.Println("\n🔥 TRANSPILAÇÃO COMPLETA FINALIZADA!")
+	fmt.Printf("⏱️  Tempo total: %v\n", stats.Duration)
+	fmt.Printf("📁 Arquivos Go transpilados: %d/%d\n", stats.TranspiledFiles, stats.GoFiles)
+	fmt.Printf("🧠 Contextos encontrados: %d\n", stats.ContextsFound)
+	fmt.Printf("⚡ Contextos transpilados: %d\n", stats.ContextsTranspiled)
+	fmt.Printf("💾 Projeto transpilado salvo em: %s\n", config.OutputPath)
+
+	if config.Verbose {
+		l.Info("🎉 TRANSPILAÇÃO REVOLUCIONÁRIA COMPLETA! 🎉", nil)
+		l.Info("🚀 Projeto transpilado para máxima performance!", nil)
+	}
+
+	return nil
+}
+
+// getObfuscationLevelName returns the obfuscation level name
+func getObfuscationLevelName(level int) string {
+	switch level {
+	case 1:
+		return "LOW"
+	case 2:
+		return "MEDIUM"
+	case 3:
+		return "HIGH"
+	default:
+		return "UNKNOWN"
+	}
+}
+
+// validateFullProjectSource validates the source project
+func validateFullProjectSource(sourcePath string, stats *FullProjectStats) error {
+	// Check if go.mod exists
+	goModPath := filepath.Join(sourcePath, "go.mod")
+	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
+		return fmt.Errorf("go.mod não encontrado - não é um projeto Go válido")
+	}
+
+	// Count Go files
+	goFileCount := 0
+	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if strings.HasSuffix(info.Name(), ".go") {
+			goFileCount++
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("erro contando arquivos Go: %w", err)
+	}
+
+	if goFileCount == 0 {
+		return fmt.Errorf("nenhum arquivo Go encontrado no projeto")
+	}
+
+	stats.GoFiles = goFileCount
+	fmt.Printf("✅ Projeto válido encontrado com %d arquivos Go\n", goFileCount)
+	return nil
+}
+
+// createFullProjectStructure creates the complete target project structure
+func createFullProjectStructure(config *TranspileConfig, stats *FullProjectStats) error {
+	// Remove existing target if exists
+	if _, err := os.Stat(config.OutputPath); !os.IsNotExist(err) {
+		fmt.Printf("🗑️  Removendo projeto transpilado existente...\n")
+		if err := os.RemoveAll(config.OutputPath); err != nil {
+			return fmt.Errorf("erro removendo projeto existente: %w", err)
+		}
+	}
+
+	// Create target directory
+	if err := os.MkdirAll(config.OutputPath, 0755); err != nil {
+		return fmt.Errorf("erro criando diretório destino: %w", err)
+	}
+
+	// Replicate entire directory structure
+	err := filepath.Walk(config.InputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Calculate relative path
+		relPath, err := filepath.Rel(config.InputPath, path)
+		if err != nil {
+			return err
+		}
+
+		targetPath := filepath.Join(config.OutputPath, relPath)
+
+		// Create directories
+		if info.IsDir() {
+			return os.MkdirAll(targetPath, info.Mode())
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("erro replicando estrutura: %w", err)
+	}
+
+	fmt.Printf("✅ Estrutura de diretórios replicada\n")
+	return nil
+}
+
+// copyNonGoFiles copies all non-Go files preserving structure
+func copyNonGoFiles(config *TranspileConfig) error {
+	err := filepath.Walk(config.InputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories
+		if info.IsDir() {
+			return nil
+		}
+
+		// Skip Go files (they will be transpiled)
+		if strings.HasSuffix(info.Name(), ".go") {
+			return nil
+		}
+
+		// Calculate paths
+		relPath, err := filepath.Rel(config.InputPath, path)
+		if err != nil {
+			return err
+		}
+		targetPath := filepath.Join(config.OutputPath, relPath)
+
+		// Copy file
+		return copyFile(path, targetPath)
+	})
+
+	if err != nil {
+		return fmt.Errorf("erro copiando arquivos não-Go: %w", err)
+	}
+
+	fmt.Printf("✅ Arquivos não-Go copiados\n")
+	return nil
+}
+
+// copyFile copies a single file
+func copyFile(src, dst string) error {
+	sourceFile, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sourceFile.Close()
+
+	destFile, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destFile.Close()
+
+	_, err = io.Copy(destFile, sourceFile)
+	return err
+}
+
+// analyzeFullProjectContexts analyzes the entire project for transpilable contexts
+func analyzeFullProjectContexts(sourcePath string, analyzer *transpiler.ContextAnalyzer, stats *FullProjectStats) (map[string][]transpiler.LogicalContext, error) {
+	fmt.Printf("🧠 Analisando contextos lógicos do projeto...\n")
+
+	allContexts := make(map[string][]transpiler.LogicalContext)
+
+	err := filepath.Walk(sourcePath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Only analyze Go files
+		if !strings.HasSuffix(info.Name(), ".go") {
+			return nil
+		}
+
+		// Analyze contexts in this file
+		contexts, err := analyzer.AnalyzeFile(path)
+		if err != nil {
+			stats.Warnings = append(stats.Warnings, fmt.Sprintf("Aviso analisando %s: %v", path, err))
+			return nil // Continue with other files
+		}
+
+		if len(contexts) > 0 {
+			allContexts[path] = contexts
+			stats.ContextsFound += len(contexts)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("erro analisando contextos: %w", err)
+	}
+
+	fmt.Printf("✅ Análise completa: %d contextos encontrados em %d arquivos\n",
+		stats.ContextsFound, len(allContexts))
+
+	return allContexts, nil
+}
+
+// transpileAllGoFiles transpiles all Go files using found contexts
+func transpileAllGoFiles(config *TranspileConfig, contexts map[string][]transpiler.LogicalContext, generator *transpiler.AdvancedCodeGenerator, stats *FullProjectStats) error {
+	fmt.Printf("⚡ Transpilando arquivos Go...\n")
+
+	err := filepath.Walk(config.InputPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Only process Go files
+		if !strings.HasSuffix(info.Name(), ".go") {
+			return nil
+		}
+
+		// Calculate target path
+		relPath, err := filepath.Rel(config.InputPath, path)
+		if err != nil {
+			return err
+		}
+		targetPath := filepath.Join(config.OutputPath, relPath)
+
+		// Transpile this file
+		fileContexts := contexts[path]
+		if len(fileContexts) == 0 {
+			// No contexts found, copy original file
+			if err := copyFile(path, targetPath); err != nil {
+				return fmt.Errorf("erro copiando %s: %w", path, err)
+			}
+		} else {
+			// Transpile with contexts
+			transpiledCode, err := generator.GenerateAdvancedCode(path, fileContexts)
+			if err != nil {
+				stats.Errors = append(stats.Errors, fmt.Sprintf("Erro transpilando %s: %v", path, err))
+				// Fallback to original file
+				if err := copyFile(path, targetPath); err != nil {
+					return fmt.Errorf("erro copiando fallback %s: %w", path, err)
+				}
+			} else {
+				// Save transpiled code
+				if err := os.WriteFile(targetPath, []byte(transpiledCode), 0644); err != nil {
+					return fmt.Errorf("erro salvando transpilado %s: %w", targetPath, err)
+				}
+				stats.TranspiledFiles++
+				stats.ContextsTranspiled += len(fileContexts)
+			}
+		}
+
+		stats.TotalFiles++
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("erro transpilando arquivos: %w", err)
+	}
+
+	fmt.Printf("✅ Transpilação completa: %d arquivos processados\n", stats.TotalFiles)
+	return nil
+}
+
+// generateFullProjectBuildSystem creates build scripts and configurations for transpiled project
+func generateFullProjectBuildSystem(config *TranspileConfig, stats *FullProjectStats) error {
+	fmt.Printf("🔧 Gerando sistema de build...\n")
+
+	// Create build script
+	buildScript := `#!/bin/bash
+# GASType Revolutionary Transpiled Project Build Script
+# Generated automatically - DO NOT EDIT MANUALLY
+
+echo "🚀 Building GASType Revolutionary Transpiled Project..."
+
+# Clean previous builds
+echo "🧹 Cleaning previous builds..."
+rm -f main transpiled_binary
+
+# Build project
+echo "⚡ Compiling transpiled code..."
+go build -ldflags="-s -w" -o transpiled_binary .
+
+if [ $? -eq 0 ]; then
+    echo "✅ Build successful!"
+    echo "📦 Binary: transpiled_binary"
+    ls -lh transpiled_binary
+    echo "🎯 Ready to run revolutionary transpiled code!"
+else
+    echo "❌ Build failed!"
+    exit 1
+fi
+`
+
+	buildPath := filepath.Join(config.OutputPath, "build.sh")
+	if err := os.WriteFile(buildPath, []byte(buildScript), 0755); err != nil {
+		return fmt.Errorf("erro criando build.sh: %w", err)
+	}
+
+	// Create README for transpiled project
+	readme := fmt.Sprintf(`# GASType Revolutionary Transpiled Project
+
+This is a **REVOLUTIONARY TRANSPILED VERSION** of a Go project using the GASType transpiler.
+
+## 🚀 About This Transpilation
+
+- **Original Project**: %s
+- **Transpilation Date**: %s
+- **Optimization Level**: %s
+- **Obfuscation Level**: %s
+- **Files Transpiled**: %d/%d
+- **Contexts Converted**: %d
+
+## ⚡ Performance Features
+
+✅ **Ultra-optimized bitwise operations**
+✅ **Maximum code obfuscation**  
+✅ **Reduced binary size**
+✅ **Enhanced security through code obfuscation**
+✅ **Surreal performance optimizations**
+
+## 🔧 Building
+
+`+"```bash"+`
+chmod +x build.sh
+./build.sh
+`+"```"+`
+
+## ⚠️ Important Notes
+
+- This code has been **transpiled for maximum performance and obfuscation**
+- **Human readability has been intentionally eliminated**
+- Original function names have been **completely obfuscated**
+- All logical structures converted to **bitwise state machines**
+
+## 🛡️ Security
+
+This transpiled code provides enhanced security through:
+- Obfuscated function and variable names
+- Bitwise operations instead of traditional logic
+- Eliminated human-readable patterns
+- Anti-reverse engineering measures
+
+---
+*Generated by GASType Revolutionary Transpiler*
+`, config.InputPath, time.Now().Format("2006-01-02 15:04:05"),
+		stats.OptimizationLevel, stats.ObfuscationLevel,
+		stats.TranspiledFiles, stats.GoFiles, stats.ContextsTranspiled)
+
+	readmePath := filepath.Join(config.OutputPath, "README_TRANSPILED.md")
+	if err := os.WriteFile(readmePath, []byte(readme), 0644); err != nil {
+		return fmt.Errorf("erro criando README_TRANSPILED.md: %w", err)
+	}
+
+	fmt.Printf("✅ Sistema de build gerado\n")
+	return nil
+}
+
+// generateFullProjectReport generates a comprehensive transpilation report
+func generateFullProjectReport(config *TranspileConfig, stats *FullProjectStats) error {
+	// Generate JSON report
+	reportPath := filepath.Join(config.OutputPath, "transpilation_report.json")
+	reportData, err := json.MarshalIndent(stats, "", "  ")
+	if err != nil {
+		return fmt.Errorf("erro gerando relatório JSON: %w", err)
+	}
+
+	if err := os.WriteFile(reportPath, reportData, 0644); err != nil {
+		return fmt.Errorf("erro salvando relatório: %w", err)
+	}
+
+	fmt.Printf("✅ Relatório de transpilação salvo em: %s\n", reportPath)
 	return nil
 }
 

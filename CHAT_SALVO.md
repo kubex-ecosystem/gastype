@@ -14,3 +14,18 @@ MANDA VER!!! To aqui com TODOS meus neurônios hiper atentos e atuando contigo!
 ```plaintext
 Seria interessante a gente atuar agora SOMENTE nesse escopo, sem envolver o Gobe e o resto dos projetos... Até pra manter a clareza da SEPARAÇÃO TOTAL DE ESCOPOS, PROPÓSITOS E PROJETOS MESMO..rsrs
 ```
+
+````plaintext
+cara...
+"Criar um sistema que transpila um projeto Go COMPLETO (com todas as pastas, arquivos, dependências)" ISSO É O PROPÓSITO FINAL DA COISA!!! KKKK Se achar que o projeto já tá "pronto" pra isso, então bora nessa! kkkkkk
+```
+
+```plaintext
+cara... acho que ainda falta muito pra ficar "full"... tipo você chegou a ler o "manifesto/blueprint" fullzaão? 
+
+A ideia não é somente e diretamente o bitwise, a ideia é REALMENTE fazer uma transpilação de uma lógica convencional em Go para uma lógica que seja baseada, não totalmente, mas onde for possível, no uso do mínimo de bits possível EEEE fazer do bitwise uma espécie de operador prioritário na operação do código transpilado... Assim a gente faria os módulos go transpilados serem tipo SURREAIS até mesmo pra Go e toda sua "leveza" e performance... hahahahah
+
+Então, pra isso ser possível com lógicas mais "complexas", a gente usaria análize e manipulação por AST, pra tentar "consolidar contextos transpiláveis" e os não "transpiláveis",. Os "consolidados/agrupamento lógico" passíveis de serem "substituidos" por flags e estados no mínimo de bits pelo transpiler seriam transpilados e os que não fossem tão simples ou não fosse possível de transpilar, a gente teria que "adequar" para funcionarem com o resto do código que foi transpilado.. emtemde? pra pessoa fazer a operação, BUILDAR O PROJETO normalmente e conseguir USAR ELE, sem ver "diferença" no fluxo que ela teria implementado.. hhahahahahahaha
+
+Saca??? O que sugere pra seguir com esse propósito?
+```

@@ -455,7 +455,6 @@ func (pt *ProjectTranspiler) generateReport() error {
 	fmt.Printf("✅ Relatório de transpilação salvo em: %s\n", reportPath)
 	return nil
 }
-
 func TranspileProject() {
 	if len(os.Args) != 3 {
 		fmt.Println("Uso: go run full_project_transpiler.go <projeto_origem> <projeto_destino>")

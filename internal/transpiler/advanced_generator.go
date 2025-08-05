@@ -10,21 +10,23 @@ import (
 
 // AdvancedCodeGenerator gera código Go ultra-otimizado com obfuscação
 type AdvancedCodeGenerator struct {
-	contexts          []LogicalContext
-	obfuscationLevel  int               // 1=low, 2=medium, 3=high
-	nameObfuscation   map[string]string // Mapeamento de nomes obfuscados
-	stateRegistry     map[string]uint64 // Registro de estados globais
-	jumpTableRegistry map[string]string // Registro de jump tables
+	contexts              []LogicalContext
+	obfuscationLevel      int               // 1=low, 2=medium, 3=high
+	nameObfuscation       map[string]string // Mapeamento de nomes obfuscados
+	stateRegistry         map[string]uint64 // Registro de estados globais
+	jumpTableRegistry     map[string]string // Registro de jump tables
+	globalSystemGenerated bool              // Flag para evitar duplicar sistema global
 }
 
 // NewAdvancedCodeGenerator cria um novo gerador avançado
 func NewAdvancedCodeGenerator(obfuscationLevel int) *AdvancedCodeGenerator {
 	return &AdvancedCodeGenerator{
-		contexts:          []LogicalContext{},
-		obfuscationLevel:  obfuscationLevel,
-		nameObfuscation:   make(map[string]string),
-		stateRegistry:     make(map[string]uint64),
-		jumpTableRegistry: make(map[string]string),
+		contexts:              []LogicalContext{},
+		obfuscationLevel:      obfuscationLevel,
+		nameObfuscation:       make(map[string]string),
+		stateRegistry:         make(map[string]uint64),
+		jumpTableRegistry:     make(map[string]string),
+		globalSystemGenerated: false,
 	}
 }
 
@@ -37,11 +39,12 @@ func (acg *AdvancedCodeGenerator) GenerateAdvancedCode(filename string, contexts
 	// Header ultra-otimizado
 	output.WriteString(acg.generateHeader(filename))
 
-	// Global state system
-	output.WriteString(acg.generateGlobalStateSystem())
-
-	// Utility functions (obfuscated)
-	output.WriteString(acg.generateObfuscatedUtilities())
+	// Global state system - apenas gerar uma vez
+	if !acg.globalSystemGenerated {
+		output.WriteString(acg.generateGlobalStateSystem())
+		output.WriteString(acg.generateObfuscatedUtilities())
+		acg.globalSystemGenerated = true
+	}
 
 	// Process each context
 	for _, context := range contexts {
@@ -61,8 +64,10 @@ func (acg *AdvancedCodeGenerator) GenerateAdvancedCode(filename string, contexts
 		}
 	}
 
-	// Main function (ultra-optimized)
-	output.WriteString(acg.generateOptimizedMain())
+	// Main function apenas no primeiro arquivo ou se não tiver main ainda
+	if !acg.globalSystemGenerated {
+		output.WriteString(acg.generateOptimizedMain())
+	}
 
 	return output.String(), nil
 }
