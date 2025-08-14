@@ -142,9 +142,15 @@ func (v *ServiceImpl) GetLatestVersion() (string, error) {
 }
 func (v *ServiceImpl) GetCurrentVersion() string { return v.currentVersion }
 
+<<<<<<< Updated upstream
 func NewVersionService() Service {
 	return &ServiceImpl{
 		gitModelUrl:    gitModelUrl,
+=======
+func NewVersionService() VersionService {
+	return &VersionServiceImpl{
+		GitModelURL:    "https://api.github.com/repos/faelmori/spidergo",
+>>>>>>> Stashed changes
 		currentVersion: currentVersion,
 		latestVersion:  "",
 	}
