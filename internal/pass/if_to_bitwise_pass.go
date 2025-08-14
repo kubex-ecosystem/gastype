@@ -4,27 +4,16 @@ package pass
 import (
 	"go/ast"
 	"go/token"
+	"strings"
 
 	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
-// IfToBitwisePass converts bool field conditions in if-statements to bitwise flag checks
-// Example:
-//
-//	if cfg.Debug { ... }
-//
-// becomes:
-//
-//	if (cfg.flags & FlagConfig_Debug) != 0 { ... }
+// IfToBitwisePass: cfg.Debug  ->  (cfg.flags & FlagConfig_Debug) != 0
 type IfToBitwisePass struct{}
 
-func NewIfToBitwisePass() *IfToBitwisePass {
-	return &IfToBitwisePass{}
-}
-
-func (p *IfToBitwisePass) Name() string {
-	return "IfToBitwise"
-}
+func NewIfToBitwisePass() *IfToBitwisePass { return &IfToBitwisePass{} }
+func (p *IfToBitwisePass) Name() string    { return "IfToBitwise" }
 
 func (p *IfToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *astutil.TranspileContext) error {
 	transformations := 0
@@ -34,50 +23,49 @@ func (p *IfToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *astutil.T
 		if !ok {
 			return true
 		}
-
-		// Verifica se a condição é um acesso a campo (SelectorExpr)
 		sel, ok := ifStmt.Cond.(*ast.SelectorExpr)
 		if !ok {
 			return true
 		}
 
-		// O X do seletor pode ser Ident (cfg) ou algo mais complexo (ex: getCfg())
-		structIdent, ok := sel.X.(*ast.Ident)
-		if !ok {
+		// Usa types.Selections: pegamos o campo e o tipo receptor reais
+		selInfo := ctx.GetSelections()[sel]
+		if selInfo == nil || selInfo.Obj() == nil {
 			return true
 		}
+		fieldName := selInfo.Obj().Name()
+		recv := selInfo.Recv()
+		if recv == nil {
+			return true
+		}
+		typName := recv.String()
+		if strings.HasPrefix(typName, "*") {
+			typName = typName[1:]
+		}
 
-		// Busca no contexto se a struct tem esse campo mapeado para flag
-		if info, exists := ctx.Structs[structIdent.Name]; exists {
-			if flagName, ok := info.FlagMapping[sel.Sel.Name]; ok {
-				// Substitui a condição do if para a checagem bitwise
+		// Agora lookup por TIPO (não por nome de variável)
+		if info, ok := ctx.Structs[typName]; ok {
+			if flagName, ok := info.FlagMapping[fieldName]; ok {
 				ifStmt.Cond = &ast.BinaryExpr{
 					X: &ast.ParenExpr{
 						X: &ast.BinaryExpr{
-							X: &ast.SelectorExpr{
-								X:   sel.X, // preserva o objeto original
-								Sel: ast.NewIdent("flags"),
-							},
+							X: &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("flags")},
 							Op: token.AND,
-							Y:  ast.NewIdent(flagName),
+							Y: ast.NewIdent(flagName),
 						},
 					},
 					Op: token.NEQ,
-					Y: &ast.BasicLit{
-						Kind:  token.INT,
-						Value: "0",
-					},
+					Y:  &ast.BasicLit{Kind: token.INT, Value: "0"},
 				}
 				transformations++
 			}
 		}
-
 		return true
 	})
 
 	if transformations > 0 {
 		ctx.LogVerbose(nil, "⚡ IfToBitwisePass: %d transformations applied", transformations)
 	}
-
 	return nil
 }
+
