@@ -1,0 +1,6 @@
+/// PROJECT_INFO ///
+Project: scripts
+Generated: 2025-08-14T04:55:23.621Z
+Total Files: 0
+Source: /srv/apps/LIFE/KUBEX/lookatni-file-markers/scripts
+
