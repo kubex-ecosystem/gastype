@@ -247,7 +247,7 @@ func runTranspileCommand(config *TranspileConfig) error {
 		if config.Verbose {
 			gl.Log("info", "🔍 Analyzing project directory...")
 		}
-		results, err = bitwiseTranspiler.AnalyzeProject(config.InputPath)
+		err = bitwiseTranspiler.AnalyzeProject(config.InputPath)
 		if err != nil {
 			gl.Log("error", fmt.Sprintf("error analyzing project: %v", err))
 			return fmt.Errorf("error analyzing project: %w", err)

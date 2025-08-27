@@ -1,4 +1,4 @@
-// Package info gerencia controle e configuração modular, com suporte a arquivos separados por módulo.
+// Package info manages modular control and configuration, with support for files separated by module.
 package info
 
 import (
@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 )
 
-// Control representa a configuração de controle de um módulo.
+// Control represents the control configuration of a module.
 type Control struct {
 	Reference     Reference `json:"-"` // Usado internamente para nome do arquivo, nunca exportado
 	SchemaVersion int       `json:"schema_version"`
@@ -22,32 +22,32 @@ type Control struct {
 func (c *Control) GetName() string    { return c.Reference.Name }
 func (c *Control) GetVersion() string { return c.Reference.Version }
 
-// LoadControlByModule carrega o controle de um arquivo específico do módulo.
-func LoadControlByModule(dir string, moduleName string) (*Control, error) {
-	file := filepath.Join(dir, fmt.Sprintf("control_%s.json", moduleName))
+// LoadControlByModule loads the control from a specific module file.
+func LoadControlByModule(module string) (*Control, error) {
+	file := filepath.Join(".", fmt.Sprintf("control_%s.json", module))
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao abrir %s: %w", file, err)
+		return nil, fmt.Errorf("error opening %s: %w", file, err)
 	}
 	defer f.Close()
 	var c Control
 	dec := json.NewDecoder(f)
 	if err := dec.Decode(&c); err != nil {
-		return nil, fmt.Errorf("erro ao decodificar %s: %w", file, err)
+		return nil, fmt.Errorf("error decoding %s: %w", file, err)
 	}
-	c.Reference = Reference{Name: moduleName}
+	c.Reference = Reference{Name: module}
 	return &c, nil
 }
 
-// SaveControl salva o controle do módulo em arquivo separado.
+// SaveControl saves the module control to a separate file.
 func (c *Control) SaveControl(dir string) error {
 	if c.Reference.Name == "" {
-		return fmt.Errorf("Reference.Name não pode ser vazio para salvar o controle")
+		return fmt.Errorf("Reference.Name cannot be empty to save the control")
 	}
 	file := filepath.Join(dir, fmt.Sprintf("control_%s.json", c.Reference.Name))
 	f, err := os.Create(file)
 	if err != nil {
-		return fmt.Errorf("erro ao criar %s: %w", file, err)
+		return fmt.Errorf("error creating %s: %w", file, err)
 	}
 	defer f.Close()
 	enc := json.NewEncoder(f)

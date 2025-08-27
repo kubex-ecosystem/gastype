@@ -63,7 +63,7 @@ func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *astuti
 		// Determina tipo ideal (uint8, uint16, uint32, uint64)
 		flagType := astutil.MenorTipoParaFlags(len(boolFields))
 
-		// === 2️⃣ Cria constantes AST reais ===
+		// === 2️⃣ Create real AST constants ===
 		constDecls := []ast.Decl{}
 		for i, fieldName := range boolFields {
 			constName := fmt.Sprintf("Flag%s_%s", structName, fieldName)
@@ -150,7 +150,7 @@ func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *astuti
 	return nil
 }
 
-// contains verifica se s está em slice arr
+// contains checks if s is in slice arr
 func contains(arr []string, s string) bool {
 	for _, v := range arr {
 		if strings.EqualFold(v, s) {

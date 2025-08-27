@@ -1,4 +1,4 @@
-// Package transpiler implementa análise de contextos lógicos para transpilação avançada
+// Package transpiler implements logical context analysis for advanced transpilation
 package transpiler
 
 import (
@@ -9,34 +9,34 @@ import (
 	"strings"
 )
 
-// LogicalContext representa um contexto lógico que pode ser transpilado
+// LogicalContext represents a logical context that can be transpiled
 type LogicalContext struct {
 	Type         string     // "function", "if_chain", "switch", "struct", "auth_logic"
-	Name         string     // Nome do contexto (função, variável, etc.)
-	Complexity   int        // Nível de complexidade (1-10)
-	Transpilable bool       // Se pode ser transpilado para bitwise
-	Dependencies []string   // Dependências de outros contextos
-	ASTNode      ast.Node   // Nó AST original
-	BitStates    []BitState // Estados bitwise possíveis
-	StartLine    int        // Linha de início
-	EndLine      int        // Linha de fim
+	Name         string     // Context name (function, variable, etc.)
+	Complexity   int        // Complexity level (1-10)
+	Transpilable bool       // If it can be transpiled to bitwise
+	Dependencies []string   // Dependencies on other contexts
+	ASTNode      ast.Node   // Original AST node
+	BitStates    []BitState // Possible bitwise states
+	StartLine    int        // Start line
+	EndLine      int        // End line
 }
 
-// BitState representa um estado bitwise possível
+// BitState represents a possible bitwise state
 type BitState struct {
-	Name        string   // Nome semântico do estado
-	BitPosition int      // Posição do bit (0-63)
-	Conditions  []string // Condições que ativam este estado
-	Actions     []string // Ações executadas quando ativo
+	Name        string   // Semantic name of the state
+	BitPosition int      // Bit position (0-63)
+	Conditions  []string // Conditions that activate this state
+	Actions     []string // Actions executed when active
 }
 
-// ContextAnalyzer analisa código Go e identifica contextos transpiláveis
+// ContextAnalyzer analyzes Go code and identifies transpilable contexts
 type ContextAnalyzer struct {
 	fset     *token.FileSet
 	contexts []LogicalContext
 }
 
-// NewContextAnalyzer cria um novo analisador de contextos
+// NewContextAnalyzer creates a new context analyzer
 func NewContextAnalyzer() *ContextAnalyzer {
 	return &ContextAnalyzer{
 		fset:     token.NewFileSet(),
@@ -44,29 +44,29 @@ func NewContextAnalyzer() *ContextAnalyzer {
 	}
 }
 
-// AnalyzeFile analisa um arquivo e identifica contextos lógicos
+// AnalyzeFile analyzes a file and identifies logical contexts
 func (ca *ContextAnalyzer) AnalyzeFile(filename string) ([]LogicalContext, error) {
 	node, err := parser.ParseFile(ca.fset, filename, nil, parser.ParseComments)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao parsear arquivo: %w", err)
+		return nil, fmt.Errorf("error parsing file: %w", err)
 	}
 
 	ca.contexts = []LogicalContext{}
 
-	// Análise de contextos diferentes
+	// Analysis of different contexts
 	ca.analyzeStructs(node)
 	ca.analyzeFunctions(node)
 	ca.analyzeIfChains(node)
 	ca.analyzeAuthLogic(node)
 	ca.analyzeSwitchStatements(node)
 
-	// Calcular transpilabilidade e dependências
+	// Calculate transpilability and dependencies
 	ca.calculateTranspilability()
 
 	return ca.contexts, nil
 }
 
-// analyzeStructs analisa structs para conversão bitwise (já implementado)
+// analyzeStructs analyzes structs for bitwise conversion (already implemented)
 func (ca *ContextAnalyzer) analyzeStructs(node *ast.File) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		if typeSpec, ok := n.(*ast.TypeSpec); ok {
@@ -81,7 +81,7 @@ func (ca *ContextAnalyzer) analyzeStructs(node *ast.File) {
 	})
 }
 
-// analyzeStruct analisa uma struct específica
+// analyzeStruct analyzes a specific struct
 func (ca *ContextAnalyzer) analyzeStruct(typeSpec *ast.TypeSpec, structType *ast.StructType) *LogicalContext {
 	var boolFields []string
 	var bitStates []BitState
@@ -110,7 +110,7 @@ func (ca *ContextAnalyzer) analyzeStruct(typeSpec *ast.TypeSpec, structType *ast
 	return &LogicalContext{
 		Type:         "struct",
 		Name:         typeSpec.Name.Name,
-		Complexity:   len(boolFields), // Complexidade = número de campos bool
+		Complexity:   len(boolFields), // Complexity = number of bool fields
 		Transpilable: true,
 		Dependencies: []string{},
 		ASTNode:      typeSpec,
@@ -120,7 +120,7 @@ func (ca *ContextAnalyzer) analyzeStruct(typeSpec *ast.TypeSpec, structType *ast
 	}
 }
 
-// analyzeFunctions analisa funções para obfuscação e transpilação
+// analyzeFunctions analyzes functions for obfuscation and transpilation
 func (ca *ContextAnalyzer) analyzeFunctions(node *ast.File) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		if funcDecl, ok := n.(*ast.FuncDecl); ok {
@@ -133,7 +133,7 @@ func (ca *ContextAnalyzer) analyzeFunctions(node *ast.File) {
 	})
 }
 
-// analyzeFunction analisa uma função específica
+// analyzeFunction analyzes a specific function
 func (ca *ContextAnalyzer) analyzeFunction(funcDecl *ast.FuncDecl) *LogicalContext {
 	if funcDecl.Name == nil {
 		return nil
@@ -142,7 +142,7 @@ func (ca *ContextAnalyzer) analyzeFunction(funcDecl *ast.FuncDecl) *LogicalConte
 	pos := ca.fset.Position(funcDecl.Pos())
 	endPos := ca.fset.Position(funcDecl.End())
 
-	// Analisar complexidade da função
+	// Analyze function complexity
 	complexity := ca.calculateFunctionComplexity(funcDecl)
 	//transpilable := complexity <= 5 // Funções simples são transpiláveis
 	transpilable := complexity <= 3 // Funções simples são transpiláveis
@@ -159,7 +159,7 @@ func (ca *ContextAnalyzer) analyzeFunction(funcDecl *ast.FuncDecl) *LogicalConte
 		EndLine:      endPos.Line,
 	}
 
-	// Se for transpilável, criar estados bitwise
+	// If transpilable, create bitwise states
 	if transpilable {
 		context.BitStates = ca.createFunctionBitStates(funcDecl)
 	}
@@ -167,7 +167,7 @@ func (ca *ContextAnalyzer) analyzeFunction(funcDecl *ast.FuncDecl) *LogicalConte
 	return context
 }
 
-// calculateFunctionComplexity calcula complexidade de uma função
+// calculateFunctionComplexity calculates complexity of a function
 func (ca *ContextAnalyzer) calculateFunctionComplexity(funcDecl *ast.FuncDecl) int {
 	complexity := 1 // Base
 
@@ -188,7 +188,7 @@ func (ca *ContextAnalyzer) calculateFunctionComplexity(funcDecl *ast.FuncDecl) i
 	return complexity
 }
 
-// createFunctionBitStates cria estados bitwise para uma função
+// createFunctionBitStates creates bitwise states for a function
 func (ca *ContextAnalyzer) createFunctionBitStates(funcDecl *ast.FuncDecl) []BitState {
 	states := []BitState{
 		{
@@ -214,7 +214,7 @@ func (ca *ContextAnalyzer) createFunctionBitStates(funcDecl *ast.FuncDecl) []Bit
 	return states
 }
 
-// analyzeIfChains analisa cadeias de if/else para conversão em jump tables
+// analyzeIfChains analyzes if/else chains for conversion to jump tables
 func (ca *ContextAnalyzer) analyzeIfChains(node *ast.File) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		if ifStmt, ok := n.(*ast.IfStmt); ok {
@@ -227,7 +227,7 @@ func (ca *ContextAnalyzer) analyzeIfChains(node *ast.File) {
 	})
 }
 
-// analyzeIfChain analisa uma cadeia de if/else
+// analyzeIfChain analyzes an if/else chain
 func (ca *ContextAnalyzer) analyzeIfChain(ifStmt *ast.IfStmt) *LogicalContext {
 	chainLength := ca.calculateIfChainLength(ifStmt)
 
@@ -255,7 +255,7 @@ func (ca *ContextAnalyzer) analyzeIfChain(ifStmt *ast.IfStmt) *LogicalContext {
 	return context
 }
 
-// calculateIfChainLength calcula o comprimento de uma cadeia if/else
+// calculateIfChainLength calculates the length of an if/else chain
 func (ca *ContextAnalyzer) calculateIfChainLength(ifStmt *ast.IfStmt) int {
 	length := 1
 	current := ifStmt
@@ -272,7 +272,7 @@ func (ca *ContextAnalyzer) calculateIfChainLength(ifStmt *ast.IfStmt) int {
 	return length
 }
 
-// createIfChainBitStates cria estados bitwise para cadeia if/else
+// createIfChainBitStates creates bitwise states for if/else chain
 func (ca *ContextAnalyzer) createIfChainBitStates(ifStmt *ast.IfStmt, chainLength int) []BitState {
 	states := []BitState{}
 
@@ -289,7 +289,7 @@ func (ca *ContextAnalyzer) createIfChainBitStates(ifStmt *ast.IfStmt, chainLengt
 	return states
 }
 
-// analyzeAuthLogic analisa lógicas de autenticação para obfuscação
+// analyzeAuthLogic analyzes authentication logic for obfuscation
 func (ca *ContextAnalyzer) analyzeAuthLogic(node *ast.File) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		if funcDecl, ok := n.(*ast.FuncDecl); ok {
@@ -304,7 +304,7 @@ func (ca *ContextAnalyzer) analyzeAuthLogic(node *ast.File) {
 	})
 }
 
-// isAuthFunction verifica se uma função é de autenticação
+// isAuthFunction checks if a function is for authentication
 func (ca *ContextAnalyzer) isAuthFunction(funcDecl *ast.FuncDecl) bool {
 	if funcDecl.Name == nil {
 		return false
@@ -322,7 +322,7 @@ func (ca *ContextAnalyzer) isAuthFunction(funcDecl *ast.FuncDecl) bool {
 	return false
 }
 
-// analyzeAuthFunction analisa função de autenticação
+// analyzeAuthFunction analyzes authentication function
 func (ca *ContextAnalyzer) analyzeAuthFunction(funcDecl *ast.FuncDecl) *LogicalContext {
 	pos := ca.fset.Position(funcDecl.Pos())
 	endPos := ca.fset.Position(funcDecl.End())
@@ -342,7 +342,7 @@ func (ca *ContextAnalyzer) analyzeAuthFunction(funcDecl *ast.FuncDecl) *LogicalC
 	return context
 }
 
-// createAuthBitStates cria estados bitwise para autenticação
+// createAuthBitStates creates bitwise states for authentication
 func (ca *ContextAnalyzer) createAuthBitStates() []BitState {
 	return []BitState{
 		{
@@ -366,7 +366,7 @@ func (ca *ContextAnalyzer) createAuthBitStates() []BitState {
 	}
 }
 
-// analyzeSwitchStatements analisa switch statements para otimização
+// analyzeSwitchStatements analyzes switch statements for optimization
 func (ca *ContextAnalyzer) analyzeSwitchStatements(node *ast.File) {
 	ast.Inspect(node, func(n ast.Node) bool {
 		if switchStmt, ok := n.(*ast.SwitchStmt); ok {
@@ -379,7 +379,7 @@ func (ca *ContextAnalyzer) analyzeSwitchStatements(node *ast.File) {
 	})
 }
 
-// analyzeSwitchStatement analisa um switch statement
+// analyzeSwitchStatement analyzes a switch statement
 func (ca *ContextAnalyzer) analyzeSwitchStatement(switchStmt *ast.SwitchStmt) *LogicalContext {
 	caseCount := len(switchStmt.Body.List)
 
@@ -407,7 +407,7 @@ func (ca *ContextAnalyzer) analyzeSwitchStatement(switchStmt *ast.SwitchStmt) *L
 	return context
 }
 
-// createSwitchBitStates cria estados bitwise para switch
+// createSwitchBitStates creates bitwise states for switch
 func (ca *ContextAnalyzer) createSwitchBitStates(caseCount int) []BitState {
 	states := []BitState{}
 
@@ -424,32 +424,32 @@ func (ca *ContextAnalyzer) createSwitchBitStates(caseCount int) []BitState {
 	return states
 }
 
-// calculateTranspilability calcula a transpilabilidade de todos os contextos
+// calculateTranspilability calculates the transpilability of all contexts
 func (ca *ContextAnalyzer) calculateTranspilability() {
 	for i := range ca.contexts {
 		context := &ca.contexts[i]
 
-		// Fatores que influenciam transpilabilidade
+		// Factors that influence transpilability
 		if context.Complexity > 10 {
 			context.Transpilable = false
 		}
 
 		if context.Type == "auth_logic" {
-			context.Transpilable = true // Sempre transpilável para segurança
+			context.Transpilable = true // Always transpilable for security
 		}
 
-		// Calcular dependências entre contextos
+		// Calculate dependencies between contexts
 		ca.calculateDependencies(context)
 	}
 }
 
-// calculateDependencies calcula dependências entre contextos
+// calculateDependencies calculates dependencies between contexts
 func (ca *ContextAnalyzer) calculateDependencies(context *LogicalContext) {
-	// TODO: Implementar análise de dependências
-	// TESTE DE IMPLEMENTAÇÃO SIMPLES
+	// TODO: Implement dependency analysis
+	// SIMPLE IMPLEMENTATION TEST
 	context.Dependencies = []string{}
 	if context.Type == "function" && strings.Contains(strings.ToLower(context.Name), "handler") {
-		// Funções handler geralmente dependem de structs
+		// Handler functions usually depend on structs
 		for _, ctx := range ca.contexts {
 			if ctx.Type == "struct" {
 				context.Dependencies = append(context.Dependencies, ctx.Name)
@@ -458,7 +458,7 @@ func (ca *ContextAnalyzer) calculateDependencies(context *LogicalContext) {
 	}
 }
 
-// GetTranspilableContexts retorna apenas contextos transpiláveis
+// GetTranspilableContexts returns only transpilable contexts
 func (ca *ContextAnalyzer) GetTranspilableContexts() []LogicalContext {
 	var transpilable []LogicalContext
 
@@ -471,7 +471,7 @@ func (ca *ContextAnalyzer) GetTranspilableContexts() []LogicalContext {
 	return transpilable
 }
 
-// GetContextsByType retorna contextos de um tipo específico
+// GetContextsByType returns contexts of a specific type
 func (ca *ContextAnalyzer) GetContextsByType(contextType string) []LogicalContext {
 	var filtered []LogicalContext
 

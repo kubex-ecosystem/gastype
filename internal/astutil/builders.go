@@ -5,7 +5,7 @@ import (
 	"go/token"
 )
 
-// NewBitwiseCheck Cria uma expressão bitwise: flags & FlagXYZ != 0
+// NewBitwiseCheck Creates a bitwise expression: flags & FlagXYZ != 0
 func NewBitwiseCheck(objName, flagsField, flagConst string) ast.Expr {
 	return &ast.BinaryExpr{
 		X: &ast.BinaryExpr{
@@ -18,7 +18,7 @@ func NewBitwiseCheck(objName, flagsField, flagConst string) ast.Expr {
 	}
 }
 
-// NewConst Cria uma constante AST
+// NewConst Creates an AST constant
 func NewConst(name, typ, value string) *ast.GenDecl {
 	return &ast.GenDecl{
 		Tok: token.CONST,

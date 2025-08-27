@@ -69,11 +69,11 @@ This command runs tests and comparisons to ensure the optimized code
 maintains exactly the same behavior as the original code.
 
 Stage 2 of the GASType Premium Pipeline:
-"Legível no debug, insano em produção."
+"Readable in debug, insane in production."
 
 Examples:
-  gastype validate --baseline ./src --optimized ./out_optimized --tests ./tests
-  gastype validate --baseline ./project --optimized ./project_opt -v`,
+	gastype validate --baseline ./src --optimized ./out_optimized --tests ./tests
+	gastype validate --baseline ./project --optimized ./project_opt -v`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runValidateCommand(&config)
@@ -111,15 +111,15 @@ func obfuscateCmd() *cobra.Command {
 		Long: `Apply maximum obfuscation only to components that passed validation.
 
 This command respects gastype control comments:
-  //gastype:nobfuscate - Skip obfuscation for this function/struct
-  //gastype:force      - Force obfuscation even if not validated
+	//gastype:nobfuscate - Skip obfuscation for this function/struct
+	//gastype:force      - Force obfuscation even if not validated
 
 Stage 3 of the GASType Premium Pipeline:
-"Legível no debug, insano em produção."
+"Readable in debug, insane in production."
 
 Examples:
-  gastype obfuscate --from ./out_optimized --only-passed --marks
-  gastype obfuscate --from ./validated_code -o ./obfuscated --verbose`,
+	gastype obfuscate --from ./out_optimized --only-passed --marks
+	gastype obfuscate --from ./validated_code -o ./obfuscated --verbose`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runObfuscateCommand(&config)
@@ -159,11 +159,11 @@ This command applies aggressive Go compiler optimizations, strips debug
 symbols, and optionally compresses the final binary.
 
 Stage 4 of the GASType Premium Pipeline:
-"Legível no debug, insano em produção."
+"Readable in debug, insane in production."
 
 Examples:
-  gastype build --source ./out_obfuscated --final --compress
-  gastype build --source ./validated_code -o ./dist/myapp`,
+	gastype build --source ./out_obfuscated --final --compress
+	gastype build --source ./validated_code -o ./dist/myapp`,
 
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runBuildCommand(&config)
@@ -193,7 +193,7 @@ Examples:
 // runValidateCommand executes Stage 2 validation
 func runValidateCommand(config *PipelineConfig) error {
 	if config.Verbose {
-		gl.Log("info", "🔍 INICIANDO ETAPA 2: VALIDAÇÃO E TESTE")
+		gl.Log("info", "🔍 STARTING STAGE 2: VALIDATION AND TESTING")
 		gl.Log("info", fmt.Sprintf("📂 Baseline: %s", config.BaselinePath))
 		gl.Log("info", fmt.Sprintf("📂 Optimized: %s", config.InputPath))
 	}
@@ -252,12 +252,12 @@ func runValidateCommand(config *PipelineConfig) error {
 	}
 
 	// Print summary
-	gl.Log("info", "\n✅ VALIDAÇÃO COMPLETA!\n")
-	gl.Log("info", fmt.Sprintf("📊 Testes: %d/%d passaram\n", report.Passed, report.TotalTests))
-	gl.Log("info", fmt.Sprintf("📝 Relatório: %s\n", config.OutputPath))
+	gl.Log("info", "\n✅ VALIDATION COMPLETE!\n")
+	gl.Log("info", fmt.Sprintf("📊 Tests: %d/%d passed\n", report.Passed, report.TotalTests))
+	gl.Log("info", fmt.Sprintf("📝 Report: %s\n", config.OutputPath))
 
 	if config.Verbose {
-		gl.Log("info", "🎉 ETAPA 2 CONCLUÍDA COM SUCESSO!")
+		gl.Log("info", "🎉 STAGE 2 COMPLETED SUCCESSFULLY!")
 	}
 
 	return nil
@@ -266,7 +266,7 @@ func runValidateCommand(config *PipelineConfig) error {
 // runObfuscateCommand executes Stage 3 obfuscation
 func runObfuscateCommand(config *PipelineConfig) error {
 	if config.Verbose {
-		gl.Log("info", "🔒 INICIANDO ETAPA 3: OFUSCAÇÃO SELETIVA")
+		gl.Log("info", "🔒 STARTING STAGE 3: SELECTIVE OBFUSCATION")
 		gl.Log("info", fmt.Sprintf("📂 Source: %s", config.InputPath))
 		gl.Log("info", fmt.Sprintf("📂 Output: %s", config.OutputPath))
 	}
@@ -305,11 +305,11 @@ func runObfuscateCommand(config *PipelineConfig) error {
 		return fmt.Errorf("obfuscation failed: %w", err)
 	}
 
-	gl.Log("info", "\n✅ OFUSCAÇÃO COMPLETA!\n")
-	gl.Log("info", fmt.Sprintf("📁 Código ofuscado: %s\n", config.OutputPath))
+	gl.Log("info", "\n✅ OBFUSCATION COMPLETE!\n")
+	gl.Log("info", fmt.Sprintf("📁 Obfuscated code: %s\n", config.OutputPath))
 
 	if config.Verbose {
-		gl.Log("info", "🎉 ETAPA 3 CONCLUÍDA COM SUCESSO!")
+		gl.Log("info", "🎉 STAGE 3 COMPLETED SUCCESSFULLY!")
 	}
 
 	return nil
@@ -318,7 +318,7 @@ func runObfuscateCommand(config *PipelineConfig) error {
 // runBuildCommand executes Stage 4 final build
 func runBuildCommand(config *PipelineConfig) error {
 	if config.Verbose {
-		gl.Log("info", "🚀 INICIANDO ETAPA 4: BUILD FINAL OTIMIZADO")
+		gl.Log("info", "🚀 STARTING STAGE 4: FINAL OPTIMIZED BUILD")
 		gl.Log("info", fmt.Sprintf("📂 Source: %s", config.InputPath))
 		gl.Log("info", fmt.Sprintf("📂 Output: %s", config.OutputPath))
 	}
@@ -380,12 +380,12 @@ func runBuildCommand(config *PipelineConfig) error {
 		return fmt.Errorf("failed to save build report: %w", err)
 	}
 
-	gl.Log("info", "\n🎉 BUILD FINAL COMPLETO!\n")
-	gl.Log("info", fmt.Sprintf("📁 Binário: %s\n", binaryPath))
-	gl.Log("info", fmt.Sprintf("📊 Relatório: %s\n", reportPath))
+	gl.Log("info", "\n🎉 FINAL BUILD COMPLETE!\n")
+	gl.Log("info", fmt.Sprintf("📁 Binary: %s\n", binaryPath))
+	gl.Log("info", fmt.Sprintf("📊 Report: %s\n", reportPath))
 
 	if config.Verbose {
-		gl.Log("info", "🎉 ETAPA 4 CONCLUÍDA COM SUCESSO!")
+		gl.Log("info", "🎉 STAGE 4 COMPLETED SUCCESSFULLY!")
 	}
 
 	return nil

@@ -115,7 +115,7 @@ func (tm *TypeManager) PrepareActions() error {
 		gl.Log("error", fmt.Sprintf("error parsing files: %v", err))
 		return fmt.Errorf("error parsing files: %v", err)
 	}
-	// Criar ações baseadas nos arquivos analisados.
+	// Create actions based on analyzed files.
 	for pkgName, files := range parsedFiles {
 		action := actions.NewTypeCheckAction(pkgName, files, tm.cfg)
 		tm.AddAction(action)

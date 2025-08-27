@@ -1,4 +1,4 @@
-// Package transpiler implementa pipeline de transpilação e sugestões bitwise
+// Package transpiler implements bitwise transpilation pipeline and suggestions
 package transpiler
 
 import (
@@ -13,7 +13,7 @@ import (
 	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
-// StructBitwiseSuggestion representa sugestão de conversão de campos bool para flags
+// StructBitwiseSuggestion represents a suggestion for converting bool fields to flags
 type StructBitwiseSuggestion struct {
 	StructName string
 	BoolFields []string
@@ -21,19 +21,19 @@ type StructBitwiseSuggestion struct {
 	Line       int
 }
 
-// BitwiseTranspiler é a estrutura principal para transpilação bitwise
+// BitwiseTranspiler is the main structure for bitwise transpilation
 type BitwiseTranspiler struct {
 	fset *token.FileSet
 }
 
-// NewBitwiseTranspiler cria um novo transpiler bitwise
+// NewBitwiseTranspiler creates a new bitwise transpiler
 func NewBitwiseTranspiler() *BitwiseTranspiler {
 	return &BitwiseTranspiler{
 		fset: token.NewFileSet(),
 	}
 }
 
-// TranspilationResult representa o resultado de uma análise/transpilação
+// TranspilationResult represents the result of an analysis/transpilation
 type TranspilationResult struct {
 	OriginalFile     string            `json:"original_file"`
 	TranspiledFile   string            `json:"transpiled_file"`
@@ -41,7 +41,7 @@ type TranspilationResult struct {
 	SecurityFeatures []SecurityFeature `json:"security_features"`
 }
 
-// Optimization representa uma otimização encontrada
+// Optimization represents a found optimization
 type Optimization struct {
 	Type          string  `json:"type"`
 	Description   string  `json:"description"`
@@ -50,13 +50,13 @@ type Optimization struct {
 	SpeedupFactor float64 `json:"speedup_factor"`
 }
 
-// SecurityFeature representa um recurso de segurança aplicado
+// SecurityFeature represents an applied security feature
 type SecurityFeature struct {
 	Description string `json:"description"`
 	Strength    string `json:"strength"`
 }
 
-// AnalyzeFile analisa um arquivo único e retorna resultados de otimização
+// AnalyzeFile analyzes a single file and returns optimization results
 func (bt *BitwiseTranspiler) AnalyzeFile(filename string) (*TranspilationResult, error) {
 	suggestions, err := bt.analyzeFileSugereBitwise(filename)
 	if err != nil {
@@ -93,27 +93,27 @@ func (bt *BitwiseTranspiler) AnalyzeFile(filename string) (*TranspilationResult,
 	return result, nil
 }
 
-// AnalyzeProject analisa um projeto inteiro (diretório)
-func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationResult, error) {
+// AnalyzeProject analyzes an entire project (directory)
+func (bt *BitwiseTranspiler) AnalyzeProject(projectPath string) error {
 	var results []TranspilationResult
 
-	err := filepath.Walk(projectDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(projectPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Analisar apenas arquivos .go
+		// Analyze only .go files
 		if !strings.HasSuffix(path, ".go") {
 			return nil
 		}
 
 		result, err := bt.AnalyzeFile(path)
 		if err != nil {
-			gl.Log("error", fmt.Sprintf("erro analisando %s: %v", path, err))
-			return fmt.Errorf("erro analisando %s: %w", path, err)
+			gl.Log("error", fmt.Sprintf("error analyzing %s: %v", path, err))
+			return fmt.Errorf("error analyzing %s: %w", path, err)
 		}
 
-		// Apenas adicionar se há otimizações
+		// Only add if there are optimizations
 		if len(result.Optimizations) > 0 {
 			results = append(results, *result)
 		}
@@ -122,19 +122,19 @@ func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationR
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro percorrendo projeto: %v", err))
-		return nil, fmt.Errorf("erro percorrendo projeto: %w", err)
+		gl.Log("error", fmt.Sprintf("error traversing project: %v", err))
+		return fmt.Errorf("error traversing project: %w", err)
 	}
 
-	return results, nil
+	return nil
 }
 
-// analyzeFileSugereBitwise analisa um arquivo Go e retorna structs que podem ser convertidos para bitwise
+// analyzeFileSugereBitwise analyzes a Go file and returns structs that can be converted to bitwise
 func (bt *BitwiseTranspiler) analyzeFileSugereBitwise(filename string) ([]StructBitwiseSuggestion, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro ao abrir arquivo: %v", err))
-		return nil, fmt.Errorf("erro ao abrir arquivo: %w", err)
+		gl.Log("error", fmt.Sprintf("error opening file: %v", err))
+		return nil, fmt.Errorf("error opening file: %w", err)
 	}
 	defer file.Close()
 
@@ -177,13 +177,13 @@ func (bt *BitwiseTranspiler) analyzeFileSugereBitwise(filename string) ([]Struct
 	return suggestions, nil
 }
 
-// GenerateTranspiledCode gera código bitwise otimizado para um arquivo
+// GenerateTranspiledCode generates optimized bitwise code for a file
 func (bt *BitwiseTranspiler) GenerateTranspiledCode(filename string) (string, error) {
 	generator := NewBitwiseCodeGenerator()
 	return generator.GenerateBitwiseCode(filename)
 }
 
-// SugereBitwiseParaArquivo executa análise e imprime sugestões para conversão bitwise
+// SugereBitwiseParaArquivo executes analysis and prints suggestions for bitwise conversion
 func SugereBitwiseParaArquivo(filename string) error {
 	bt := NewBitwiseTranspiler()
 	suggestions, err := bt.analyzeFileSugereBitwise(filename)
