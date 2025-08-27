@@ -59,7 +59,7 @@ func (e *Engine) AddPass(pass TranspilePass) {
 func (e *Engine) Run(root string) error {
 	files, err := DiscoverGoFiles(root)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("failed to discover Go files: %w", err))
+		gl.Log("error", fmt.Sprintf("failed to discover Go files: %v", err))
 		return fmt.Errorf("failed to discover Go files: %w", err)
 	}
 
@@ -104,7 +104,7 @@ func (e *Engine) Run(root string) error {
 	// Save context map if configured
 	if e.Ctx.MapFile != "" {
 		if err := e.Ctx.SaveMap(); err != nil {
-			gl.Log("error", fmt.Sprintf("failed to save context map: %w", err))
+			gl.Log("error", fmt.Sprintf("failed to save context map: %v", err))
 			return fmt.Errorf("failed to save context map: %w", err)
 		}
 		gl.Log("info", fmt.Sprintf("📋 Context map saved: %s\n", e.Ctx.MapFile))

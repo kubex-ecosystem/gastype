@@ -47,7 +47,7 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 	// Parse the input file
 	f, err := parser.ParseFile(t.fset, inputFile, nil, parser.ParseComments)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("failed to parse file: %w", err))
+		gl.Log("error", fmt.Sprintf("failed to parse file: %v", err))
 		return fmt.Errorf("failed to parse file: %w", err)
 	}
 
@@ -113,20 +113,20 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 	// Step 4: Write the transformed code
 	out, err := os.Create(outputFile)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("failed to create output file: %w", err))
+		gl.Log("error", fmt.Sprintf("failed to create output file: %v", err))
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer out.Close()
 
 	if err := printer.Fprint(out, t.fset, f); err != nil {
-		gl.Log("error", fmt.Sprintf("failed to write transformed code: %w", err))
+		gl.Log("error", fmt.Sprintf("failed to write transformed code: %v", err))
 		return fmt.Errorf("failed to write transformed code: %w", err)
 	}
 
 	// Step 5: Save context map if configured
 	if t.context.MapFile != "" {
 		if err := t.context.SaveMap(); err != nil {
-			gl.Log("error", fmt.Sprintf("failed to save context map: %w", err))
+			gl.Log("error", fmt.Sprintf("failed to save context map: %v", err))
 		} else {
 			gl.Log("info", fmt.Sprintf("📋 Context map saved: %s\n", t.context.MapFile))
 		}
