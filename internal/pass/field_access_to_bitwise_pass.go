@@ -2,6 +2,7 @@
 package pass
 
 import (
+	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
@@ -24,10 +25,12 @@ func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ct
 		if !ok {
 			return nil
 		}
+
 		selInfo := ctx.GetSelections()[sel]
 		if selInfo == nil || selInfo.Obj() == nil || selInfo.Recv() == nil {
 			return nil
 		}
+
 		fieldName := selInfo.Obj().Name()
 		typName := selInfo.Recv().String()
 
@@ -36,8 +39,8 @@ func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ct
 
 		if info, exists := ctx.Structs[typName]; exists {
 			if flagName, ok := info.FlagMapping[fieldName]; ok {
-				transformations++
-				return &ast.BinaryExpr{
+				// construir expressão de bitwise
+				flagObj := &ast.BinaryExpr{
 					X: &ast.ParenExpr{
 						X: &ast.BinaryExpr{
 							X:  &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("flags")},
@@ -48,6 +51,25 @@ func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ct
 					Op: token.NEQ,
 					Y:  &ast.BasicLit{Kind: token.INT, Value: "0"},
 				}
+
+				// Evitar transformar dentro de atribuições (ex: cfg.Debug = true)
+				// Note que isso não cobre todos os casos, mas cobre os mais comuns
+				// Para casos mais complexos, o usuário deve ajustar manualmente
+				// Ex: dentro de chamadas de função, retornos, etc, é seguro transformar
+				// Mas dentro de AssignStmt não é seguro
+				// Então subimos a árvore AST para ver se o pai é um AssignStmt
+				if parent := astutil.GetParentNode(file, expr); parent != nil {
+					if _, isAssign := parent.(*ast.AssignStmt); isAssign {
+						// Não transformar em atribuição direta (ex: cfg.Debug = true)
+						return nil
+					}
+				}
+
+				// Registrar transformação para log/relatório
+				ctx.RegisterAssignToBitwise(fset.Position(file.Pos()).Filename, fieldName, flagName, fmt.Sprint(flagObj))
+
+				transformations++
+				return flagObj
 			}
 		}
 		return nil

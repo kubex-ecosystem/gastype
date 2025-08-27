@@ -83,7 +83,8 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 
 			// Register in context
 			packageName := f.Name.Name
-			t.context.AddStruct(packageName, originalName, newName, boolFields)
+			t.context.AddStruct(packageName, originalName, newName, boolFields, nil)
+			// Track for flag constant generation
 
 			structsToTransform[originalName] = boolFields
 

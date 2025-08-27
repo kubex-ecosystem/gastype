@@ -9,7 +9,7 @@ import (
 	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
-// IfToBitwisePass: cfg.Debug  ->  (cfg.flags & FlagConfig_Debug) != 0
+// IfToBitwisePass cfg.Debug  ->  (cfg.flags & FlagConfig_Debug) != 0
 type IfToBitwisePass struct{}
 
 func NewIfToBitwisePass() *IfToBitwisePass { return &IfToBitwisePass{} }
@@ -33,15 +33,14 @@ func (p *IfToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *astutil.T
 		if selInfo == nil || selInfo.Obj() == nil {
 			return true
 		}
+
 		fieldName := selInfo.Obj().Name()
 		recv := selInfo.Recv()
 		if recv == nil {
 			return true
 		}
-		typName := recv.String()
-		if strings.HasPrefix(typName, "*") {
-			typName = typName[1:]
-		}
+
+		typName := strings.TrimPrefix(recv.String(), "*")
 
 		// Agora lookup por TIPO (não por nome de variável)
 		if info, ok := ctx.Structs[typName]; ok {
@@ -49,9 +48,9 @@ func (p *IfToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *astutil.T
 				ifStmt.Cond = &ast.BinaryExpr{
 					X: &ast.ParenExpr{
 						X: &ast.BinaryExpr{
-							X: &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("flags")},
+							X:  &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("flags")},
 							Op: token.AND,
-							Y: ast.NewIdent(flagName),
+							Y:  ast.NewIdent(flagName),
 						},
 					},
 					Op: token.NEQ,
@@ -68,4 +67,3 @@ func (p *IfToBitwisePass) Apply(file *ast.File, _ *token.FileSet, ctx *astutil.T
 	}
 	return nil
 }
-

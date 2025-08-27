@@ -31,8 +31,8 @@ func DefaultPipeline(passes string) []TranspilePass {
 	return selected
 }
 
-// RevolutionPipeline returns all available passes for maximum transformation
-func RevolutionPipeline() []TranspilePass {
+// ProcessPipeline returns all available passes for maximum transformation
+func ProcessPipeline() []TranspilePass {
 	return []TranspilePass{
 		pass.NewBoolToFlagsPass(),          // Convert bool fields to bitwise flags
 		pass.NewIfToBitwisePass(),          // Convert bool conditions to bitwise checks
