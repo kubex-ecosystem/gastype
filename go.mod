@@ -4,7 +4,6 @@ go 1.25.0
 
 require (
 	github.com/fatih/color v1.18.0
-	github.com/rafa-mori/grompt v1.0.4
 	github.com/rafa-mori/logz v1.4.0
 	github.com/spf13/cobra v1.9.1
 )
