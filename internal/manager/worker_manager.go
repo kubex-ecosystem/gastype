@@ -1,10 +1,12 @@
 package manager
 
 import (
+	"fmt"
 	"sync"
 
-	t "github.com/faelmori/gastype/types"
-	l "github.com/faelmori/logz"
+	t "github.com/rafa-mori/gastype/interfaces"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // WorkerManager manages the pool of workers for parallel task execution
@@ -34,26 +36,19 @@ func (wm *WorkerManager) StartWorkers() {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			l.Info("Worker started", map[string]interface{}{
-				"worker_id": workerID,
-			})
+			gl.Log("info", fmt.Sprintf("Worker started: %d", workerID))
 
 			for {
 				select {
 				case <-wm.StopChannel:
-					l.Info("Worker stopped", map[string]interface{}{
-						"worker_id": workerID,
-					})
+					gl.Log("info", fmt.Sprintf("Worker stopped: %d", workerID))
 					return
 				case job, ok := <-wm.JobQueue:
 					if !ok {
 						return
 					}
 					if err := job.Execute(); err != nil {
-						l.Error("Error executing job", map[string]interface{}{
-							"error": err.Error(),
-							"job":   job.GetType(),
-						})
+						gl.Log("error", fmt.Sprintf("Error executing job: %s, job: %s", err.Error(), job.GetType()))
 					}
 				}
 			}

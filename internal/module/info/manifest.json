@@ -1,0 +1,42 @@
+{
+  "name": "Kubex - GASType",
+  "application": "gastype",
+  "version": "1.2.4",
+  "private": false,
+  "published": true,
+  "aliases": [
+    "gastype",
+    "gast",
+    "gtp"
+  ],
+  "repository": "https://github.com/rafa-mori/gastype",
+  "homepage": "https://github.com/rafa-mori/gastype",
+  "description": "Kubex - GASType is a transpiler, obfuscator and optimizer Golang source code tool that enhances code security and performance.",
+  "main": "cmd/main.go",
+  "bin": "gastype",
+  "author": "Rafael Mori <faelmori@gmail.com>",
+  "organization": "rafa-mori",
+  "license": "MIT",
+  "keywords": [
+    "gastype",
+    "kubex",
+    "file-markers",
+    "control",
+    "command-line",
+    "tool",
+    "management"
+  ],
+  "platforms": [
+    "linux/amd64"
+  ],
+  "dependencies": [
+    "tar",
+    "gzip",
+    "curl",
+    "git",
+    "zip",
+    "unzip",
+    "jq",
+    "upx"
+  ]
+}

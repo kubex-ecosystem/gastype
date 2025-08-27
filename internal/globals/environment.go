@@ -2,11 +2,13 @@ package globals
 
 import (
 	"fmt"
-	t "github.com/faelmori/gastype/types"
-	l "github.com/faelmori/logz"
 	"os"
 	"runtime"
 	"syscall"
+
+	t "github.com/rafa-mori/gastype/interfaces"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 type Environment struct {
@@ -19,7 +21,7 @@ type Environment struct {
 
 func NewEnvironment() t.IEnvironment { return &Environment{} }
 
-func (e *Environment) CpuCount() int {
+func (e *Environment) CPUCount() int {
 	if e.cpuCount == 0 {
 		e.cpuCount = runtime.NumCPU()
 	}
@@ -31,7 +33,7 @@ func (e *Environment) MemTotal() int {
 		var mem syscall.Sysinfo_t
 		err := syscall.Sysinfo(&mem)
 		if err != nil {
-			l.Error(fmt.Sprintf("Error getting memory info: %s", err.Error()), nil)
+			gl.Log("error", fmt.Sprintf("Error getting memory info: %s", err.Error()))
 			return 0
 		}
 		totalRAM := mem.Totalram * uint64(mem.Unit) / (1024 * 1024) // Convertendo para MB
@@ -44,7 +46,7 @@ func (e *Environment) Hostname() string {
 	if e.hostname == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
-			l.Error(fmt.Sprintf("Error getting hostname: %s", err.Error()), nil)
+			gl.Log("error", fmt.Sprintf("Error getting hostname: %s", err.Error()))
 			return ""
 		}
 		e.hostname = hostname
@@ -52,7 +54,7 @@ func (e *Environment) Hostname() string {
 	return e.hostname
 }
 
-func (e *Environment) Os() string {
+func (e *Environment) OS() string {
 	if e.os == "" {
 		e.os = runtime.GOOS
 	}

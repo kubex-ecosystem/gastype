@@ -2,12 +2,14 @@ package manager
 
 import (
 	"fmt"
-	"github.com/faelmori/gastype/internal/actions"
-	"github.com/faelmori/gastype/utils"
 	"sync"
 
-	t "github.com/faelmori/gastype/types"
-	l "github.com/faelmori/logz"
+	"github.com/rafa-mori/gastype/internal/actions"
+	"github.com/rafa-mori/gastype/utils"
+
+	t "github.com/rafa-mori/gastype/interfaces"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // TypeManager manages type-related actions and notifications
@@ -52,6 +54,7 @@ func (tm *TypeManager) AddAction(action t.IAction)               { tm.actions = 
 // StartChecking begins the process of checking Go files
 func (tm *TypeManager) StartChecking(workerCount int) error {
 	if len(tm.actions) == 0 {
+		gl.Log("error", "no actions available to execute")
 		return fmt.Errorf("no actions available to execute")
 	}
 
@@ -59,6 +62,7 @@ func (tm *TypeManager) StartChecking(workerCount int) error {
 	//defer tm.mu.Unlock()
 
 	if tm.isRunning {
+		gl.Log("error", "manager is already running")
 		return fmt.Errorf("manager is already running")
 	}
 
@@ -67,7 +71,7 @@ func (tm *TypeManager) StartChecking(workerCount int) error {
 		if action.CanExecute() {
 			workerManager.GetJobQueue() <- action
 		} else {
-			l.Warn(fmt.Sprintf("Action %s cannot execute", action.GetType()), nil)
+			gl.Log("warn", fmt.Sprintf("Action %s cannot execute", action.GetType()))
 		}
 	}
 
@@ -80,22 +84,24 @@ func (tm *TypeManager) StopChecking() {
 	//defer tm.mu.Unlock()
 
 	if !tm.isRunning {
-		l.Warn("manager is not running", nil)
+		gl.Log("warn", "manager is not running")
 		return
 	}
 
 	close(tm.notifierChan)
 	tm.isRunning = false
-	l.Info("TypeManager stopped successfully", nil)
+	gl.Log("info", "TypeManager stopped successfully")
 }
 func (tm *TypeManager) LoadConfig() error {
 	if tm.cfg == nil {
+		gl.Log("error", "configuration not initialized")
 		return fmt.Errorf("configuration not initialized")
 	}
 	return tm.cfg.Load()
 }
 func (tm *TypeManager) SaveConfig() error {
 	if tm.cfg == nil {
+		gl.Log("error", "configuration not initialized")
 		return fmt.Errorf("configuration not initialized")
 	}
 	return nil // Implement saving logic here
@@ -106,6 +112,7 @@ func (tm *TypeManager) CanNotify() bool {
 func (tm *TypeManager) PrepareActions() error {
 	parsedFiles, err := utils.ParseFiles(tm.cfg.GetDir())
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("error parsing files: %v", err))
 		return fmt.Errorf("error parsing files: %v", err)
 	}
 	// Criar ações baseadas nos arquivos analisados.

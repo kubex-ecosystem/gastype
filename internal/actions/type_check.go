@@ -1,3 +1,4 @@
+// Package actions implements various actions for type checking in Go projects.
 package actions
 
 import (
@@ -6,11 +7,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/faelmori/gastype/types"
-	log "github.com/faelmori/logz"
 	"go/ast"
 	"go/parser"
 	"go/token"
+
+	types "github.com/rafa-mori/gastype/interfaces"
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // TypeCheckAction defines a type-checking action
@@ -45,20 +47,24 @@ func (tca *TypeCheckAction) Execute() error {
 	dir := tca.Config.GetDir()
 	absDir, err := filepath.Abs(dir)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("invalid directory path: %v", err))
 		return fmt.Errorf("invalid directory path: %v", err)
 	}
 
 	// Ensure the directory exists
 	if _, err := os.Stat(absDir); os.IsNotExist(err) {
+		gl.Log("error", fmt.Sprintf("directory does not exist: %s", absDir))
 		return fmt.Errorf("directory does not exist: %s", absDir)
 	}
 
 	// Find all Go files
 	files, err := filepath.Glob(filepath.Join(absDir, "*.go"))
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("error finding Go files: %v", err))
 		return fmt.Errorf("error finding Go files: %v", err)
 	}
 	if len(files) == 0 {
+		gl.Log("error", fmt.Sprintf("no Go files found in directory: %s", absDir))
 		return fmt.Errorf("no Go files found in directory: %s", absDir)
 	}
 
@@ -78,7 +84,7 @@ func (tca *TypeCheckAction) Execute() error {
 
 	// Collect errors
 	for err := range tca.ErrorChannel {
-		log.Error(fmt.Sprintf("Error during type checking: %v", err), nil)
+		gl.Log("error", fmt.Sprintf("Error during type checking: %v", err))
 		tca.Errors = append(tca.Errors, err)
 	}
 
@@ -90,11 +96,13 @@ func (tca *TypeCheckAction) Execute() error {
 func (tca *TypeCheckAction) parseFile(file string) error {
 	src, err := os.ReadFile(file)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("error reading file %s: %v", file, err))
 		return fmt.Errorf("error reading file %s: %v", file, err)
 	}
 
 	node, err := parser.ParseFile(tca.FileSet, file, src, parser.AllErrors)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("error parsing %s: %v", file, err))
 		return fmt.Errorf("error parsing %s: %v", file, err)
 	}
 

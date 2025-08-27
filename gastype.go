@@ -1,12 +1,15 @@
+// Package gastype provides functionalities for type checking Go code and saving results to JSON files.
 package gastype
 
 import (
 	"encoding/json"
 	"fmt"
-	t "github.com/faelmori/gastype/types"
-	"log"
 	"os"
 	"path/filepath"
+
+	t "github.com/rafa-mori/gastype/interfaces"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 var ()
@@ -20,18 +23,18 @@ func saveResultsToJSON(results []t.IResult, filename string) {
 	// Validate and sanitize the output file path
 	absFile, err := filepath.Abs(filename)
 	if err != nil {
-		log.Fatalf("Invalid output file path: %v", err)
+		gl.Log("fatal", fmt.Sprintf("Invalid output file path: %v", err))
 	}
 
 	data, err := json.MarshalIndent(results, "", "  ")
 	if err != nil {
-		log.Fatalf("Error generating JSON: %v", err)
+		gl.Log("fatal", fmt.Sprintf("Error generating JSON: %v", err))
 	}
 
 	err = os.WriteFile(absFile, data, 0644)
 	if err != nil {
-		log.Fatalf("Error saving JSON: %v", err)
+		gl.Log("fatal", fmt.Sprintf("Error saving JSON: %v", err))
 	}
 
-	fmt.Println("Results saved to:", absFile)
+	gl.Log("info", fmt.Sprintf("Results saved to: %s", absFile))
 }
