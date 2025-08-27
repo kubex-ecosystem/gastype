@@ -1,5 +1,4 @@
-
-![Gastype Banner](./assets/top_banner.png)
+# ![Gastype Banner](./assets/top_banner.png)
 
 ---
 
@@ -9,19 +8,19 @@
 
 ## **Table of Contents**
 
-1.  [About the Project](https://www.google.com/search?q=%231-about-the-project)
-2.  [Features](https://www.google.com/search?q=%232-features)
-3.  [Installation](https://www.google.com/search?q=%233-installation)
-4.  [CLI Usage](https://www.google.com/search?q=%234-cli-usage)
+1. [About the Project](https://www.google.com/search?q=%231-about-the-project)
+2. [Features](https://www.google.com/search?q=%232-features)
+3. [Installation](https://www.google.com/search?q=%233-installation)
+4. [CLI Usage](https://www.google.com/search?q=%234-cli-usage)
       - [Type Checking](https://www.google.com/search?q=%23type-checking)
       - [Transpilation](https://www.google.com/search?q=%23transpilation)
       - [Staged Transpilation Pipeline](https://www.google.com/search?q=%23staged-transpilation-pipeline)
-5.  [Transpilation and Optimization](https://www.google.com/search?q=%235-transpilation-and-optimization)
-6.  [Contributing](https://www.google.com/search?q=%236-contributing)
-7.  [License](https://www.google.com/search?q=%237-license)
-8.  [Contact](https://www.google.com/search?q=%238-contact)
+5. [Transpilation and Optimization](https://www.google.com/search?q=%235-transpilation-and-optimization)
+6. [Contributing](https://www.google.com/search?q=%236-contributing)
+7. [License](https://www.google.com/search?q=%237-license)
+8. [Contact](https://www.google.com/search?q=%238-contact)
 
------
+---
 
 ### **1. About the Project**
 
@@ -31,12 +30,12 @@ The tool offers a suite of transpilation "passes" that convert common, less-effi
 
 ### **2. Features**
 
-  * **Parallel Type Checking**: Execute type checks on multiple Go files simultaneously to ensure code quality in large projects.
-  * **Optimization Analysis**: Analyzes code and suggests optimizations, such as converting `bool` fields in `structs` to bitwise `flags`.
-  * **Automatic Transpilation**: Automatically transforms source code, applying optimization passes to generate a high-performance binary.
-  * **Code Obfuscation**: Obfuscates variable names, function names, and string literals to enhance security and make reverse engineering more difficult.
-  * **Control Structure Optimization**: Converts long `if/else` chains into "jump tables" for faster execution.
-  * **Staged Pipeline**: Provides a multi-stage workflow (`staged-transpilation`) that includes transpilation, validation, obfuscation, and a final build.
+- **Parallel Type Checking**: Execute type checks on multiple Go files simultaneously to ensure code quality in large projects.
+- **Optimization Analysis**: Analyzes code and suggests optimizations, such as converting `bool` fields in `structs` to bitwise `flags`.
+- **Automatic Transpilation**: Automatically transforms source code, applying optimization passes to generate a high-performance binary.
+- **Code Obfuscation**: Obfuscates variable names, function names, and string literals to enhance security and make reverse engineering more difficult.
+- **Control Structure Optimization**: Converts long `if/else` chains into "jump tables" for faster execution.
+- **Staged Pipeline**: Provides a multi-stage workflow (`staged-transpilation`) that includes transpilation, validation, obfuscation, and a final build.
 
 ### **3. Installation**
 
@@ -57,8 +56,8 @@ The `gastype` CLI is the central point for all operations.
 
 #### **Type Checking**
 
-  * **`gastype check`**: Initiates type checking on Go files in a specific directory.
-  * **`gastype watch`**: Monitors a directory for file changes and automatically triggers type checking.
+- **`gastype check`**: Initiates type checking on Go files in a specific directory.
+- **`gastype watch`**: Monitors a directory for file changes and automatically triggers type checking.
 
 **Examples**:
 
@@ -72,7 +71,7 @@ gastype watch --dir ./my-project --email user@example.com --notify
 
 #### **Transpilation**
 
-  * **`gastype transpile`**: The main command for transforming code. It supports various modes of operation.
+- **`gastype transpile`**: The main command for transforming code. It supports various modes of operation.
 
 **Examples**:
 
@@ -91,13 +90,13 @@ gastype transpile --input ./my-app --output ./my-app-optimized --mode full-proje
 
 `gastype` provides a four-stage optimization pipeline to ensure code robustness.
 
-1.  **`gastype transpile --no-obfuscate`** (Stage 1: Clean Transpilation)
+1. **`gastype transpile --no-obfuscate`** (Stage 1: Clean Transpilation)
       - Creates an optimized version of the code without obfuscation, ideal for debugging and testing.
-2.  **`gastype validate`** (Stage 2: Validation)
+2. **`gastype validate`** (Stage 2: Validation)
       - Ensures the optimized code behaves identically to the original by running tests and verifying the build.
-3.  **`gastype obfuscate`** (Stage 3: Selective Obfuscation)
+3. **`gastype obfuscate`** (Stage 3: Selective Obfuscation)
       - Applies obfuscation only to the parts of the code that passed validation.
-4.  **`gastype build`** (Stage 4: Final Build)
+4. **`gastype build`** (Stage 4: Final Build)
       - Compiles the final binary, applying Go compiler optimizations, stripping debug symbols, and optionally compressing the binary with UPX.
 
 ### **5. Transpilation and Optimization**
@@ -106,9 +105,9 @@ The heart of `gastype` lies in its transpilation "passes". Each pass is a modula
 
 **Optimization Examples**:
 
-  * **`bool-to-flags`**: Converts structs with multiple `bool` fields into a single `uint64` field with bitwise flags, reducing memory consumption and improving cache locality.
-  * **`jump-table`**: Transforms chained `if/else` statements that compare the same variable into a map of functions, resulting in faster execution.
-  * **`string-obfuscate`**: Replaces string literals with byte arrays, making static analysis of the binary more difficult.
+- **`bool-to-flags`**: Converts structs with multiple `bool` fields into a single `uint64` field with bitwise flags, reducing memory consumption and improving cache locality.
+- **`jump-table`**: Transforms chained `if/else` statements that compare the same variable into a map of functions, resulting in faster execution.
+- **`string-obfuscate`**: Replaces string literals with byte arrays, making static analysis of the binary more difficult.
 
 ### **6. Contributing**
 
@@ -120,5 +119,5 @@ This project is licensed under the MIT License.
 
 ### **8. Contact**
 
-  * **Developer**: Rafael Mori ([faelmori@gmail.com](mailto:faelmori@gmail.com))
-  * **GitHub**: [https://github.com/faelmori](https://github.com/faelmori)
+- **Developer**: Rafael Mori ([faelmori@gmail.com](mailto:faelmori@gmail.com))
+- **GitHub**: [https://github.com/faelmori](https://github.com/faelmori)

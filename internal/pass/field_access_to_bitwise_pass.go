@@ -9,7 +9,7 @@ import (
 	"github.com/rafa-mori/gastype/internal/astutil"
 )
 
-// FieldAccessToBitwisePass: troca usos “cfg.Debug” em args/returns/exprs por bitwise check
+// FieldAccessToBitwisePass troca usos “cfg.Debug” em args/returns/exprs por bitwise check
 type FieldAccessToBitwisePass struct{}
 
 func NewFieldAccessToBitwisePass() *FieldAccessToBitwisePass { return &FieldAccessToBitwisePass{} }
@@ -30,16 +30,17 @@ func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ct
 		}
 		fieldName := selInfo.Obj().Name()
 		typName := selInfo.Recv().String()
-		if strings.HasPrefix(typName, "*") {
-			typName = typName[1:]
-		}
+
+		// remover ponteiro se houver
+		typName = strings.TrimPrefix(typName, `*`)
+
 		if info, exists := ctx.Structs[typName]; exists {
 			if flagName, ok := info.FlagMapping[fieldName]; ok {
 				transformations++
 				return &ast.BinaryExpr{
 					X: &ast.ParenExpr{
 						X: &ast.BinaryExpr{
-							X: &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("flags")},
+							X:  &ast.SelectorExpr{X: sel.X, Sel: ast.NewIdent("flags")},
 							Op: token.AND,
 							Y:  ast.NewIdent(flagName),
 						},
@@ -85,4 +86,3 @@ func (p *FieldAccessToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ct
 	}
 	return nil
 }
-

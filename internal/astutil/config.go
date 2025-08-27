@@ -3,6 +3,7 @@ package astutil
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	t "github.com/rafa-mori/gastype/interfaces"
 	"github.com/rafa-mori/gastype/internal/globals"
@@ -39,7 +40,14 @@ func NewConfigWithArgs(dir string, workerCount int, outputFile string) t.IConfig
 
 func (c *Config) Load() error {
 	if c.dir == "" {
-		c.dir = "./"
+		dir, dirErr := os.Executable()
+		if dirErr != nil {
+			return dirErr
+		}
+		c.dir, dirErr = filepath.Abs(filepath.Dir(dir))
+		if dirErr != nil {
+			return dirErr
+		}
 	}
 	if c.workerCount == 0 {
 		cpuCount := c.enviroment.CPUCount()

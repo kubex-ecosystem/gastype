@@ -12,6 +12,14 @@ import (
 	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
+type objectSpecMap struct {
+	isConst         bool
+	name            string
+	obfuscatedName  string
+	varType         ast.Expr
+	obfuscatedValue any
+}
+
 type StringObfuscatePass struct{}
 
 func NewStringObfuscatePass() *StringObfuscatePass { return &StringObfuscatePass{} }
@@ -33,11 +41,11 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 	}
 
 	// Constantes string
-	constStrings := make(map[*ast.BasicLit]string)
+	objectsSpecMap := make(map[any]objectSpecMap)
 
 	for _, decl := range file.Decls {
 		gd, ok := decl.(*ast.GenDecl)
-		if !ok || gd.Tok != token.CONST {
+		if !ok {
 			continue
 		}
 
@@ -47,23 +55,35 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 				continue
 			}
 
-			// Se não for string-like → ignora
-			if !astutil.DetectStringLikeConst(vs, ctx) {
-				continue
-			}
-
-			// Nome da constante
+			// Nome do objeto
 			name := vs.Names[0].Name
+			// Tipo do objeto
+			varType := vs.Type
 
 			// Se já tiver valor literal, guarda pra obfuscar
 			if len(vs.Values) > 0 {
-				if bl, ok := vs.Values[0].(*ast.BasicLit); ok && bl.Kind == token.STRING {
-					constStrings[bl] = name
-				}
+				ast.Inspect(vs.Values[0], func(n ast.Node) bool {
+					bl, ok := n.(*ast.BasicLit)
+					if !ok || bl.Kind != token.STRING {
+						return true
+					}
+					objectsSpecMap[bl] = objectSpecMap{
+						isConst:         gd.Tok == token.CONST,
+						name:            name,
+						varType:         varType,
+						obfuscatedName:  fmt.Sprintf("obfuscated_%s", name),
+						obfuscatedValue: nil,
+					}
+					return false
+				})
 			} else {
-				// Caso não tenha valor literal (ex: alias sem inicialização), ainda é string-like
-				// mas não vamos mexer agora
-				gl.Log("info", fmt.Sprintf("Found string alias constant without literal: %s", name))
+				objectsSpecMap[vs.Names[0]] = objectSpecMap{
+					isConst:         gd.Tok == token.CONST,
+					name:            name,
+					varType:         varType,
+					obfuscatedName:  fmt.Sprintf("obfuscated_%s", name),
+					obfuscatedValue: nil,
+				}
 			}
 		}
 	}
@@ -77,18 +97,55 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 		return true
 	})
 
-	var initStmts []ast.Stmt
+	// var initStmts []ast.Stmt
 
 	// Percorre a AST e obfusca strings
 	ast.Inspect(file, func(n ast.Node) bool {
 
 		bl, ok := n.(*ast.BasicLit)
+
 		if !ok || bl.Kind != token.STRING {
 			return true
 		}
+
 		if importSpecs[bl] || structTags[bl] {
 			return true
 		}
+
+		if len(bl.Value) < 2 {
+			return true
+		}
+
+		// Ignora strings curtas demais e comuns
+		// Ex: "", "a", "ok", "id", "to", "is", "in", "on", "at", "of", "by"
+		if len(bl.Value) <= 3 {
+			simpleStrings := map[string]bool{
+				`""`: true, `"a"`: true, `"b"`: true, `"c"`: true,
+				`"d"`: true, `"e"`: true, `"f"`: true, `"g"`: true,
+				`"h"`: true, `"i"`: true, `"j"`: true, `"k"`: true,
+				`"l"`: true, `"m"`: true, `"n"`: true, `"o"`: true,
+				`"p"`: true, `"q"`: true, `"r"`: true, `"s"`: true,
+				`"t"`: true, `"u"`: true, `"v"`: true, `"w"`: true,
+				`"x"`: true, `"y"`: true, `"z"`: true,
+				`"ok"`: true, `"id"`: true, `"to"`: true,
+				`"is"`: true, `"in"`: true, `"on"`: true,
+				`"at"`: true, `"of"`: true, `"by"`: true,
+			}
+			if simpleStrings[bl.Value] {
+				return true
+			}
+		}
+
+		if astutil.CheckConstant(
+			bl,
+			bl.Kind.String(),
+			ctx,
+		) {
+			// Se for constante, não obfusca
+			return true
+		}
+
+		// Valor da strings
 
 		val, err := strconv.Unquote(bl.Value)
 		if err != nil || len(val) < 4 {
@@ -109,85 +166,47 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 		}
 
 		// Caso seja constante → converte para var + init()
-		if constName, isConst := constStrings[bl]; isConst {
-			// Valida se é alias de string
-			if !astutil.DetectStringLikeConst(&ast.ValueSpec{
-				Names:  []*ast.Ident{ast.NewIdent(constName)},
-				Values: []ast.Expr{},
-				Type:   ast.NewIdent("string"),
-			}, ctx) {
-				if isConst {
-					// Se for alias de string, não faz nada
-					// bl.Value = constName
-					// bl.Kind = token.IDENT
-					return true
-				} else {
-					// Não é alias, converte para var
-					// Substitui declaração const por var
-					for _, decl := range file.Decls {
-						if gd, ok := decl.(*ast.GenDecl); ok && gd.Tok == token.CONST {
-							for i, spec := range gd.Specs {
-								vs, ok := spec.(*ast.ValueSpec)
-								if !ok || len(vs.Names) == 0 || vs.Names[0].Name != constName {
-									continue
-								}
-								gd.Tok = token.VAR
-								gd.Specs[i] = vs
-								break
-							}
+		isConst := objectsSpecMap[bl].isConst
+		isConstCheck := astutil.CheckConstant(
+			bl,
+			bl.Kind.String(),
+			ctx,
+		)
+
+		if !isConst && !isConstCheck {
+			if !astutil.CheckConstant(
+				bl,
+				bl.Kind.String(),
+				ctx,
+			) {
+				tpS := objectsSpecMap[bl].varType
+				tp := "string"
+				if tpS != nil {
+					switch t := tpS.(type) {
+					case *ast.Ident:
+						tp = t.Name
+					case *ast.SelectorExpr:
+						if x, ok := t.X.(*ast.Ident); ok {
+							tp = fmt.Sprintf("%s.%s", x.Name, t.Sel.Name)
 						}
 					}
 				}
-				// fmt.Printf("  ℹ️ Converted const to var: %s\n", constName)
-			} else {
-				// Gera const com array de bytes no init()
-				initStmts = append(initStmts, &ast.AssignStmt{
-					Lhs: []ast.Expr{ast.NewIdent(constName)},
-					Tok: token.ASSIGN,
-					Rhs: []ast.Expr{
-						&ast.CallExpr{
-							Fun: ast.NewIdent("string"),
-							Args: []ast.Expr{
-								&ast.CompositeLit{
-									Type: &ast.ArrayType{Elt: ast.NewIdent("byte")},
-									Elts: func() []ast.Expr {
-										elts := []ast.Expr{}
-										for _, b := range []byte(val) {
-											elts = append(elts, &ast.BasicLit{
-												Kind:  token.INT,
-												Value: strconv.Itoa(int(b)),
-											})
-										}
-										return elts
-									}(),
-								},
-							},
-						},
-					},
-				})
+
+				// Se for outro tipo (alias), mantém o tipo
+				// Substitui o literal pela conversão do byte array
+				// Ex: "hello" → string([]byte{104, 101, 108, 108, 111})
+				// Ex: MyStringAlias("hello") → MyStringAlias([]byte{104, 101, 108, 108, 111})
+				bl.Value = fmt.Sprintf("%s([]byte{%s})", tp, strings.Join(byteVals, ", "))
 				transformations++
-				return true
 			}
 
-		}
-
-		if !bl.Kind.IsLiteral() {
-			// Caso literal → inline
-			bl.Value = fmt.Sprintf("string([]byte{%s})", strings.Join(byteVals, ", "))
 			transformations++
+
 			return true
 		}
 
 		return false
 	})
-
-	if len(initStmts) > 0 {
-		file.Decls = append(file.Decls, &ast.FuncDecl{
-			Name: ast.NewIdent("init"),
-			Type: &ast.FuncType{Params: &ast.FieldList{}},
-			Body: &ast.BlockStmt{List: initStmts},
-		})
-	}
 
 	if transformations > 0 {
 		gl.Log("info", fmt.Sprintf("🔄 StringObfuscatePass: %d transformations applied", transformations))

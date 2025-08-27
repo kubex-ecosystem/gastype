@@ -95,14 +95,14 @@ func (om *OutputManager) rewriteImports(file *ast.File) {
 		}
 
 		// 🚀 REVOLUTIONARY: Skip stdlib packages!
-		if om.isStdLib(path) {
-			continue
-		}
+		// if om.isStdLib(path) {
+		// 	continue
+		// }
 
-		// Skip external packages (contains .)
-		if strings.Contains(path, ".") {
-			continue
-		}
+		// // Skip external packages (contains .)
+		// if strings.Contains(path, ".") {
+		// 	continue
+		// }
 
 		// Skip if it's already a full module path (starts with our module)
 		if strings.HasPrefix(path, om.ModulePath) {
