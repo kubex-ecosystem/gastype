@@ -33,7 +33,7 @@ type TranspileContext struct {
 	Structs map[string]*StructInfo `json:"structs"` // Original struct → detailed info
 	Flags   map[string][]string    `json:"flags"`   // Struct → list of generated flags
 
-	// 🚀 REVOLUTIONARY FIELDS for OutputManager
+	// 🚀 FIELDS for OutputManager
 	GeneratedFiles map[string]*ast.File `json:"-"` // File path → transpiled AST
 	Fset           *token.FileSet       `json:"-"` // Token file set for all files
 
@@ -62,8 +62,8 @@ func NewContext(inputFile, outputDir string, ofuscate bool, mapFile string) *Tra
 		OutputDir:      outputDir,
 		Structs:        make(map[string]*StructInfo),
 		Flags:          make(map[string][]string),
-		GeneratedFiles: make(map[string]*ast.File), // 🚀 REVOLUTIONARY: Store transpiled files
-		Fset:           token.NewFileSet(),         // 🚀 REVOLUTIONARY: Share FileSet across all operations
+		GeneratedFiles: make(map[string]*ast.File), // 🚀: Store transpiled files
+		Fset:           token.NewFileSet(),         // 🚀: Share FileSet across all operations
 	}
 }
 
@@ -71,7 +71,7 @@ func NewContext(inputFile, outputDir string, ofuscate bool, mapFile string) *Tra
 func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string, boolFields []string, defaultValues map[string]ast.Expr) {
 	mapping := make(map[string]string)
 	for _, f := range boolFields {
-		// 🚀 REVOLUTIONARY: Include package name to avoid conflicts
+		// 🚀: Include package name to avoid conflicts
 		mapping[f] = fmt.Sprintf("Flag%s_%s_%s", strings.Title(packageName), originalName, strings.Title(f))
 	}
 
@@ -117,7 +117,7 @@ func (ctx *TranspileContext) GetFlagName(packageName, structName, fieldName stri
 			return flagName
 		}
 	}
-	// 🚀 REVOLUTIONARY: Include package name to avoid conflicts between packages
+	// 🚀: Include package name to avoid conflicts between packages
 	return fmt.Sprintf("Flag%s_%s_%s", strings.Title(packageName), structName, strings.Title(fieldName))
 }
 

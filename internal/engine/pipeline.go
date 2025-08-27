@@ -37,7 +37,7 @@ func ProcessPipeline() []TranspilePass {
 		pass.NewBoolToFlagsPass(),          // Convert bool fields to bitwise flags
 		pass.NewIfToBitwisePass(),          // Convert bool conditions to bitwise checks
 		pass.NewAssignToBitwisePass(),      // Convert bool assignments to bitwise operations
-		pass.NewFieldAccessToBitwisePass(), // 🚀 REVOLUTIONARY: Convert field access to bitwise checks
+		pass.NewFieldAccessToBitwisePass(), // 🚀: Convert field access to bitwise checks
 		pass.NewStringObfuscatePass(),      // Obfuscate string literals
 		pass.NewJumpTablePass(),            // Optimize if-chains to jump tables
 	}

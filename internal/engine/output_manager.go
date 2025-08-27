@@ -27,7 +27,7 @@ type OutputManager struct {
 }
 
 // NewOutputManager cria um novo gerenciador com base no go.mod
-// REVOLUTIONARY: Lê automaticamente o module path para imports corretos!
+// : Lê automaticamente o module path para imports corretos!
 func NewOutputManager(srcRoot, dstRoot string, gen map[string]*ast.File, fset *token.FileSet) (*OutputManager, error) {
 	goModPath := filepath.Join(srcRoot, "go.mod")
 	modulePath, err := readModulePath(goModPath)
@@ -94,7 +94,7 @@ func (om *OutputManager) rewriteImports(file *ast.File) {
 			continue // Pula a reescrita para pacotes da stdlib
 		}
 
-		// 🚀 REVOLUTIONARY: Skip stdlib packages!
+		// 🚀: Skip stdlib packages!
 		// if om.isStdLib(path) {
 		// 	continue
 		// }

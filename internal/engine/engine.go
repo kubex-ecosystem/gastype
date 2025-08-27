@@ -70,7 +70,7 @@ func (e *Engine) Run(root string) error {
 
 	for _, filePath := range files {
 		gl.Log("info", fmt.Sprintf("🔍 Processing %s\n", filePath))
-		// 🚀 REVOLUTIONARY: Use shared FileSet from context
+		// 🚀: Use shared FileSet from context
 		astFile, err := parser.ParseFile(e.Ctx.Fset, filePath, nil, parser.ParseComments)
 		if err != nil {
 			gl.Log("error", fmt.Sprintf("  ⚠️  Failed to parse %s: %v\n", filePath, err))
@@ -80,7 +80,7 @@ func (e *Engine) Run(root string) error {
 		fileTransformed := false
 		for _, pass := range e.Passes {
 			gl.Log("info", fmt.Sprintf("  ⚙️  Applying pass: %s\n", pass.Name()))
-			// 🚀 REVOLUTIONARY: Use shared FileSet in passes
+			// 🚀: Use shared FileSet in passes
 			if err := pass.Apply(astFile, e.Ctx.Fset, e.Ctx); err != nil {
 				gl.Log("error", fmt.Sprintf("  ⚠️  Pass %s failed on %s: %v\n", pass.Name(), filePath, err))
 				return fmt.Errorf("pass %s failed on %s: %w", pass.Name(), filePath, err)
@@ -90,7 +90,7 @@ func (e *Engine) Run(root string) error {
 
 		if fileTransformed {
 			transformedFiles++
-			// 🚀 REVOLUTIONARY: Store transformed files for OutputManager
+			// 🚀: Store transformed files for OutputManager
 			e.Ctx.GeneratedFiles[filePath] = astFile
 			gl.Log("info", fmt.Sprintf("  ✅ File transformed and stored: %s\n", filePath))
 		}

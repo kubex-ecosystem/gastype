@@ -1,6 +1,6 @@
 # Test Project
 
-This is a simple test project for the revolutionary GASType transpiler.
+This is a simple test project for the GASType transpiler.
 
 ## Features
 

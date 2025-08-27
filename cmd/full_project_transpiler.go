@@ -1,4 +1,4 @@
-// Full Project Transpiler - REVOLUTIONARY COMPLETE PROJECT TRANSPILATION
+// Full Project Transpiler - COMPLETE PROJECT TRANSPILATION
 // This system transpiles ENTIRE Go projects to bitwise-optimized versions
 package main
 
@@ -63,7 +63,7 @@ func NewProjectTranspiler(sourceProject, targetProject string) *ProjectTranspile
 
 // TranspileCompleteProject transpiles an entire Go project
 func (pt *ProjectTranspiler) TranspileCompleteProject() error {
-	gl.Log("info", "🚀 INICIANDO TRANSPILAÇÃO COMPLETA DE PROJETO - MODO REVOLUCIONÁRIO ATIVADO!")
+	gl.Log("info", "🚀 INICIANDO TRANSPILAÇÃO COMPLETA DE PROJETO - MODO ATIVADO!")
 	gl.Log("info", fmt.Sprintf("📂 Projeto origem: %s", pt.sourceProject))
 	gl.Log("info", fmt.Sprintf("📂 Projeto destino: %s", pt.targetProject))
 
@@ -293,7 +293,7 @@ func (pt *ProjectTranspiler) analyzeProjectContexts() (map[string][]transpiler.L
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro analisando contextos: %w", err))
+		gl.Log("error", fmt.Sprintf("erro analisando contextos: %s", err))
 		return nil, fmt.Errorf("erro analisando contextos: %w", err)
 	}
 
@@ -329,7 +329,7 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 		if len(fileContexts) == 0 {
 			// No contexts found, copy original file
 			if err := pt.copyFile(path, targetPath); err != nil {
-				gl.Log("error", fmt.Sprintf("erro copiando %s: %w", path, err))
+				gl.Log("error", fmt.Sprintf("erro copiando %s: %s", path, err))
 				return fmt.Errorf("erro copiando %s: %w", path, err)
 			}
 		} else {
@@ -339,13 +339,13 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 				pt.stats.Errors = append(pt.stats.Errors, fmt.Sprintf("Erro transpilando %s: %v", path, err))
 				// Fallback to original file
 				if err := pt.copyFile(path, targetPath); err != nil {
-					gl.Log("error", fmt.Sprintf("erro copiando fallback %s: %w", path, err))
+					gl.Log("error", fmt.Sprintf("erro copiando fallback %s: %s", path, err))
 					return fmt.Errorf("erro copiando fallback %s: %w", path, err)
 				}
 			} else {
 				// Save transpiled code
 				if err := os.WriteFile(targetPath, []byte(transpiledCode), 0644); err != nil {
-					gl.Log("error", fmt.Sprintf("erro salvando transpilado %s: %w", targetPath, err))
+					gl.Log("error", fmt.Sprintf("erro salvando transpilado %s: %s", targetPath, err))
 					return fmt.Errorf("erro salvando transpilado %s: %w", targetPath, err)
 				}
 				pt.stats.TranspiledFiles++
@@ -358,7 +358,7 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro transpilando arquivos: %w", err))
+		gl.Log("error", fmt.Sprintf("erro transpilando arquivos: %s", err))
 		return fmt.Errorf("erro transpilando arquivos: %w", err)
 	}
 
@@ -389,7 +389,7 @@ if [ $? -eq 0 ]; then
     echo "✅ Build successful!"
     echo "📦 Binary: transpiled_binary"
     ls -lh transpiled_binary
-    echo "🎯 Ready to run revolutionary transpiled code!"
+    echo "🎯 Ready to run transpiled code!"
 else
     echo "❌ Build failed!"
     exit 1
@@ -405,7 +405,7 @@ fi
 	// Create README for transpiled project
 	readme := fmt.Sprintf(`# GASType  Transpiled Project
 
-This is a **REVOLUTIONARY TRANSPILED VERSION** of a Go project using the GASType transpiler.
+This is a **TRANSPILED VERSION** of a Go project using the GASType transpiler.
 
 ## 🚀 About This Transpilation
 
