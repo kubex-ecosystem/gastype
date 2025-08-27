@@ -57,13 +57,14 @@ func (p *AssignToBitwisePass) Apply(file *ast.File, fset *token.FileSet, ctx *as
 					Sel: ast.NewIdent("flags"),
 				}
 
-				if valIdent.Name == "true" {
+				switch valIdent.Name {
+				case "true":
 					as.Tok = token.OR_ASSIGN
 					as.Rhs[0] = ast.NewIdent(flagName)
-				} else if valIdent.Name == "false" {
+				case "false":
 					as.Tok = token.AND_NOT_ASSIGN
 					as.Rhs[0] = ast.NewIdent(flagName)
-				} else {
+				default:
 					return true // não é booleano simples
 				}
 

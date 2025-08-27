@@ -4,8 +4,8 @@ package globals
 import (
 	"fmt"
 
-	l "github.com/faelmori/logz"
 	t "github.com/rafa-mori/gastype/interfaces"
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 type Result struct {
@@ -18,7 +18,7 @@ func NewResult(pkg, status string, err error) t.IResult {
 	errorStr := ""
 
 	if err != nil {
-		l.Error(fmt.Sprintf("[ %s ] %s", pkg, err.Error()), map[string]interface{}{})
+		gl.Log("error", fmt.Sprintf("[ %s ] %s", pkg, err.Error()))
 		errorStr = err.Error()
 	}
 

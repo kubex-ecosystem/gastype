@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	l "github.com/faelmori/logz"
 	t "github.com/rafa-mori/gastype/interfaces"
 	g "github.com/rafa-mori/gastype/internal/globals"
+	l "github.com/rafa-mori/logz"
 )
 
 // WorkerPool manages workers and their assigned jobs

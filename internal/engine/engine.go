@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/rafa-mori/gastype/internal/astutil"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // Engine coordinates passes and context for transpilation
@@ -57,28 +59,30 @@ func (e *Engine) AddPass(pass TranspilePass) {
 func (e *Engine) Run(root string) error {
 	files, err := DiscoverGoFiles(root)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("failed to discover Go files: %w", err))
 		return fmt.Errorf("failed to discover Go files: %w", err)
 	}
 
-	fmt.Printf("🚀 Starting transpilation engine on %d files\n", len(files))
+	gl.Log("info", fmt.Sprintf("🚀 Starting transpilation engine on %d files\n", len(files)))
 
 	processedFiles := 0
 	transformedFiles := 0
 
 	for _, filePath := range files {
-		fmt.Printf("🔍 Processing %s\n", filePath)
+		gl.Log("info", fmt.Sprintf("🔍 Processing %s\n", filePath))
 		// 🚀 REVOLUTIONARY: Use shared FileSet from context
 		astFile, err := parser.ParseFile(e.Ctx.Fset, filePath, nil, parser.ParseComments)
 		if err != nil {
-			fmt.Printf("  ⚠️  Failed to parse %s: %v\n", filePath, err)
+			gl.Log("error", fmt.Sprintf("  ⚠️  Failed to parse %s: %v\n", filePath, err))
 			continue
 		}
 
 		fileTransformed := false
 		for _, pass := range e.Passes {
-			fmt.Printf("  ⚙️  Applying pass: %s\n", pass.Name())
+			gl.Log("info", fmt.Sprintf("  ⚙️  Applying pass: %s\n", pass.Name()))
 			// 🚀 REVOLUTIONARY: Use shared FileSet in passes
 			if err := pass.Apply(astFile, e.Ctx.Fset, e.Ctx); err != nil {
+				gl.Log("error", fmt.Sprintf("  ⚠️  Pass %s failed on %s: %v\n", pass.Name(), filePath, err))
 				return fmt.Errorf("pass %s failed on %s: %w", pass.Name(), filePath, err)
 			}
 			fileTransformed = true
@@ -88,21 +92,22 @@ func (e *Engine) Run(root string) error {
 			transformedFiles++
 			// 🚀 REVOLUTIONARY: Store transformed files for OutputManager
 			e.Ctx.GeneratedFiles[filePath] = astFile
-			fmt.Printf("  ✅ File transformed and stored: %s\n", filePath)
+			gl.Log("info", fmt.Sprintf("  ✅ File transformed and stored: %s\n", filePath))
 		}
 
 		processedFiles++
 	}
 
-	fmt.Printf("📊 Engine summary: %d files processed, %d transformed\n", processedFiles, transformedFiles)
-	fmt.Printf("🎯 Ready for OutputManager: %d files stored\n", len(e.Ctx.GeneratedFiles))
+	gl.Log("info", fmt.Sprintf("📊 Engine summary: %d files processed, %d transformed\n", processedFiles, transformedFiles))
+	gl.Log("info", fmt.Sprintf("🎯 Ready for OutputManager: %d files stored\n", len(e.Ctx.GeneratedFiles)))
 
 	// Save context map if configured
 	if e.Ctx.MapFile != "" {
 		if err := e.Ctx.SaveMap(); err != nil {
+			gl.Log("error", fmt.Sprintf("failed to save context map: %w", err))
 			return fmt.Errorf("failed to save context map: %w", err)
 		}
-		fmt.Printf("📋 Context map saved: %s\n", e.Ctx.MapFile)
+		gl.Log("info", fmt.Sprintf("📋 Context map saved: %s\n", e.Ctx.MapFile))
 	}
 
 	return nil

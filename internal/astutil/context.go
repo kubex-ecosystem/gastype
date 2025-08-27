@@ -7,6 +7,8 @@ import (
 	"go/token"
 	"os"
 	"strings"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 type AssignTransformation struct {
@@ -180,7 +182,7 @@ func LoadMap(mapFile string) (*TranspileContext, error) {
 
 // EstimatePerformance provides performance estimates for the transpilation
 func (ctx *TranspileContext) EstimatePerformance() {
-	fmt.Printf("\n📊 Performance Estimation:\n")
+	gl.Log("info", "\n📊 Performance Estimation:\n")
 
 	totalStructs := len(ctx.Structs)
 	totalBoolFields := 0
@@ -192,7 +194,7 @@ func (ctx *TranspileContext) EstimatePerformance() {
 	}
 
 	if totalStructs == 0 {
-		fmt.Printf("  ℹ️  No transformations found - no performance impact\n")
+		gl.Log("info", "  ℹ️  No transformations found - no performance impact")
 		return
 	}
 
@@ -205,26 +207,26 @@ func (ctx *TranspileContext) EstimatePerformance() {
 		memoryReduction = 0 // In cases where we have few bools, memory might increase slightly
 	}
 
-	fmt.Printf("  📈 Structs analyzed: %d\n", totalStructs)
-	fmt.Printf("  🔢 Bool fields → Flags: %d → %d constants\n", totalBoolFields, totalFlagsGenerated)
-	fmt.Printf("  💾 Memory per struct: %d bytes → 8 bytes\n", originalMemoryPerStruct)
+	gl.Log("info", fmt.Sprintf("  📈 Structs analyzed: %d\n", totalStructs))
+	gl.Log("info", fmt.Sprintf("  🔢 Bool fields → Flags: %d → %d constants\n", totalBoolFields, totalFlagsGenerated))
+	gl.Log("info", fmt.Sprintf("  💾 Memory per struct: %d bytes → 8 bytes\n", originalMemoryPerStruct))
 
 	if memoryReduction > 0 {
-		fmt.Printf("  ⚡ Estimated memory reduction: %.1f%%\n", memoryReduction)
+		gl.Log("info", fmt.Sprintf("  ⚡ Estimated memory reduction: %.1f%%\n", memoryReduction))
 	} else {
-		fmt.Printf("  ℹ️  Memory usage: minimal change (small struct overhead)\n")
+		gl.Log("info", "  ℹ️  Memory usage: minimal change (small struct overhead)\n")
 	}
 
 	// Performance benefits
-	fmt.Printf("  🚀 Performance benefits:\n")
-	fmt.Printf("     • Bitwise operations: ~2-5x faster than bool comparisons\n")
-	fmt.Printf("     • Cache efficiency: Better memory locality\n")
-	fmt.Printf("     • Atomic operations: Single uint64 vs multiple bools\n")
+	gl.Log("info", "  🚀 Performance benefits:\n")
+	gl.Log("info", "     • Bitwise operations: ~2-5x faster than bool comparisons\n")
+	gl.Log("info", "     • Cache efficiency: Better memory locality\n")
+	gl.Log("info", "     • Atomic operations: Single uint64 vs multiple bools\n")
 
 	// Security benefits
-	fmt.Printf("  🔒 Security benefits:\n")
-	fmt.Printf("     • Obfuscated logic: Harder to reverse engineer\n")
-	fmt.Printf("     • Compact representation: Less surface area\n")
+	gl.Log("info", "  🔒 Security benefits:\n")
+	gl.Log("info", "     • Obfuscated logic: Harder to reverse engineer\n")
+	gl.Log("info", "     • Compact representation: Less surface area\n")
 }
 
 // GetFlagForField Retorna o nome da flag de um campo já registrado no contexto

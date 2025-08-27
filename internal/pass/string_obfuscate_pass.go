@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/rafa-mori/gastype/internal/astutil"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 type StringObfuscatePass struct{}
@@ -61,7 +63,7 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 			} else {
 				// Caso não tenha valor literal (ex: alias sem inicialização), ainda é string-like
 				// mas não vamos mexer agora
-				fmt.Printf("  ℹ️ Found string alias constant without literal: %s\n", name)
+				gl.Log("info", fmt.Sprintf("Found string alias constant without literal: %s", name))
 			}
 		}
 	}
@@ -188,7 +190,7 @@ func (p *StringObfuscatePass) Apply(file *ast.File, _ *token.FileSet, ctx *astut
 	}
 
 	if transformations > 0 {
-		fmt.Printf("  🔄 StringObfuscatePass: %d transformations applied\n", transformations)
+		gl.Log("info", fmt.Sprintf("🔄 StringObfuscatePass: %d transformations applied", transformations))
 	}
 
 	return nil

@@ -14,8 +14,9 @@ import (
 	"strings"
 	"time"
 
-	l "github.com/rafa-mori/logz"
 	"github.com/spf13/cobra"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // PipelineConfig holds configuration for pipeline operations
@@ -64,7 +65,7 @@ func validateCmd() *cobra.Command {
 		Short: "Stage 2: Validate optimized code against baseline",
 		Long: `Validate optimized code functionality against the original baseline.
 
-This command runs tests and comparisons to ensure the optimized code 
+This command runs tests and comparisons to ensure the optimized code
 maintains exactly the same behavior as the original code.
 
 Stage 2 of the GASType Premium Pipeline:
@@ -154,7 +155,7 @@ func buildCmd() *cobra.Command {
 		Short: "Stage 4: Create final optimized binary",
 		Long: `Build final production-ready binary with maximum optimization.
 
-This command applies aggressive Go compiler optimizations, strips debug 
+This command applies aggressive Go compiler optimizations, strips debug
 symbols, and optionally compresses the final binary.
 
 Stage 4 of the GASType Premium Pipeline:
@@ -192,13 +193,14 @@ Examples:
 // runValidateCommand executes Stage 2 validation
 func runValidateCommand(config *PipelineConfig) error {
 	if config.Verbose {
-		l.Info("🔍 INICIANDO ETAPA 2: VALIDAÇÃO E TESTE", nil)
-		l.Info(fmt.Sprintf("📂 Baseline: %s", config.BaselinePath), nil)
-		l.Info(fmt.Sprintf("📂 Optimized: %s", config.InputPath), nil)
+		gl.Log("info", "🔍 INICIANDO ETAPA 2: VALIDAÇÃO E TESTE")
+		gl.Log("info", fmt.Sprintf("📂 Baseline: %s", config.BaselinePath))
+		gl.Log("info", fmt.Sprintf("📂 Optimized: %s", config.InputPath))
 	}
 
 	// Validate paths exist
 	if err := validatePaths(config.BaselinePath, config.InputPath); err != nil {
+		gl.Log("error", fmt.Sprintf("Path validation failed: %v", err))
 		return err
 	}
 
@@ -216,41 +218,46 @@ func runValidateCommand(config *PipelineConfig) error {
 	}
 
 	// Step 1: Validate optimized code builds
-	fmt.Println("🔨 Validating optimized code builds...")
+	gl.Log("info", "🔨 Validating optimized code builds...")
 	if err := validateBuild(config.InputPath, report); err != nil {
+		gl.Log("error", fmt.Sprintf("Build validation failed: %v", err))
 		return fmt.Errorf("build validation failed: %w", err)
 	}
 
 	// Step 2: Run baseline tests
-	fmt.Println("📋 Running baseline tests...")
+	gl.Log("info", "📋 Running baseline tests...")
 	if err := runBaselineTests(config.BaselinePath, config.TestsPath, report); err != nil {
+		gl.Log("error", fmt.Sprintf("Baseline tests failed: %v", err))
 		return fmt.Errorf("baseline tests failed: %w", err)
 	}
 
 	// Step 3: Run optimized tests
-	fmt.Println("⚡ Running optimized tests...")
+	gl.Log("info", "⚡ Running optimized tests...")
 	if err := runOptimizedTests(config.InputPath, config.TestsPath, report); err != nil {
+		gl.Log("error", fmt.Sprintf("Optimized tests failed: %v", err))
 		return fmt.Errorf("optimized tests failed: %w", err)
 	}
 
 	// Step 4: Compare results
-	fmt.Println("📊 Comparing results...")
+	gl.Log("info", "📊 Comparing results...")
 	if err := compareResults(report); err != nil {
+		gl.Log("error", fmt.Sprintf("Result comparison failed: %v", err))
 		return fmt.Errorf("result comparison failed: %w", err)
 	}
 
 	// Step 5: Generate report
 	if err := saveValidationReport(config.OutputPath, report); err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to save report: %v", err))
 		return fmt.Errorf("failed to save report: %w", err)
 	}
 
 	// Print summary
-	fmt.Printf("\n✅ VALIDAÇÃO COMPLETA!\n")
-	fmt.Printf("📊 Testes: %d/%d passaram\n", report.Passed, report.TotalTests)
-	fmt.Printf("📝 Relatório: %s\n", config.OutputPath)
+	gl.Log("info", "\n✅ VALIDAÇÃO COMPLETA!\n")
+	gl.Log("info", fmt.Sprintf("📊 Testes: %d/%d passaram\n", report.Passed, report.TotalTests))
+	gl.Log("info", fmt.Sprintf("📝 Relatório: %s\n", config.OutputPath))
 
 	if config.Verbose {
-		l.Info("🎉 ETAPA 2 CONCLUÍDA COM SUCESSO!", nil)
+		gl.Log("info", "🎉 ETAPA 2 CONCLUÍDA COM SUCESSO!")
 	}
 
 	return nil
@@ -259,45 +266,50 @@ func runValidateCommand(config *PipelineConfig) error {
 // runObfuscateCommand executes Stage 3 obfuscation
 func runObfuscateCommand(config *PipelineConfig) error {
 	if config.Verbose {
-		l.Info("🔒 INICIANDO ETAPA 3: OFUSCAÇÃO SELETIVA", nil)
-		l.Info(fmt.Sprintf("📂 Source: %s", config.InputPath), nil)
-		l.Info(fmt.Sprintf("📂 Output: %s", config.OutputPath), nil)
+		gl.Log("info", "🔒 INICIANDO ETAPA 3: OFUSCAÇÃO SELETIVA")
+		gl.Log("info", fmt.Sprintf("📂 Source: %s", config.InputPath))
+		gl.Log("info", fmt.Sprintf("📂 Output: %s", config.OutputPath))
 	}
 
 	// Validate source path exists
 	if _, err := os.Stat(config.InputPath); os.IsNotExist(err) {
+		gl.Log("error", fmt.Sprintf("Source path does not exist: %s", config.InputPath))
 		return fmt.Errorf("source path does not exist: %s", config.InputPath)
 	}
 
 	// Create output directory
 	if err := os.MkdirAll(config.OutputPath, 0755); err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to create output directory: %v", err))
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
 	// Step 1: Copy source to output
-	fmt.Println("📁 Copying source files...")
+	gl.Log("info", "📁 Copying source files...")
 	if err := copyDirectory(config.InputPath, config.OutputPath); err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to copy source: %v", err))
 		return fmt.Errorf("failed to copy source: %w", err)
 	}
 
 	// Step 2: Parse gastype control comments
-	fmt.Println("📝 Parsing control comments...")
+	gl.Log("info", "📝 Parsing control comments...")
 	controlMap, err := parseGasTypeComments(config.OutputPath)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to parse comments: %v", err))
 		return fmt.Errorf("failed to parse comments: %w", err)
 	}
 
 	// Step 3: Apply selective obfuscation
-	fmt.Println("🔒 Applying selective obfuscation...")
+	gl.Log("info", "🔒 Applying selective obfuscation...")
 	if err := applySelectiveObfuscation(config.OutputPath, controlMap, config); err != nil {
+		gl.Log("error", fmt.Sprintf("Obfuscation failed: %v", err))
 		return fmt.Errorf("obfuscation failed: %w", err)
 	}
 
-	fmt.Printf("\n✅ OFUSCAÇÃO COMPLETA!\n")
-	fmt.Printf("📁 Código ofuscado: %s\n", config.OutputPath)
+	gl.Log("info", "\n✅ OFUSCAÇÃO COMPLETA!\n")
+	gl.Log("info", fmt.Sprintf("📁 Código ofuscado: %s\n", config.OutputPath))
 
 	if config.Verbose {
-		l.Info("🎉 ETAPA 3 CONCLUÍDA COM SUCESSO!", nil)
+		gl.Log("info", "🎉 ETAPA 3 CONCLUÍDA COM SUCESSO!")
 	}
 
 	return nil
@@ -306,18 +318,20 @@ func runObfuscateCommand(config *PipelineConfig) error {
 // runBuildCommand executes Stage 4 final build
 func runBuildCommand(config *PipelineConfig) error {
 	if config.Verbose {
-		l.Info("🚀 INICIANDO ETAPA 4: BUILD FINAL OTIMIZADO", nil)
-		l.Info(fmt.Sprintf("📂 Source: %s", config.InputPath), nil)
-		l.Info(fmt.Sprintf("📂 Output: %s", config.OutputPath), nil)
+		gl.Log("info", "🚀 INICIANDO ETAPA 4: BUILD FINAL OTIMIZADO")
+		gl.Log("info", fmt.Sprintf("📂 Source: %s", config.InputPath))
+		gl.Log("info", fmt.Sprintf("📂 Output: %s", config.OutputPath))
 	}
 
 	// Validate source path exists
 	if _, err := os.Stat(config.InputPath); os.IsNotExist(err) {
+		gl.Log("error", fmt.Sprintf("Source path does not exist: %s", config.InputPath))
 		return fmt.Errorf("source path does not exist: %s", config.InputPath)
 	}
 
 	// Create output directory
 	if err := os.MkdirAll(config.OutputPath, 0755); err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to create output directory: %v", err))
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
@@ -329,46 +343,49 @@ func runBuildCommand(config *PipelineConfig) error {
 	}
 
 	// Step 1: Build with optimizations
-	fmt.Println("🔨 Building optimized binary...")
+	gl.Log("info", "🔨 Building optimized binary...")
 	binaryPath, err := buildOptimizedBinary(config.InputPath, config.OutputPath, config.Final, report)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("Build failed: %v", err))
 		return fmt.Errorf("build failed: %w", err)
 	}
 
 	// Step 2: Compress if requested
 	if config.Compress {
-		fmt.Println("📦 Compressing binary...")
+		gl.Log("info", "📦 Compressing binary...")
 		if err := compressBinary(binaryPath); err != nil {
-			fmt.Printf("⚠️  Compression failed: %v\n", err)
+			gl.Log("error", fmt.Sprintf("Compression failed: %v", err))
 			// Continue without compression
 		}
 	}
 
 	// Step 3: Generate checksums
-	fmt.Println("🔐 Generating checksums...")
+	gl.Log("info", "🔐 Generating checksums...")
 	if err := generateChecksums(binaryPath); err != nil {
+		gl.Log("error", fmt.Sprintf("Checksum generation failed: %v", err))
 		return fmt.Errorf("checksum generation failed: %w", err)
 	}
 
 	// Step 4: Collect metrics
-	fmt.Println("📊 Collecting metrics...")
+	gl.Log("info", "📊 Collecting metrics...")
 	if err := collectBuildMetrics(binaryPath, report); err != nil {
-		fmt.Printf("⚠️  Metrics collection failed: %v\n", err)
+		gl.Log("error", fmt.Sprintf("Metrics collection failed: %v", err))
 		// Continue without metrics
 	}
 
 	// Step 5: Save build report
 	reportPath := filepath.Join(config.OutputPath, "build_report.json")
 	if err := saveBuildReport(reportPath, report); err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to save build report: %v", err))
 		return fmt.Errorf("failed to save build report: %w", err)
 	}
 
-	fmt.Printf("\n🎉 BUILD FINAL COMPLETO!\n")
-	fmt.Printf("📁 Binário: %s\n", binaryPath)
-	fmt.Printf("📊 Relatório: %s\n", reportPath)
+	gl.Log("info", "\n🎉 BUILD FINAL COMPLETO!\n")
+	gl.Log("info", fmt.Sprintf("📁 Binário: %s\n", binaryPath))
+	gl.Log("info", fmt.Sprintf("📊 Relatório: %s\n", reportPath))
 
 	if config.Verbose {
-		l.Info("🎉 ETAPA 4 CONCLUÍDA COM SUCESSO!", nil)
+		gl.Log("info", "🎉 ETAPA 4 CONCLUÍDA COM SUCESSO!")
 	}
 
 	return nil
@@ -379,9 +396,11 @@ func runBuildCommand(config *PipelineConfig) error {
 // validatePaths checks if required paths exist
 func validatePaths(baseline, optimized string) error {
 	if _, err := os.Stat(baseline); os.IsNotExist(err) {
+		gl.Log("error", fmt.Sprintf("Baseline path does not exist: %s", baseline))
 		return fmt.Errorf("baseline path does not exist: %s", baseline)
 	}
 	if _, err := os.Stat(optimized); os.IsNotExist(err) {
+		gl.Log("error", fmt.Sprintf("Optimized path does not exist: %s", optimized))
 		return fmt.Errorf("optimized path does not exist: %s", optimized)
 	}
 	return nil
@@ -408,7 +427,7 @@ func findTestsDirectory(basePath string) string {
 
 // validateBuild checks if the optimized code builds successfully
 func validateBuild(optimizedPath string, report *ValidationReport) error {
-	fmt.Printf("  Building optimized code at %s...\n", optimizedPath)
+	gl.Log("info", fmt.Sprintf("  Building optimized code at %s...\n", optimizedPath))
 
 	cmd := exec.Command("go", "build", "-o", "/tmp/gastype_test_build", ".")
 	cmd.Dir = optimizedPath
@@ -422,13 +441,13 @@ func validateBuild(optimizedPath string, report *ValidationReport) error {
 	// Clean up test binary
 	os.Remove("/tmp/gastype_test_build")
 
-	fmt.Printf("  ✅ Build successful\n")
+	gl.Log("info", "  ✅ Build successful\n")
 	return nil
 }
 
 // runBaselineTests runs tests on the baseline code
 func runBaselineTests(baselinePath, testsPath string, report *ValidationReport) error {
-	fmt.Printf("  Running baseline tests in %s...\n", baselinePath)
+	gl.Log("info", fmt.Sprintf("  Running baseline tests in %s...\n", baselinePath))
 
 	cmd := exec.Command("go", "test", "-v", "./...")
 	cmd.Dir = baselinePath
@@ -442,13 +461,13 @@ func runBaselineTests(baselinePath, testsPath string, report *ValidationReport) 
 	// Parse test results (simplified)
 	report.TotalTests += parseTestCount(string(output))
 
-	fmt.Printf("  ✅ Baseline tests passed\n")
+	gl.Log("info", "  ✅ Baseline tests passed\n")
 	return nil
 }
 
 // runOptimizedTests runs tests on the optimized code
 func runOptimizedTests(optimizedPath, testsPath string, report *ValidationReport) error {
-	fmt.Printf("  Running optimized tests in %s...\n", optimizedPath)
+	gl.Log("info", fmt.Sprintf("  Running optimized tests in %s...\n", optimizedPath))
 
 	cmd := exec.Command("go", "test", "-v", "./...")
 	cmd.Dir = optimizedPath
@@ -464,13 +483,13 @@ func runOptimizedTests(optimizedPath, testsPath string, report *ValidationReport
 	testsPassed := parseTestCount(string(output))
 	report.Passed += testsPassed
 
-	fmt.Printf("  ✅ Optimized tests passed\n")
+	gl.Log("info", "  ✅ Optimized tests passed\n")
 	return nil
 }
 
 // compareResults compares baseline vs optimized results
 func compareResults(report *ValidationReport) error {
-	fmt.Printf("  Comparing baseline vs optimized results...\n")
+	gl.Log("info", "  Comparing baseline vs optimized results...\n")
 
 	// Calculate coverage (simplified)
 	if report.TotalTests > 0 {
@@ -483,7 +502,7 @@ func compareResults(report *ValidationReport) error {
 	// Mark all files as passed for now (simplified)
 	report.PassedFiles = append(report.PassedFiles, "all_files_passed")
 
-	fmt.Printf("  ✅ Results comparison complete\n")
+	gl.Log("info", "  ✅ Results comparison complete\n")
 	return nil
 }
 
@@ -491,6 +510,7 @@ func compareResults(report *ValidationReport) error {
 func saveValidationReport(outputPath string, report *ValidationReport) error {
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to marshal report: %v", err))
 		return fmt.Errorf("failed to marshal report: %w", err)
 	}
 
@@ -537,7 +557,7 @@ func parseGasTypeComments(sourcePath string) (map[string]string, error) {
 
 // applySelectiveObfuscation applies obfuscation based on control map
 func applySelectiveObfuscation(outputPath string, controlMap map[string]string, config *PipelineConfig) error {
-	fmt.Printf("  Applying obfuscation with %d control rules...\n", len(controlMap))
+	gl.Log("info", fmt.Sprintf("  Applying obfuscation with %d control rules...\n", len(controlMap)))
 
 	// For now, just mark files that should be obfuscated
 	obfuscatedCount := 0
@@ -557,11 +577,11 @@ func applySelectiveObfuscation(outputPath string, controlMap map[string]string, 
 
 		if exists && control == "nobfuscate" {
 			// Skip obfuscation for this file
-			fmt.Printf("    ⏭️  Skipping %s (nobfuscate)\n", relPath)
+			gl.Log("info", fmt.Sprintf("    ⏭️  Skipping %s (nobfuscate)", relPath))
 			skippedCount++
 		} else {
 			// Apply obfuscation (simplified for now)
-			fmt.Printf("    🔒 Obfuscating %s\n", relPath)
+			gl.Log("info", fmt.Sprintf("    🔒 Obfuscating %s", relPath))
 			obfuscatedCount++
 
 			// TODO: Implement actual obfuscation here
@@ -570,7 +590,7 @@ func applySelectiveObfuscation(outputPath string, controlMap map[string]string, 
 		return nil
 	})
 
-	fmt.Printf("  ✅ Obfuscation complete: %d files obfuscated, %d skipped\n", obfuscatedCount, skippedCount)
+	gl.Log("info", fmt.Sprintf("  ✅ Obfuscation complete: %d files obfuscated, %d skipped\n", obfuscatedCount, skippedCount))
 	return err
 }
 
@@ -608,51 +628,56 @@ func buildOptimizedBinary(sourcePath, outputPath string, final bool, report *Bui
 
 	args = append(args, ".")
 
-	fmt.Printf("  Building with: go %s\n", strings.Join(args, " "))
+	gl.Log("info", fmt.Sprintf("  Building with: go %s\n", strings.Join(args, " ")))
 
 	cmd := exec.Command("go", args...)
 	cmd.Dir = sourcePath
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("Build failed: %s", string(output)))
 		return "", fmt.Errorf("build failed: %s", string(output))
 	}
 
-	fmt.Printf("  ✅ Binary built: %s\n", binaryPath)
+	gl.Log("info", fmt.Sprintf("  ✅ Binary built: %s\n", binaryPath))
 	return binaryPath, nil
 }
 
 // compressBinary compresses the binary with UPX
 func compressBinary(binaryPath string) error {
-	fmt.Printf("  Compressing %s with UPX...\n", binaryPath)
+	gl.Log("info", fmt.Sprintf("  Compressing %s with UPX...\n", binaryPath))
 
 	// Check if UPX is available
 	if _, err := exec.LookPath("upx"); err != nil {
+		gl.Log("error", "UPX not found in PATH")
 		return fmt.Errorf("UPX not found in PATH")
 	}
 
 	cmd := exec.Command("upx", "--best", binaryPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("UPX compression failed: %s", string(output)))
 		return fmt.Errorf("UPX compression failed: %s", string(output))
 	}
 
-	fmt.Printf("  ✅ Binary compressed\n")
+	gl.Log("info", "  ✅ Binary compressed\n")
 	return nil
 }
 
 // generateChecksums generates SHA256 checksums
 func generateChecksums(binaryPath string) error {
-	fmt.Printf("  Generating checksums for %s...\n", binaryPath)
+	gl.Log("info", fmt.Sprintf("  Generating checksums for %s...\n", binaryPath))
 
 	file, err := os.Open(binaryPath)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to open binary: %v", err))
 		return fmt.Errorf("failed to open binary: %w", err)
 	}
 	defer file.Close()
 
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to hash binary: %v", err))
 		return fmt.Errorf("failed to hash binary: %w", err)
 	}
 
@@ -661,16 +686,17 @@ func generateChecksums(binaryPath string) error {
 
 	err = os.WriteFile(checksumPath, []byte(checksum), 0644)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to write checksum: %v", err))
 		return fmt.Errorf("failed to write checksum: %w", err)
 	}
 
-	fmt.Printf("  ✅ Checksum saved: %s\n", checksumPath)
+	gl.Log("info", fmt.Sprintf("  ✅ Checksum saved: %s\n", checksumPath))
 	return nil
 }
 
 // collectBuildMetrics collects build metrics
 func collectBuildMetrics(binaryPath string, report *BuildReport) error {
-	fmt.Printf("  Collecting build metrics...\n")
+	gl.Log("info", "  Collecting build metrics...\n")
 
 	// Get binary size
 	if stat, err := os.Stat(binaryPath); err == nil {
@@ -687,7 +713,7 @@ func collectBuildMetrics(binaryPath string, report *BuildReport) error {
 	report.MemoryUsage = "< 50MB"
 	report.ThroughputGain = "> 30%"
 
-	fmt.Printf("  ✅ Metrics collected\n")
+	gl.Log("info", "  ✅ Metrics collected\n")
 	return nil
 }
 
@@ -695,6 +721,7 @@ func collectBuildMetrics(binaryPath string, report *BuildReport) error {
 func saveBuildReport(reportPath string, report *BuildReport) error {
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("Failed to marshal report: %v", err))
 		return fmt.Errorf("failed to marshal report: %w", err)
 	}
 

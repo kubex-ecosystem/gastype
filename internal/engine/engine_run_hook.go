@@ -3,7 +3,6 @@ package transpiler
 
 import (
 	"go/ast"
-	"go/parser"
 )
 
 // Hook pequeno: use-o no teu Run() logo após parser.ParseFile para ativar o type-check.
@@ -16,4 +15,3 @@ func (e *Engine) afterParseHook(astFile *ast.File, filePath string) {
 // astFile, err := parser.ParseFile(e.Ctx.Fset, filePath, nil, parser.ParseComments)
 // if err != nil { ... }
 // e.afterParseHook(astFile, filePath)
-

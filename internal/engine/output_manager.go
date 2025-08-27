@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // OutputManager controla a cópia e substituição dos arquivos no output
@@ -88,6 +90,10 @@ func (om *OutputManager) rewriteImports(file *ast.File) {
 	for _, imp := range file.Imports {
 		path := strings.Trim(imp.Path.Value, `"`)
 
+		if isStdLib(path) {
+			continue // Pula a reescrita para pacotes da stdlib
+		}
+
 		// 🚀 REVOLUTIONARY: Skip stdlib packages!
 		if om.isStdLib(path) {
 			continue
@@ -103,10 +109,50 @@ func (om *OutputManager) rewriteImports(file *ast.File) {
 			continue
 		}
 
-		// Only rewrite local relative imports
+		if strings.Contains(path, ".") { // Se já contém ponto, é geralmente um import externo ou módulo [4]
+			continue
+		}
+
 		newPath := filepath.ToSlash(filepath.Join(om.ModulePath, path))
 		imp.Path.Value = strconv.Quote(newPath)
+
+		gl.Log("debug", fmt.Sprintf("Reescrevendo import: %s -> %s", path, newPath))
 	}
+}
+
+// readModulePath lê o module path do go.mod
+func readModulePath(goModPath string) (string, error) {
+	f, err := os.Open(goModPath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "module ") {
+			return strings.TrimSpace(strings.TrimPrefix(line, "module ")), nil
+		}
+	}
+	return "", fmt.Errorf("module path não encontrado em %s", goModPath)
+}
+
+// copyFile copia um arquivo mantendo hierarquia
+func copyFile(src, dst string) error {
+	os.MkdirAll(filepath.Dir(dst), 0755)
+	in, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+	_, err = io.Copy(out, in)
+	return err
 }
 
 // isStdLib detects Go standard library packages
@@ -163,40 +209,15 @@ func (om *OutputManager) isStdLib(importPath string) bool {
 
 	return false
 } // readModulePath lê o module path do go.mod
-// SMART: Descobre automaticamente o module do projeto
-func readModulePath(goModPath string) (string, error) {
-	f, err := os.Open(goModPath)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
 
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "module ") {
-			return strings.TrimSpace(strings.TrimPrefix(line, "module ")), nil
-		}
+// -- INÍCIO DA NOVA FUNÇÃO isStdLib --
+// isStdLib verifica se o importPath corresponde a um pacote da Go Standard Library.
+// Esta é uma implementação simplificada baseada na heurística de "não conter ponto".
+// Para uma solução 100% blindada, seria necessário consultar `go list std` e criar um cache [5, 6].
+func isStdLib(importPath string) bool {
+	// Pacotes da stdlib geralmente não contêm '.' (ex: "fmt", "io", "net/http", "encoding/json")
+	if !strings.Contains(importPath, ".") {
+		return true
 	}
-	return "", fmt.Errorf("module path não encontrado em %s", goModPath)
-}
-
-// copyFile copia um arquivo mantendo hierarquia
-// RELIABLE: Preserva estrutura original perfeitamente
-func copyFile(src, dst string) error {
-	os.MkdirAll(filepath.Dir(dst), 0755)
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	return err
+	return false
 }

@@ -9,6 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // StructBitwiseSuggestion representa sugestão de conversão de campos bool para flags
@@ -58,6 +60,7 @@ type SecurityFeature struct {
 func (bt *BitwiseTranspiler) AnalyzeFile(filename string) (*TranspilationResult, error) {
 	suggestions, err := bt.analyzeFileSugereBitwise(filename)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro na análise bitwise: %w", err))
 		return nil, fmt.Errorf("erro na análise bitwise: %w", err)
 	}
 
@@ -106,6 +109,7 @@ func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationR
 
 		result, err := bt.AnalyzeFile(path)
 		if err != nil {
+			gl.Log("error", fmt.Sprintf("erro analisando %s: %w", path, err))
 			return fmt.Errorf("erro analisando %s: %w", path, err)
 		}
 
@@ -118,6 +122,7 @@ func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationR
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro percorrendo projeto: %w", err))
 		return nil, fmt.Errorf("erro percorrendo projeto: %w", err)
 	}
 
@@ -128,12 +133,14 @@ func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationR
 func (bt *BitwiseTranspiler) analyzeFileSugereBitwise(filename string) ([]StructBitwiseSuggestion, error) {
 	file, err := os.Open(filename)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro ao abrir arquivo: %w", err))
 		return nil, fmt.Errorf("erro ao abrir arquivo: %w", err)
 	}
 	defer file.Close()
 
 	node, err := parser.ParseFile(bt.fset, filename, nil, parser.AllErrors)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro ao parsear arquivo: %w", err))
 		return nil, fmt.Errorf("erro ao parsear arquivo: %w", err)
 	}
 
@@ -181,15 +188,16 @@ func SugereBitwiseParaArquivo(filename string) error {
 	bt := NewBitwiseTranspiler()
 	suggestions, err := bt.analyzeFileSugereBitwise(filename)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro na análise bitwise: %w", err))
 		return fmt.Errorf("erro na análise bitwise: %w", err)
 	}
 	if len(suggestions) == 0 {
-		fmt.Printf("Nenhuma struct com campos bool encontrada em %s\n", filename)
+		gl.Log("info", fmt.Sprintf("Nenhuma struct com campos bool encontrada em %s\n", filename))
 		return nil
 	}
-	fmt.Printf("\n--- SUGESTÃO DE CONVERSÃO BITWISE ---\n")
+	gl.Log("info", "\n--- SUGESTÃO DE CONVERSÃO BITWISE ---\n")
 	for _, s := range suggestions {
-		fmt.Printf("Arquivo: %s (linha %d)\nStruct: %s\nCampos bool: %v\nSugestão: Converter para uint64 Flags (bitwise)\n\n", s.File, s.Line, s.StructName, s.BoolFields)
+		gl.Log("info", fmt.Sprintf("Arquivo: %s (linha %d)\nStruct: %s\nCampos bool: %v\nSugestão: Converter para uint64 Flags (bitwise)\n\n", s.File, s.Line, s.StructName, s.BoolFields))
 	}
 	return nil
 }

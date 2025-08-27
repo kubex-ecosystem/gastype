@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	l "github.com/faelmori/logz"
 	m "github.com/rafa-mori/gastype/internal/manager"
+	l "github.com/rafa-mori/logz"
 	"github.com/spf13/cobra"
 )
 

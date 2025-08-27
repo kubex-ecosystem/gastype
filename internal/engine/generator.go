@@ -7,6 +7,8 @@ import (
 	"go/parser"
 	"go/token"
 	"strings"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // BitwiseCodeGenerator gera código Go otimizado com operações bitwise
@@ -25,6 +27,7 @@ func NewBitwiseCodeGenerator() *BitwiseCodeGenerator {
 func (bcg *BitwiseCodeGenerator) GenerateBitwiseCode(filename string) (string, error) {
 	node, err := parser.ParseFile(bcg.fset, filename, nil, parser.ParseComments)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro ao parsear arquivo: %w", err))
 		return "", fmt.Errorf("erro ao parsear arquivo: %w", err)
 	}
 

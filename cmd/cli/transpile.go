@@ -12,8 +12,9 @@ import (
 
 	"github.com/rafa-mori/gastype/internal/astutil"
 	transpiler "github.com/rafa-mori/gastype/internal/engine"
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 	"github.com/rafa-mori/gastype/internal/pass"
-	l "github.com/rafa-mori/logz"
+
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +42,7 @@ func generatePreservedMainFile(filename string, contexts []transpiler.LogicalCon
 	// For now, we will simulate the original content
 	originalContent, err := os.ReadFile(filename)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro lendo arquivo original %s: %v", filename, err))
 		return "", fmt.Errorf("erro lendo arquivo original %s: %w", filename, err)
 	}
 
@@ -139,7 +141,7 @@ func transpileCmd() *cobra.Command {
 		Long: `Transpile traditional Go code to bitwise-optimized equivalent using AST analysis.
 
 This command analyzes Go source code and identifies optimization opportunities:
-- Boolean struct fields → Bitwise flags  
+- Boolean struct fields → Bitwise flags
 - If/else chains → Jump tables
 - String literals → Byte arrays (security)
 - Configuration structs → Flag systems
@@ -207,9 +209,9 @@ Examples:
 // runTranspileCommand executes the transpilation process
 func runTranspileCommand(config *TranspileConfig) error {
 	if config.Verbose {
-		l.Info(fmt.Sprintf("🚀 Starting GASType transpilation in mode: %s", config.Mode), nil)
-		l.Info(fmt.Sprintf("📁 Input: %s", config.InputPath), nil)
-		l.Info(fmt.Sprintf("📁 Output: %s", config.OutputPath), nil)
+		gl.Log("info", fmt.Sprintf("🚀 Starting GASType transpilation in mode: %s", config.Mode))
+		gl.Log("info", fmt.Sprintf("📁 Input: %s", config.InputPath))
+		gl.Log("info", fmt.Sprintf("📁 Output: %s", config.OutputPath))
 	}
 
 	// Check if using new engine architecture
@@ -220,6 +222,7 @@ func runTranspileCommand(config *TranspileConfig) error {
 	// Validate input path
 	inputInfo, err := os.Stat(config.InputPath)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("error accessing input path %s: %v", config.InputPath, err))
 		return fmt.Errorf("error accessing input path %s: %w", config.InputPath, err)
 	}
 
@@ -230,6 +233,7 @@ func runTranspileCommand(config *TranspileConfig) error {
 
 	// Create output directory if it doesn't exist (for traditional pipeline)
 	if err := os.MkdirAll(config.OutputPath, 0755); err != nil {
+		gl.Log("error", fmt.Sprintf("error creating output directory: %v", err))
 		return fmt.Errorf("error creating output directory: %w", err)
 	}
 
@@ -241,19 +245,21 @@ func runTranspileCommand(config *TranspileConfig) error {
 	if inputInfo.IsDir() {
 		// Analyze entire project
 		if config.Verbose {
-			l.Info("🔍 Analyzing project directory...", nil)
+			gl.Log("info", "🔍 Analyzing project directory...")
 		}
 		results, err = bitwiseTranspiler.AnalyzeProject(config.InputPath)
 		if err != nil {
+			gl.Log("error", fmt.Sprintf("error analyzing project: %v", err))
 			return fmt.Errorf("error analyzing project: %w", err)
 		}
 	} else {
 		// Analyze single file
 		if config.Verbose {
-			l.Info("🔍 Analyzing single file...", nil)
+			gl.Log("info", "🔍 Analyzing single file...")
 		}
 		result, err := bitwiseTranspiler.AnalyzeFile(config.InputPath)
 		if err != nil {
+			gl.Log("error", fmt.Sprintf("error analyzing file: %v", err))
 			return fmt.Errorf("error analyzing file: %w", err)
 		}
 		if len(result.Optimizations) > 0 {
@@ -285,7 +291,7 @@ func runTranspileCommand(config *TranspileConfig) error {
 func outputAnalysisResults(results []transpiler.TranspilationResult, config *TranspileConfig) error {
 	if len(results) == 0 {
 		if config.Verbose {
-			l.Info("✅ No optimization opportunities found", nil)
+			gl.Log("info", "✅ No optimization opportunities found")
 		}
 		return nil
 	}
@@ -308,7 +314,7 @@ func outputAnalysisResults(results []transpiler.TranspilationResult, config *Tra
 // performTranspilation generates the actual transpiled code
 func performTranspilation(results []transpiler.TranspilationResult, config *TranspileConfig) error {
 	if config.Verbose {
-		l.Info("🔧 Generating transpiled code...", nil)
+		gl.Log("info", "🔧 Generating transpiled code...")
 	}
 
 	// TODO: Implement actual code generation
@@ -322,7 +328,7 @@ func performTranspilation(results []transpiler.TranspilationResult, config *Tran
 	}
 
 	if config.Verbose {
-		l.Info(fmt.Sprintf("✅ Generated %d transpiled files", len(results)), nil)
+		gl.Log("info", fmt.Sprintf("✅ Generated %d transpiled files", len(results)))
 	}
 
 	return nil
@@ -370,15 +376,17 @@ func outputJSON(results []transpiler.TranspilationResult, summary map[string]int
 
 	data, err := json.MarshalIndent(output, "", "  ")
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("error marshaling JSON: %v", err))
 		return fmt.Errorf("error marshaling JSON: %w", err)
 	}
 
 	if err := os.WriteFile(outputFile, data, 0644); err != nil {
+		gl.Log("error", fmt.Sprintf("error writing JSON file: %v", err))
 		return fmt.Errorf("error writing JSON file: %w", err)
 	}
 
 	if config.Verbose {
-		l.Info(fmt.Sprintf("📄 Analysis results saved to: %s", outputFile), nil)
+		gl.Log("info", fmt.Sprintf("📄 Analysis results saved to: %s", outputFile))
 	}
 
 	return nil
@@ -387,6 +395,7 @@ func outputJSON(results []transpiler.TranspilationResult, summary map[string]int
 // outputYAML outputs analysis results in YAML format
 func outputYAML(results []transpiler.TranspilationResult, summary map[string]interface{}, config *TranspileConfig) error {
 	// TODO: Implement YAML output
+	gl.Log("error", "YAML output not yet implemented")
 	return fmt.Errorf("YAML output not yet implemented")
 }
 
@@ -430,11 +439,12 @@ func outputText(results []transpiler.TranspilationResult, summary map[string]int
 	}
 
 	if err := os.WriteFile(outputFile, []byte(content), 0644); err != nil {
+		gl.Log("error", fmt.Sprintf("error writing text file: %v", err))
 		return fmt.Errorf("error writing text file: %w", err)
 	}
 
 	if config.Verbose {
-		l.Info(fmt.Sprintf("📄 Analysis results saved to: %s", outputFile), nil)
+		gl.Log("info", fmt.Sprintf("📄 Analysis results saved to: %s", outputFile))
 	}
 
 	return nil
@@ -443,9 +453,9 @@ func outputText(results []transpiler.TranspilationResult, summary map[string]int
 // performRealTranspilation executes real bitwise transpilation without obfuscation
 func performRealTranspilation(config *TranspileConfig) error {
 	if config.Verbose {
-		l.Info("🔄 INICIANDO TRANSPILAÇÃO REAL (Stage 1: sem ofuscação)", nil)
-		l.Info(fmt.Sprintf("📂 Input: %s", config.InputPath), nil)
-		l.Info(fmt.Sprintf("📂 Output: %s", config.OutputPath), nil)
+		gl.Log("info", "🔄 INICIANDO TRANSPILAÇÃO REAL (Stage 1: sem ofuscação)")
+		gl.Log("info", fmt.Sprintf("📂 Input: %s", config.InputPath))
+		gl.Log("info", fmt.Sprintf("📂 Output: %s", config.OutputPath))
 	}
 
 	// Create transpilation context
@@ -457,22 +467,24 @@ func performRealTranspilation(config *TranspileConfig) error {
 	// Check if input is a file or directory
 	inputInfo, err := os.Stat(config.InputPath)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("error accessing input path %s: %v", config.InputPath, err))
 		return fmt.Errorf("error accessing input path: %w", err)
 	}
 
 	if inputInfo.IsDir() {
 		// Transpile entire directory
-		fmt.Println("📁 Transpiling project directory...")
+		gl.Log("info", "📁 Transpiling project directory...")
 
 		// Create output directory
 		if err := os.MkdirAll(config.OutputPath, 0755); err != nil {
+			gl.Log("error", fmt.Sprintf("error creating output directory: %v", err))
 			return fmt.Errorf("error creating output directory: %w", err)
 		}
 
 		return transpileDirectory(realTranspiler, config.InputPath, config.OutputPath, config)
 	} else {
 		// Transpile single file
-		fmt.Println("� Transpiling single file...")
+		gl.Log("info", "📁 Transpiling single file...")
 
 		// For single file, check if output path is a file or directory
 		var outputFile string
@@ -481,28 +493,31 @@ func performRealTranspilation(config *TranspileConfig) error {
 			outputFile = config.OutputPath
 			// Create output directory if needed
 			if err := os.MkdirAll(filepath.Dir(outputFile), 0755); err != nil {
+				gl.Log("error", fmt.Sprintf("error creating output directory: %v", err))
 				return fmt.Errorf("error creating output directory: %w", err)
 			}
 		} else {
 			// Output is a directory
 			if err := os.MkdirAll(config.OutputPath, 0755); err != nil {
+				gl.Log("error", fmt.Sprintf("error creating output directory: %v", err))
 				return fmt.Errorf("error creating output directory: %w", err)
 			}
 			outputFile = filepath.Join(config.OutputPath, filepath.Base(config.InputPath))
 		}
 
 		if err := realTranspiler.TranspileFile(config.InputPath, outputFile); err != nil {
+			gl.Log("error", fmt.Sprintf("transpilation failed: %v", err))
 			return fmt.Errorf("transpilation failed: %w", err)
 		}
 
-		fmt.Printf("✅ Transpilation complete: %s → %s\n", config.InputPath, outputFile)
+		gl.Log("info", fmt.Sprintf("✅ Transpilation complete: %s → %s", config.InputPath, outputFile))
 		return nil
 	}
 }
 
 // transpileDirectory recursively transpiles a directory
 func transpileDirectory(realTranspiler *transpiler.RealBitwiseTranspiler, inputDir, outputDir string, config *TranspileConfig) error {
-	fmt.Printf("🔍 Scanning directory: %s\n", inputDir)
+	gl.Log("info", fmt.Sprintf("🔍 Scanning directory: %s", inputDir))
 
 	transpiledCount := 0
 	copiedCount := 0
@@ -526,11 +541,12 @@ func transpileDirectory(realTranspiler *transpiler.RealBitwiseTranspiler, inputD
 
 		// Handle .go files with transpilation
 		if strings.HasSuffix(info.Name(), ".go") {
-			fmt.Printf("  🔄 Transpiling: %s\n", relPath)
+			gl.Log("info", fmt.Sprintf("  🔄 Transpiling: %s", relPath))
 			if err := realTranspiler.TranspileFile(path, targetPath); err != nil {
-				fmt.Printf("    ⚠️  Transpilation failed, copying original: %v\n", err)
+				gl.Log("error", fmt.Sprintf("    ⚠️  Transpilation failed, copying original: %v", err))
 				// Fallback to copying original file
 				if err := copyFile(path, targetPath); err != nil {
+					gl.Log("error", fmt.Sprintf("    ⚠️  Failed to copy file %s: %v", path, err))
 					return fmt.Errorf("failed to copy file %s: %w", path, err)
 				}
 				copiedCount++
@@ -540,6 +556,7 @@ func transpileDirectory(realTranspiler *transpiler.RealBitwiseTranspiler, inputD
 		} else {
 			// Copy non-Go files as-is
 			if err := copyFile(path, targetPath); err != nil {
+				gl.Log("error", fmt.Sprintf("    ⚠️  Failed to copy file %s: %v", path, err))
 				return fmt.Errorf("failed to copy file %s: %w", path, err)
 			}
 			copiedCount++
@@ -549,16 +566,17 @@ func transpileDirectory(realTranspiler *transpiler.RealBitwiseTranspiler, inputD
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("directory transpilation failed: %v", err))
 		return fmt.Errorf("directory transpilation failed: %w", err)
 	}
 
-	fmt.Printf("\n✅ TRANSPILAÇÃO REAL COMPLETA!\n")
-	fmt.Printf("📄 Arquivos transpilados: %d\n", transpiledCount)
-	fmt.Printf("📄 Arquivos copiados: %d\n", copiedCount)
-	fmt.Printf("📁 Resultado salvo em: %s\n", outputDir)
+	gl.Log("info", "✅ TRANSPILAÇÃO REAL COMPLETA!")
+	gl.Log("info", fmt.Sprintf("📄 Arquivos transpilados: %d", transpiledCount))
+	gl.Log("info", fmt.Sprintf("📄 Arquivos copiados: %d", copiedCount))
+	gl.Log("info", fmt.Sprintf("📁 Resultado salvo em: %s", outputDir))
 
 	if config.Verbose {
-		l.Info("🎉 TRANSPILAÇÃO REAL CONCLUÍDA!", nil)
+		gl.Log("info", "🎉 TRANSPILAÇÃO REAL CONCLUÍDA!")
 	}
 
 	return nil
@@ -589,6 +607,7 @@ package main
 	content += "// TODO: Actual transpiled code would be generated here\n"
 
 	if err := os.WriteFile(outputFile, []byte(content), 0644); err != nil {
+		gl.Log("error", fmt.Sprintf("error writing transpiled file: %v", err))
 		return fmt.Errorf("error writing transpiled file: %w", err)
 	}
 
@@ -598,17 +617,19 @@ package main
 // performFullProjectTranspilation executes complete project transpilation
 func performFullProjectTranspilation(config *TranspileConfig) error {
 	if config.Verbose {
-		l.Info("🚀 INICIANDO TRANSPILAÇÃO COMPLETA DE PROJETO - MODO REVOLUCIONÁRIO ATIVADO!", nil)
-		l.Info(fmt.Sprintf("📂 Projeto origem: %s", config.InputPath), nil)
-		l.Info(fmt.Sprintf("📂 Projeto destino: %s", config.OutputPath), nil)
+		gl.Log("info", "🚀 INICIANDO TRANSPILAÇÃO COMPLETA DE PROJETO - MODO REVOLUCIONÁRIO ATIVADO!")
+		gl.Log("info", fmt.Sprintf("📂 Projeto origem: %s", config.InputPath))
+		gl.Log("info", fmt.Sprintf("📂 Projeto destino: %s", config.OutputPath))
 	}
 
 	// Validate that input is a directory
 	inputInfo, err := os.Stat(config.InputPath)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro acessando projeto origem: %v", err))
 		return fmt.Errorf("erro acessando projeto origem: %w", err)
 	}
 	if !inputInfo.IsDir() {
+		gl.Log("error", "transpilação completa requer um diretório de projeto, não um arquivo único")
 		return fmt.Errorf("transpilação completa requer um diretório de projeto, não um arquivo único")
 	}
 
@@ -627,53 +648,60 @@ func performFullProjectTranspilation(config *TranspileConfig) error {
 
 	// Step 1: Validate source project
 	if err := validateFullProjectSource(config.InputPath, stats); err != nil {
+		gl.Log("error", fmt.Sprintf("validação do projeto origem falhou: %v", err))
 		return fmt.Errorf("validação do projeto origem falhou: %w", err)
 	}
 
 	// Step 2: Create target project structure
 	if err := createFullProjectStructure(config, stats); err != nil {
+		gl.Log("error", fmt.Sprintf("criação da estrutura destino falhou: %v", err))
 		return fmt.Errorf("criação da estrutura destino falhou: %w", err)
 	}
 
 	// Step 3: Copy non-Go files (preserving structure)
 	if err := copyNonGoFiles(config); err != nil {
+		gl.Log("error", fmt.Sprintf("cópia de arquivos não-Go falhou: %v", err))
 		return fmt.Errorf("cópia de arquivos não-Go falhou: %w", err)
 	}
 
 	// Step 4: Analyze entire project for contexts
 	contexts, err := analyzeFullProjectContexts(config.InputPath, analyzer, stats)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("análise de contextos falhou: %v", err))
 		return fmt.Errorf("análise de contextos falhou: %w", err)
 	}
 
 	// Step 5: Transpile all Go files
 	if err := transpileAllGoFiles(config, contexts, generator, stats); err != nil {
+		gl.Log("error", fmt.Sprintf("transpilação de arquivos Go falhou: %v", err))
 		return fmt.Errorf("transpilação de arquivos Go falhou: %w", err)
 	}
 
 	// Step 6: Generate build scripts and configurations
 	if err := generateFullProjectBuildSystem(config, stats); err != nil {
+		gl.Log("error", fmt.Sprintf("geração do sistema de build falhou: %v", err))
 		return fmt.Errorf("geração do sistema de build falhou: %w", err)
 	}
 
 	// Step 7: Generate transpilation report
 	if err := generateFullProjectReport(config, stats); err != nil {
+		gl.Log("error", fmt.Sprintf("geração de relatório falhou: %v", err))
 		return fmt.Errorf("geração de relatório falhou: %w", err)
 	}
 
 	stats.EndTime = time.Now()
 	stats.Duration = stats.EndTime.Sub(stats.StartTime)
 
-	fmt.Println("\n🔥 TRANSPILAÇÃO COMPLETA FINALIZADA!")
-	fmt.Printf("⏱️  Tempo total: %v\n", stats.Duration)
-	fmt.Printf("📁 Arquivos Go transpilados: %d/%d\n", stats.TranspiledFiles, stats.GoFiles)
-	fmt.Printf("🧠 Contextos encontrados: %d\n", stats.ContextsFound)
-	fmt.Printf("⚡ Contextos transpilados: %d\n", stats.ContextsTranspiled)
-	fmt.Printf("💾 Projeto transpilado salvo em: %s\n", config.OutputPath)
+	gl.Log("info", "🔥 TRANSPILAÇÃO COMPLETA FINALIZADA!")
+	gl.Log("info", fmt.Sprintf("⏱️  Tempo total: %v", stats.Duration))
+	gl.Log("info", fmt.Sprintf("📁 Arquivos Go transpilados: %d/%d", stats.TranspiledFiles, stats.GoFiles))
+	gl.Log("info", fmt.Sprintf("🧠 Contextos encontrados: %d", stats.ContextsFound))
+	gl.Log("info", fmt.Sprintf("⚡ Contextos transpilados: %d", stats.ContextsTranspiled))
+	gl.Log("info", fmt.Sprintf("💾 Projeto transpilado salvo em: %s", config.OutputPath))
 
 	if config.Verbose {
-		l.Info("🎉 TRANSPILAÇÃO REVOLUCIONÁRIA COMPLETA! 🎉", nil)
-		l.Info("🚀 Projeto transpilado para máxima performance!", nil)
+		gl.Log("info", "🎉 TRANSPILAÇÃO REVOLUCIONÁRIA COMPLETA! 🎉")
+		gl.Log("info", "🚀 Projeto transpilado para máxima performance!")
 	}
 
 	return nil
@@ -698,6 +726,7 @@ func validateFullProjectSource(sourcePath string, stats *FullProjectStats) error
 	// Check if go.mod exists
 	goModPath := filepath.Join(sourcePath, "go.mod")
 	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
+		gl.Log("error", "go.mod não encontrado - não é um projeto Go válido")
 		return fmt.Errorf("go.mod não encontrado - não é um projeto Go válido")
 	}
 
@@ -713,15 +742,17 @@ func validateFullProjectSource(sourcePath string, stats *FullProjectStats) error
 		return nil
 	})
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro contando arquivos Go: %v", err))
 		return fmt.Errorf("erro contando arquivos Go: %w", err)
 	}
 
 	if goFileCount == 0 {
+		gl.Log("error", "nenhum arquivo Go encontrado no projeto")
 		return fmt.Errorf("nenhum arquivo Go encontrado no projeto")
 	}
 
 	stats.GoFiles = goFileCount
-	fmt.Printf("✅ Projeto válido encontrado com %d arquivos Go\n", goFileCount)
+	gl.Log("info", fmt.Sprintf("✅ Projeto válido encontrado com %d arquivos Go", goFileCount))
 	return nil
 }
 
@@ -729,14 +760,16 @@ func validateFullProjectSource(sourcePath string, stats *FullProjectStats) error
 func createFullProjectStructure(config *TranspileConfig, stats *FullProjectStats) error {
 	// Remove existing target if exists
 	if _, err := os.Stat(config.OutputPath); !os.IsNotExist(err) {
-		fmt.Printf("🗑️  Removendo projeto transpilado existente...\n")
+		gl.Log("info", "🗑️  Removendo projeto transpilado existente...")
 		if err := os.RemoveAll(config.OutputPath); err != nil {
+			gl.Log("error", fmt.Sprintf("erro removendo projeto existente: %v", err))
 			return fmt.Errorf("erro removendo projeto existente: %w", err)
 		}
 	}
 
 	// Create target directory
 	if err := os.MkdirAll(config.OutputPath, 0755); err != nil {
+		gl.Log("error", fmt.Sprintf("erro criando diretório destino: %v", err))
 		return fmt.Errorf("erro criando diretório destino: %w", err)
 	}
 
@@ -763,10 +796,11 @@ func createFullProjectStructure(config *TranspileConfig, stats *FullProjectStats
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro replicando estrutura: %w", err))
 		return fmt.Errorf("erro replicando estrutura: %w", err)
 	}
 
-	fmt.Printf("✅ Estrutura de diretórios replicada\n")
+	gl.Log("info", "✅ Estrutura de diretórios replicada")
 	return nil
 }
 
@@ -799,10 +833,11 @@ func copyNonGoFiles(config *TranspileConfig) error {
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro copiando arquivos não-Go: %w", err))
 		return fmt.Errorf("erro copiando arquivos não-Go: %w", err)
 	}
 
-	fmt.Printf("✅ Arquivos não-Go copiados\n")
+	gl.Log("info", "✅ Arquivos não-Go copiados")
 	return nil
 }
 
@@ -826,7 +861,7 @@ func copyFile(src, dst string) error {
 
 // analyzeFullProjectContexts analyzes the entire project for transpilable contexts
 func analyzeFullProjectContexts(sourcePath string, analyzer *transpiler.ContextAnalyzer, stats *FullProjectStats) (map[string][]transpiler.LogicalContext, error) {
-	fmt.Printf("🧠 Analisando contextos lógicos do projeto...\n")
+	gl.Log("info", "🧠 Analisando contextos lógicos do projeto...")
 
 	allContexts := make(map[string][]transpiler.LogicalContext)
 
@@ -856,18 +891,19 @@ func analyzeFullProjectContexts(sourcePath string, analyzer *transpiler.ContextA
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro analisando contextos: %w", err))
 		return nil, fmt.Errorf("erro analisando contextos: %w", err)
 	}
 
-	fmt.Printf("✅ Análise completa: %d contextos encontrados em %d arquivos\n",
-		stats.ContextsFound, len(allContexts))
+	gl.Log("info", fmt.Sprintf("✅ Análise completa: %d contextos encontrados em %d arquivos",
+		stats.ContextsFound, len(allContexts)))
 
 	return allContexts, nil
 }
 
 // transpileAllGoFiles transpiles all Go files using found contexts
 func transpileAllGoFiles(config *TranspileConfig, contexts map[string][]transpiler.LogicalContext, generator *transpiler.AdvancedCodeGenerator, stats *FullProjectStats) error {
-	fmt.Printf("⚡ Transpilando arquivos Go...\n")
+	gl.Log("info", "⚡ Transpilando arquivos Go...")
 
 	isFirstFile := true
 
@@ -893,6 +929,7 @@ func transpileAllGoFiles(config *TranspileConfig, contexts map[string][]transpil
 		if len(fileContexts) == 0 {
 			// No contexts found, copy original file
 			if err := copyFile(path, targetPath); err != nil {
+				gl.Log("error", fmt.Sprintf("erro copiando %s: %w", path, err))
 				return fmt.Errorf("erro copiando %s: %w", path, err)
 			}
 		} else {
@@ -902,11 +939,13 @@ func transpileAllGoFiles(config *TranspileConfig, contexts map[string][]transpil
 				stats.Errors = append(stats.Errors, fmt.Sprintf("Erro transpilando %s: %v", path, err))
 				// Fallback to original file
 				if err := copyFile(path, targetPath); err != nil {
+					gl.Log("error", fmt.Sprintf("erro copiando fallback %s: %w", path, err))
 					return fmt.Errorf("erro copiando fallback %s: %w", path, err)
 				}
 			} else {
 				// Save transpiled code
 				if err := os.WriteFile(targetPath, []byte(transpiledCode), 0644); err != nil {
+					gl.Log("error", fmt.Sprintf("erro salvando transpilado %s: %w", targetPath, err))
 					return fmt.Errorf("erro salvando transpilado %s: %w", targetPath, err)
 				}
 				stats.TranspiledFiles++
@@ -920,10 +959,11 @@ func transpileAllGoFiles(config *TranspileConfig, contexts map[string][]transpil
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro transpilando arquivos: %w", err))
 		return fmt.Errorf("erro transpilando arquivos: %w", err)
 	}
 
-	fmt.Printf("✅ Transpilação completa: %d arquivos processados\n", stats.TotalFiles)
+	gl.Log("info", fmt.Sprintf("✅ Transpilação completa: %d arquivos processados", stats.TotalFiles))
 	return nil
 }
 
@@ -1000,6 +1040,7 @@ func generateHybridTranspiledFile(filename string, contexts []transpiler.Logical
 	// Read original file content
 	originalContent, err := os.ReadFile(filename)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro lendo arquivo original %s: %w", filename, err))
 		return "", fmt.Errorf("erro lendo arquivo original %s: %w", filename, err)
 	}
 
@@ -1088,16 +1129,18 @@ func isSimpleSwitch(context transpiler.LogicalContext) bool {
 // performStagedTranspilation executes multi-stage transpilation pipeline
 func performStagedTranspilation(config *TranspileConfig) error {
 	if config.Verbose {
-		l.Info("🎯 INICIANDO TRANSPILAÇÃO EM ETAPAS - PIPELINE REVOLUCIONÁRIO!", nil)
-		l.Info("📋 Pipeline: Análise → Transpilação Limpa → Validação → Ofuscação", nil)
+		gl.Log("info", "🎯 INICIANDO TRANSPILAÇÃO EM ETAPAS - PIPELINE REVOLUCIONÁRIO!")
+		gl.Log("info", "📋 Pipeline: Análise → Transpilação Limpa → Validação → Ofuscação")
 	}
 
 	// Validate that input is a directory
 	inputInfo, err := os.Stat(config.InputPath)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro acessando projeto origem: %w", err))
 		return fmt.Errorf("erro acessando projeto origem: %w", err)
 	}
 	if !inputInfo.IsDir() {
+		gl.Log("error", "transpilação em etapas requer um diretório de projeto")
 		return fmt.Errorf("transpilação em etapas requer um diretório de projeto")
 	}
 
@@ -1110,47 +1153,52 @@ func performStagedTranspilation(config *TranspileConfig) error {
 	}
 
 	// STAGE 1: Clean Transpilation (no obfuscation)
-	fmt.Println("\n🔍 ETAPA 1: TRANSPILAÇÃO LIMPA (sem ofuscação)")
+	gl.Log("info", "🔍 ETAPA 1: TRANSPILAÇÃO LIMPA (sem ofuscação)")
 	cleanConfig := *config
 	cleanConfig.OutputPath = stageOutputs["clean"]
 	cleanConfig.SecurityLevel = 0 // No obfuscation
 
 	if err := performFullProjectTranspilationStaged(&cleanConfig, "clean"); err != nil {
+		gl.Log("error", fmt.Sprintf("etapa 1 (transpilação limpa) falhou: %w", err))
 		return fmt.Errorf("etapa 1 (transpilação limpa) falhou: %w", err)
 	}
 
 	// STAGE 2: Validation (build and test)
-	fmt.Println("\n✅ ETAPA 2: VALIDAÇÃO E TESTE")
+	gl.Log("info", "✅ ETAPA 2: VALIDAÇÃO E TESTE")
 	if err := performStageValidation(stageOutputs["clean"], stageOutputs["validated"], config); err != nil {
+		gl.Log("error", fmt.Sprintf("etapa 2 (validação) falhou: %w", err))
 		return fmt.Errorf("etapa 2 (validação) falhou: %w", err)
 	}
 
 	// STAGE 3: Obfuscation (if requested)
 	if config.SecurityLevel > 0 {
-		fmt.Println("\n🔒 ETAPA 3: OFUSCAÇÃO E OTIMIZAÇÃO FINAL")
+		gl.Log("info", "🔒 ETAPA 3: OFUSCAÇÃO E OTIMIZAÇÃO FINAL")
 		obfuscatedConfig := *config
 		obfuscatedConfig.InputPath = stageOutputs["validated"] // Use validated version as input
 		obfuscatedConfig.OutputPath = stageOutputs["obfuscated"]
 
 		if err := performFinalObfuscation(&obfuscatedConfig); err != nil {
+			gl.Log("error", fmt.Sprintf("etapa 3 (ofuscação) falhou: %w", err))
 			return fmt.Errorf("etapa 3 (ofuscação) falhou: %w", err)
 		}
 	} else {
 		// Copy validated to final output
 		if err := copyDirectory(stageOutputs["validated"], stageOutputs["obfuscated"]); err != nil {
+			gl.Log("error", fmt.Sprintf("erro copiando versão validada: %w", err))
 			return fmt.Errorf("erro copiando versão validada: %w", err)
 		}
 	}
 
 	// Generate comprehensive report
 	if err := generateStagedTranspilationReport(baseOutputPath, stageOutputs, config); err != nil {
+		gl.Log("error", fmt.Sprintf("erro gerando relatório: %w", err))
 		return fmt.Errorf("erro gerando relatório: %w", err)
 	}
 
-	fmt.Println("\n🎉 TRANSPILAÇÃO EM ETAPAS COMPLETA!")
-	fmt.Printf("📁 Etapa 1 (limpa): %s\n", stageOutputs["clean"])
-	fmt.Printf("📁 Etapa 2 (validada): %s\n", stageOutputs["validated"])
-	fmt.Printf("📁 Etapa 3 (final): %s\n", stageOutputs["obfuscated"])
+	gl.Log("info", "🎉 TRANSPILAÇÃO EM ETAPAS COMPLETA!")
+	gl.Log("info", fmt.Sprintf("📁 Etapa 1 (limpa): %s", stageOutputs["clean"]))
+	gl.Log("info", fmt.Sprintf("📁 Etapa 2 (validada): %s", stageOutputs["validated"]))
+	gl.Log("info", fmt.Sprintf("📁 Etapa 3 (final): %s", stageOutputs["obfuscated"]))
 
 	return nil
 }
@@ -1158,7 +1206,7 @@ func performStagedTranspilation(config *TranspileConfig) error {
 // performFullProjectTranspilationStaged executes project transpilation for a specific stage
 func performFullProjectTranspilationStaged(config *TranspileConfig, stage string) error {
 	if config.Verbose {
-		l.Info(fmt.Sprintf("🔧 Executando transpilação para etapa: %s", stage), nil)
+		gl.Log("info", fmt.Sprintf("🔧 Executando transpilação para etapa: %s", stage))
 	}
 
 	// Use existing full project transpilation logic
@@ -1167,22 +1215,24 @@ func performFullProjectTranspilationStaged(config *TranspileConfig, stage string
 
 // performStageValidation validates the clean transpiled code
 func performStageValidation(cleanPath, validatedPath string, config *TranspileConfig) error {
-	fmt.Printf("🔍 Validando código transpilado limpo...\n")
+	gl.Log("info", "🔍 Validando código transpilado limpo...")
 
 	// Copy clean version to validated path
 	if err := copyDirectory(cleanPath, validatedPath); err != nil {
+		gl.Log("error", fmt.Sprintf("erro copiando para validação: %w", err))
 		return fmt.Errorf("erro copiando para validação: %w", err)
 	}
 
 	// Try to build the clean transpiled project
-	fmt.Printf("🔨 Testando build do código transpilado...\n")
+	gl.Log("info", "🔨 Testando build do código transpilado...")
 
 	buildCmd := "cd " + validatedPath + " && go build -o transpiled_test ."
 	if err := runQuickCommand(buildCmd); err != nil {
+		gl.Log("error", fmt.Sprintf("código transpilado não compila: %w", err))
 		return fmt.Errorf("código transpilado não compila: %w", err)
 	}
 
-	fmt.Printf("✅ Código transpilado compila com sucesso!\n")
+	gl.Log("info", "✅ Código transpilado compila com sucesso!")
 
 	// Optional: Run basic functionality tests
 	// TODO: Implement automated tests
@@ -1192,7 +1242,7 @@ func performStageValidation(cleanPath, validatedPath string, config *TranspileCo
 
 // performFinalObfuscation applies obfuscation to validated code
 func performFinalObfuscation(config *TranspileConfig) error {
-	fmt.Printf("🔒 Aplicando ofuscação nível %d...\n", config.SecurityLevel)
+	gl.Log("info", fmt.Sprintf("🔒 Aplicando ofuscação nível %d...", config.SecurityLevel))
 
 	// Use existing full project transpilation with high security
 	return performFullProjectTranspilation(config)
@@ -1263,7 +1313,7 @@ func copyDirectory(src, dst string) error {
 func runQuickCommand(cmd string) error {
 	// For now, simulate success
 	// TODO: Implement actual command execution
-	fmt.Printf("  Executando: %s\n", cmd)
+	gl.Log("info", fmt.Sprintf("  Executando: %s", cmd))
 	return nil
 } // Helper functions for code generation (simplified versions)
 func generateTranspilerHeader(filename string) string {
@@ -1352,10 +1402,10 @@ func generateOptimizedMain(generator *transpiler.AdvancedCodeGenerator) string {
 func main() {
 	// Initialize ultra-fast state system
 	Zq4k_setState(ZmIy_2nR)
-	
+
 	fmt.Println("🚀 GASType Revolutionary Transpiled Code Running!")
 	fmt.Printf("System state: %064b\n", Bhb3_91x)
-	
+
 	// Performance demonstration
 	if Mn2Y_hasState(ZmIy_2nR) {
 		fmt.Println("✅ System initialized successfully")
@@ -1369,10 +1419,10 @@ func generateOptimizedMainWithoutImport(generator *transpiler.AdvancedCodeGenera
 func main() {
 	// Initialize ultra-fast state system
 	Zq4k_setState(ZmIy_2nR)
-	
+
 	fmt.Println("🚀 GASType Revolutionary Transpiled Code Running!")
 	fmt.Printf("System state: %064b\n", Bhb3_91x)
-	
+
 	// Performance demonstration
 	if Mn2Y_hasState(ZmIy_2nR) {
 		fmt.Println("✅ System initialized successfully")
@@ -1383,7 +1433,7 @@ func main() {
 
 // generateFullProjectBuildSystem creates build scripts and configurations for transpiled project
 func generateFullProjectBuildSystem(config *TranspileConfig, stats *FullProjectStats) error {
-	fmt.Printf("🔧 Gerando sistema de build...\n")
+	gl.Log("info", "🔧 Gerando sistema de build...")
 
 	// Create build script
 	buildScript := `#!/bin/bash
@@ -1413,6 +1463,7 @@ fi
 
 	buildPath := filepath.Join(config.OutputPath, "build.sh")
 	if err := os.WriteFile(buildPath, []byte(buildScript), 0755); err != nil {
+		gl.Log("error", fmt.Sprintf("erro criando build.sh: %w", err))
 		return fmt.Errorf("erro criando build.sh: %w", err)
 	}
 
@@ -1433,7 +1484,7 @@ This is a **REVOLUTIONARY TRANSPILED VERSION** of a Go project using the GASType
 ## ⚡ Performance Features
 
 ✅ **Ultra-optimized bitwise operations**
-✅ **Maximum code obfuscation**  
+✅ **Maximum code obfuscation**
 ✅ **Reduced binary size**
 ✅ **Enhanced security through code obfuscation**
 ✅ **Surreal performance optimizations**
@@ -1468,10 +1519,11 @@ This transpiled code provides enhanced security through:
 
 	readmePath := filepath.Join(config.OutputPath, "README_TRANSPILED.md")
 	if err := os.WriteFile(readmePath, []byte(readme), 0644); err != nil {
+		gl.Log("error", fmt.Sprintf("erro criando README_TRANSPILED.md: %w", err))
 		return fmt.Errorf("erro criando README_TRANSPILED.md: %w", err)
 	}
 
-	fmt.Printf("✅ Sistema de build gerado\n")
+	gl.Log("info", "✅ Sistema de build gerado")
 	return nil
 }
 
@@ -1481,21 +1533,23 @@ func generateFullProjectReport(config *TranspileConfig, stats *FullProjectStats)
 	reportPath := filepath.Join(config.OutputPath, "transpilation_report.json")
 	reportData, err := json.MarshalIndent(stats, "", "  ")
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro gerando relatório JSON: %w", err))
 		return fmt.Errorf("erro gerando relatório JSON: %w", err)
 	}
 
 	if err := os.WriteFile(reportPath, reportData, 0644); err != nil {
+		gl.Log("error", fmt.Sprintf("erro salvando relatório: %w", err))
 		return fmt.Errorf("erro salvando relatório: %w", err)
 	}
 
-	fmt.Printf("✅ Relatório de transpilação salvo em: %s\n", reportPath)
+	gl.Log("info", fmt.Sprintf("✅ Relatório de transpilação salvo em: %s", reportPath))
 	return nil
 }
 
 // runEngineTranspilation executes transpilation using the new engine architecture
 func runEngineTranspilation(config *TranspileConfig) error {
 	if config.Verbose {
-		l.Info("🎯 Using new engine architecture for transpilation", nil)
+		gl.Log("info", "🎯 Using new engine architecture for transpilation")
 	}
 
 	// Create transpile context using our REVOLUTIONARY constructor
@@ -1530,7 +1584,7 @@ func runEngineTranspilation(config *TranspileConfig) error {
 			engine.AddPass(pass.NewJumpTablePass())
 		default:
 			if config.Verbose {
-				l.Info(fmt.Sprintf("⚠️ Unknown pass: %s", passName), nil)
+				gl.Log("info", fmt.Sprintf("⚠️ Unknown pass: %s", passName))
 			}
 		}
 	}
@@ -1538,26 +1592,27 @@ func runEngineTranspilation(config *TranspileConfig) error {
 	// Performance estimation
 	if config.EstimatePerf {
 		if config.Verbose {
-			l.Info("📊 Estimating performance impact...", nil)
+			gl.Log("info", "📊 Estimating performance impact...")
 		}
 		context.EstimatePerformance()
-		fmt.Printf("🚀 Performance estimation completed\n")
+		gl.Log("info", "🚀 Performance estimation completed")
 	}
 
 	// Run engine
 	if config.Verbose {
-		l.Info(fmt.Sprintf("🔧 Running transpilation with %d passes", len(engine.Passes)), nil)
+		gl.Log("info", fmt.Sprintf("🔧 Running transpilation with %d passes", len(engine.Passes)))
 	}
 
 	err := engine.Run(config.InputPath)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("engine transpilation failed: %w", err))
 		return fmt.Errorf("engine transpilation failed: %w", err)
 	}
 
 	// 🚀 REVOLUTIONARY OUTPUT MANAGER - PRODUCTION-READY SOLUTION!
 	if !config.DryRun {
 		if config.Verbose {
-			l.Info("📁 Creating complete output with OutputManager...", nil)
+			gl.Log("info", "📁 Creating complete output with OutputManager...")
 		}
 
 		om, err := transpiler.NewOutputManager(
@@ -1567,23 +1622,25 @@ func runEngineTranspilation(config *TranspileConfig) error {
 			context.Fset,
 		)
 		if err != nil {
+			gl.Log("error", fmt.Sprintf("failed to create OutputManager: %w", err))
 			return fmt.Errorf("failed to create OutputManager: %w", err)
 		}
 
 		err = om.Run()
 		if err != nil {
+			gl.Log("error", fmt.Sprintf("OutputManager failed: %w", err))
 			return fmt.Errorf("OutputManager failed: %w", err)
 		}
 
-		l.Info("✅ Complete project output generated - PRODUCTION-READY!", nil)
-		fmt.Printf("🎯 Output completo gerado em: %s\n", config.OutputPath)
-		fmt.Printf("🚀 Projeto pronto para build: cd %s && go build\n", config.OutputPath)
+		gl.Log("info", "✅ Complete project output generated - PRODUCTION-READY!")
+		gl.Log("info", fmt.Sprintf("🎯 Output completo gerado em: %s", config.OutputPath))
+		gl.Log("info", fmt.Sprintf("🚀 Projeto pronto para build: cd %s && go build", config.OutputPath))
 	}
 
 	if config.DryRun {
-		l.Info("✅ Dry-run completed successfully (no files modified)", nil)
+		gl.Log("info", "✅ Dry-run completed successfully (no files modified)")
 	} else {
-		l.Info("✅ Revolutionary transpilation completed successfully", nil)
+		gl.Log("info", "✅ Revolutionary transpilation completed successfully")
 	}
 
 	return nil

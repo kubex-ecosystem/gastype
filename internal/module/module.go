@@ -1,9 +1,10 @@
-package main
+// Package module provides internal types and functions for the Grompt application.
+package module
 
 import (
-	l "github.com/faelmori/logz"
 	c "github.com/rafa-mori/gastype/cmd/cli"
-	"github.com/rafa-mori/gastype/version"
+	"github.com/rafa-mori/gastype/internal/module/version"
+	l "github.com/rafa-mori/logz"
 	"github.com/spf13/cobra"
 
 	"os"
@@ -96,21 +97,4 @@ func (m *GasType) concatenateExamples() string {
 		examples += rtCmd + example + "\n  "
 	}
 	return examples
-}
-
-func RegX() *GasType {
-	var configPath = os.Getenv("GasType_CONFIGFILE")
-	var keyPath = os.Getenv("GasType_KEYFILE")
-	var certPath = os.Getenv("GasType_CERTFILE")
-	var printBannerV = os.Getenv("GasType_PRINTBANNER")
-	if printBannerV == "" {
-		printBannerV = "true"
-	}
-
-	return &GasType{
-		configPath:  configPath,
-		keyPath:     keyPath,
-		certPath:    certPath,
-		printBanner: strings.ToLower(printBannerV) == "true",
-	}
 }
