@@ -45,11 +45,12 @@ type TranspileContext struct {
 
 // StructInfo contains detailed information about each detected struct
 type StructInfo struct {
-	OriginalName    string            `json:"original_name"`   // Original name (e.g., Config)
-	NewName         string            `json:"new_name"`        // Final name (e.g., ConfigFlags)
-	BoolFields      []string          `json:"bool_fields"`     // Original bool fields
-	FlagMapping     map[string]string `json:"flag_mapping"`    // BoolField → FlagName
-	Transformations map[string]string `json:"transformations"` // Track applied transformations
+	OriginalName    string              `json:"original_name"`   // Original name (e.g., Config)
+	NewName         string              `json:"new_name"`        // Final name (e.g., ConfigFlags)
+	BoolFields      []string            `json:"bool_fields"`     // Original bool fields
+	FlagMapping     map[string]string   `json:"flag_mapping"`    // BoolField → FlagName
+	Transformations map[string]string   `json:"transformations"` // Track applied transformations
+	DefaultValues   map[string]ast.Expr `json:"default_values"`  // Default values for bool fields
 }
 
 // NewContext creates a new transpilation context
@@ -67,7 +68,7 @@ func NewContext(inputFile, outputDir string, ofuscate bool, mapFile string) *Tra
 }
 
 // AddStruct registers a struct transformation in the context
-func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string, boolFields []string) {
+func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string, boolFields []string, defaultValues map[string]ast.Expr) {
 	mapping := make(map[string]string)
 	for _, f := range boolFields {
 		// 🚀 REVOLUTIONARY: Include package name to avoid conflicts
@@ -75,12 +76,26 @@ func (ctx *TranspileContext) AddStruct(packageName, originalName, newName string
 	}
 
 	ctx.Structs[originalName] = &StructInfo{
-		OriginalName: originalName,
-		NewName:      newName,
-		BoolFields:   boolFields,
-		FlagMapping:  mapping,
+		OriginalName:  originalName,
+		NewName:       newName,
+		BoolFields:    boolFields,
+		FlagMapping:   mapping,
+		DefaultValues: defaultValues,
 	}
 	ctx.Flags[newName] = boolFields
+}
+
+func (ctx *TranspileContext) GetStructInfo(structName string) *StructInfo {
+	return ctx.Structs[structName]
+}
+
+func (ctx *TranspileContext) GetDefaultValue(structName, fieldName string) ast.Expr {
+	if structInfo, exists := ctx.Structs[structName]; exists {
+		if defaultValue, exists := structInfo.DefaultValues[fieldName]; exists {
+			return defaultValue
+		}
+	}
+	return nil
 }
 
 // AddFlagMapping adds a flag mapping for a specific struct and field (cleaner approach)

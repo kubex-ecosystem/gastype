@@ -83,7 +83,8 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 
 			// Register in context
 			packageName := f.Name.Name
-			t.context.AddStruct(packageName, originalName, newName, boolFields)
+			t.context.AddStruct(packageName, originalName, newName, boolFields, nil)
+			// Track for flag constant generation
 
 			structsToTransform[originalName] = boolFields
 
@@ -231,7 +232,7 @@ func (t *RealBitwiseTranspiler) transformCompositeLit(node *ast.CompositeLit, st
 	for i, elt := range node.Elts {
 		gl.Log("info", fmt.Sprintf("      🔍 Element %d: %T\n", i, elt))
 		if kv, ok := elt.(*ast.KeyValueExpr); ok {
-			gl.Log("info", fmt.Sprintf("      🔍 KeyValue found\n"))
+			gl.Log("info", "      🔍 KeyValue found\n")
 			if key, ok := kv.Key.(*ast.Ident); ok {
 				gl.Log("info", fmt.Sprintf("      🔍 Key: %s\n", key.Name))
 				if val, ok := kv.Value.(*ast.Ident); ok {
@@ -333,7 +334,8 @@ func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, packag
 		if t.context.IsBoolField(structName, fieldName) {
 			flagName := t.context.GetFlagName(packageName, structName, fieldName)
 
-			if val.Name == "true" {
+			switch val.Name {
+			case "true":
 				// Transform to: obj.flags |= FlagField
 				node.Lhs[0] = &ast.SelectorExpr{
 					X:   sel.X,
@@ -343,7 +345,7 @@ func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, packag
 				node.Rhs[0] = &ast.Ident{Name: flagName}
 
 				gl.Log("info", fmt.Sprintf("    ⚡ Transformed assignment: %s = true → flags |= %s\n", fieldName, flagName))
-			} else if val.Name == "false" {
+			case "false":
 				// Transform to: obj.flags &^= FlagField
 				node.Lhs[0] = &ast.SelectorExpr{
 					X:   sel.X,

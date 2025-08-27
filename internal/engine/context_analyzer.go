@@ -144,7 +144,8 @@ func (ca *ContextAnalyzer) analyzeFunction(funcDecl *ast.FuncDecl) *LogicalConte
 
 	// Analisar complexidade da função
 	complexity := ca.calculateFunctionComplexity(funcDecl)
-	transpilable := complexity <= 5 // Funções simples são transpiláveis
+	//transpilable := complexity <= 5 // Funções simples são transpiláveis
+	transpilable := complexity <= 3 // Funções simples são transpiláveis
 
 	context := &LogicalContext{
 		Type:         "function",
@@ -230,9 +231,11 @@ func (ca *ContextAnalyzer) analyzeIfChains(node *ast.File) {
 func (ca *ContextAnalyzer) analyzeIfChain(ifStmt *ast.IfStmt) *LogicalContext {
 	chainLength := ca.calculateIfChainLength(ifStmt)
 
-	if chainLength < 2 {
-		return nil // Muito simples para otimizar
-	}
+	// TODO: Avaliar complexidade das condições
+	// Somente otimizar se tiver 3 ou mais condições
+	// if chainLength < 2 {
+	// 	return nil // Muito simples para otimizar
+	// }
 
 	pos := ca.fset.Position(ifStmt.Pos())
 	endPos := ca.fset.Position(ifStmt.End())
@@ -380,9 +383,11 @@ func (ca *ContextAnalyzer) analyzeSwitchStatements(node *ast.File) {
 func (ca *ContextAnalyzer) analyzeSwitchStatement(switchStmt *ast.SwitchStmt) *LogicalContext {
 	caseCount := len(switchStmt.Body.List)
 
-	if caseCount < 3 {
-		return nil // Muito simples
-	}
+	// TODO: Avaliar complexidade dos cases
+	// Somente otimizar se tiver 3 ou mais casos
+	// if caseCount < 3 {
+	// 	return nil // Muito simples
+	// }
 
 	pos := ca.fset.Position(switchStmt.Pos())
 	endPos := ca.fset.Position(switchStmt.End())
@@ -441,8 +446,16 @@ func (ca *ContextAnalyzer) calculateTranspilability() {
 // calculateDependencies calcula dependências entre contextos
 func (ca *ContextAnalyzer) calculateDependencies(context *LogicalContext) {
 	// TODO: Implementar análise de dependências
-	// Por enquanto, deixar vazio
+	// TESTE DE IMPLEMENTAÇÃO SIMPLES
 	context.Dependencies = []string{}
+	if context.Type == "function" && strings.Contains(strings.ToLower(context.Name), "handler") {
+		// Funções handler geralmente dependem de structs
+		for _, ctx := range ca.contexts {
+			if ctx.Type == "struct" {
+				context.Dependencies = append(context.Dependencies, ctx.Name)
+			}
+		}
+	}
 }
 
 // GetTranspilableContexts retorna apenas contextos transpiláveis

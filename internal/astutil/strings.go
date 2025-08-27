@@ -2,10 +2,32 @@ package astutil
 
 import (
 	"go/ast"
+	"go/constant"
 	"go/token"
 	"go/types"
 	"unicode"
 )
+
+// CheckConstant verifica se um nó AST é uma constante de um tipo específico
+func CheckConstant(node ast.Expr, expectedType string, ctx *TranspileContext) bool {
+	tv, exists := ctx.GetTypes()[node] // Pega informações de tipo do ASTExpr [4]
+	if !exists || !tv.Assignable() {   // Verifica se existe e se é uma constante [go/types]
+		return false
+	}
+
+	// Verifica o tipo específico
+	switch expectedType {
+	case "string":
+		return tv.Type.Underlying().String() == "string" || tv.Value.Kind() == constant.String
+	case "int":
+		return tv.Type.Underlying().String() == "int" || tv.Value.Kind() == constant.Int
+	case "bool":
+		return tv.Type.Underlying().String() == "bool" || tv.Value.Kind() == constant.Bool
+	// Adicione outros tipos conforme necessário
+	default:
+		return false
+	}
+}
 
 func DetectStringLikeConst(vs *ast.ValueSpec, ctx *TranspileContext) bool {
 	if vs.Type != nil {
