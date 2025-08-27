@@ -3,167 +3,122 @@
 
 ---
 
-**A flexible tool for parallel type checking of Go files, with dynamic CLI commands and extensibility for managing codebases efficiently.**
+**A Go AST-based transpilation and code analysis tool designed to optimize performance, reduce binary size, and increase code security through bitwise transformations and obfuscation.**
 
 ---
 
 ## **Table of Contents**
-1. [About the Project](#about-the-project)
-2. [Features](#features)
-3. [Installation](#installation)
-4. [Usage](#usage)
-    - [CLI](#cli)
-    - [Usage Examples](#usage-examples)
-5. [Configuration](#configuration)
-6. [Roadmap](#roadmap)
-7. [Contributing](#contributing)
-8. [Contact](#contact)
 
----
+1.  [About the Project](https://www.google.com/search?q=%231-about-the-project)
+2.  [Features](https://www.google.com/search?q=%232-features)
+3.  [Installation](https://www.google.com/search?q=%233-installation)
+4.  [CLI Usage](https://www.google.com/search?q=%234-cli-usage)
+      - [Type Checking](https://www.google.com/search?q=%23type-checking)
+      - [Transpilation](https://www.google.com/search?q=%23transpilation)
+      - [Staged Transpilation Pipeline](https://www.google.com/search?q=%23staged-transpilation-pipeline)
+5.  [Transpilation and Optimization](https://www.google.com/search?q=%235-transpilation-and-optimization)
+6.  [Contributing](https://www.google.com/search?q=%236-contributing)
+7.  [License](https://www.google.com/search?q=%237-license)
+8.  [Contact](https://www.google.com/search?q=%238-contact)
 
-## **About the Project**
-Gastype is a Go-based utility designed to analyze and validate codebases efficiently, with parallel type-checking capabilities. It provides developers with a streamlined way to ensure quality across Go projects, leveraging dynamic CLI commands and extensible functionalities.
+-----
 
-**Why Gastype?**
-- 🚀 **Parallel Execution**: Maximizes efficiency by processing multiple files at once.
-- ⚙️ **Configurable**: Highly customizable for various workflows.
-- 📂 **Clean and Modular**: Designed to be easy to maintain and extend.
+### **1. About the Project**
 
----
+Gastype (part of the Kubex project) is a powerful and flexible command-line tool for Go software engineers. It excels in static source code analysis (AST) to identify optimization opportunities and transform code automatically. The primary goal is to improve the performance, security, and efficiency of Go binaries, especially for production environments.
 
-## **Features**
-⚡ **Parallel Type Checking**:
-- Execute checks across multiple Go files simultaneously.
-- Provides detailed feedback on errors and their locations.
+The tool offers a suite of transpilation "passes" that convert common, less-efficient code patterns into ultra-optimized bitwise operations.
 
-💻 **Flexible CLI**:
-- User-friendly CLI for managing type checks and file monitoring.
-- Extensible commands for diverse use cases.
+### **2. Features**
 
-🔒 **Resilient and Safe**:
-- Validates file structures before processing.
-- Handles errors gracefully with detailed logging.
+  * **Parallel Type Checking**: Execute type checks on multiple Go files simultaneously to ensure code quality in large projects.
+  * **Optimization Analysis**: Analyzes code and suggests optimizations, such as converting `bool` fields in `structs` to bitwise `flags`.
+  * **Automatic Transpilation**: Automatically transforms source code, applying optimization passes to generate a high-performance binary.
+  * **Code Obfuscation**: Obfuscates variable names, function names, and string literals to enhance security and make reverse engineering more difficult.
+  * **Control Structure Optimization**: Converts long `if/else` chains into "jump tables" for faster execution.
+  * **Staged Pipeline**: Provides a multi-stage workflow (`staged-transpilation`) that includes transpilation, validation, obfuscation, and a final build.
 
----
+### **3. Installation**
 
-## **Installation**
-Requirements:
-- **Go** version 1.19 or later.
+**Requirements**: Go version 1.19 or later.
 
 ```bash
-# Clone this repository
+# Clone the repository
 git clone https://github.com/rafa-mori/gastype.git
-
-# Navigate to the project directory
 cd gastype
 
-# Build the binary using make
-make build
-
-# Install the binary using make
+# Build and install the binary
 make install
-
-# (Optional) Add the binary to the PATH to use it globally
-export PATH=$PATH:$(pwd)
 ```
 
----
+### **4. CLI Usage**
 
-## **Usage**
+The `gastype` CLI is the central point for all operations.
 
-### CLI
-Here are some examples of commands you can execute with **gastype**:
+#### **Type Checking**
+
+  * **`gastype check`**: Initiates type checking on Go files in a specific directory.
+  * **`gastype watch`**: Monitors a directory for file changes and automatically triggers type checking.
+
+**Examples**:
 
 ```bash
-# Perform type-checking in a directory
-gastype check -d ./example -w 4 -o type_check_results.json
+# Runs type checking on the current directory with 4 workers
+gastype check -d ./ -w 4 -o results.json
 
-# Monitor Go files for changes and trigger type-checks
-gastype watch -d ./example -w 4 -o type_check_results.json
+# Watches a project and sends email notifications in case of an error
+gastype watch --dir ./my-project --email user@example.com --notify
 ```
 
----
+#### **Transpilation**
 
-### **Usage Examples**
+  * **`gastype transpile`**: The main command for transforming code. It supports various modes of operation.
 
-#### **1. Check Go Files for Type Errors**
+**Examples**:
 
 ```bash
-gastype check \
---dir ./example \
---workers 4 \
---output type_check_results.json
+# Analyzes a project and displays optimization opportunities
+gastype transpile --input ./src --mode analyze --format text
+
+# Transpiles a single file, converting bool fields to bitwise flags
+gastype transpile --input ./config.go --output ./config_optimized.go --mode transpile --passes bool-to-flags
+
+# Transpiles an entire project with maximum obfuscation
+gastype transpile --input ./my-app --output ./my-app-optimized --mode full-project --security 3
 ```
 
-**Output:**
+#### **Staged Transpilation Pipeline**
 
-```json
-{
-  "package": "example_pkg",
-  "status": "Success ✅",
-  "error": ""
-}
-```
+`gastype` provides a four-stage optimization pipeline to ensure code robustness.
 
-#### **2. Watch a Directory for File Changes**
+1.  **`gastype transpile --no-obfuscate`** (Stage 1: Clean Transpilation)
+      - Creates an optimized version of the code without obfuscation, ideal for debugging and testing.
+2.  **`gastype validate`** (Stage 2: Validation)
+      - Ensures the optimized code behaves identically to the original by running tests and verifying the build.
+3.  **`gastype obfuscate`** (Stage 3: Selective Obfuscation)
+      - Applies obfuscation only to the parts of the code that passed validation.
+4.  **`gastype build`** (Stage 4: Final Build)
+      - Compiles the final binary, applying Go compiler optimizations, stripping debug symbols, and optionally compressing the binary with UPX.
 
-```bash
-gastype watch \
---dir ./example \
---workers 4 \
---output type_check_results.json \
---email gastype@gmail.com \
---token "secure-token"
-```
+### **5. Transpilation and Optimization**
 
-**Output:**
-```plaintext
-Watching directory ./example...
-File changes detected, type checking initiated.
-```
+The heart of `gastype` lies in its transpilation "passes". Each pass is a modular AST transformation that can be enabled independently.
 
----
+**Optimization Examples**:
 
-### **Description of Commands and Flags**
-- **`--dir`**: Specifies the directory containing Go files.
-- **`--workers`**: Number of workers for parallel processing.
-- **`--output`**: Output file for type-check results.
-- **`--email`**: Email address for notifications.
-- **`--token`**: Token for email notifications.
+  * **`bool-to-flags`**: Converts structs with multiple `bool` fields into a single `uint64` field with bitwise flags, reducing memory consumption and improving cache locality.
+  * **`jump-table`**: Transforms chained `if/else` statements that compare the same variable into a map of functions, resulting in faster execution.
+  * **`string-obfuscate`**: Replaces string literals with byte arrays, making static analysis of the binary more difficult.
 
----
+### **6. Contributing**
 
-## **Configuration**
-Gastype supports dynamic configurations via a JSON file, which allows users to set default values for directories, workers, and output files.
+We appreciate your interest in contributing to `gastype`. Feel free to open `issues` or submit `pull requests`. Please refer to the [Contributing Guide](https://www.google.com/search?q=https://github.com/rafa-mori/gastype/blob/main/CONTRIBUTING.md) for more details.
 
-**Example Configuration**:
-```json
-{
-  "dir": "./example",
-  "workers": 4,
-  "outputFile": "type_check_results.json",
-  "email": "gastype@gmail.com",
-  "token": "123456"
-}
-```
+### **7. License**
 
----
+This project is licensed under the MIT License.
 
-## **Roadmap**
-🛠️ **Planned Enhancements**:
-- Extend type-checking capabilities for advanced validation.
-- Add support for custom file watchers and notifications.
-- Improve the documentation and provide more practical examples.
+### **8. Contact**
 
----
-
-## **Contributing**
-Contributions are welcome! Feel free to open issues or submit pull requests. Check out the [Contributing Guide](CONTRIBUTING.md) for more details.
-
----
-
-## **Contact**
-💌 **Developer**:  
-[Rafael Mori](mailto:faelmori@gmail.com)  
-💼 [Follow me on GitHub](https://github.com/faelmori)  
-I’m open to new collaborations and feedback. Don’t hesitate to reach out if you find this project interesting!
+  * **Developer**: Rafael Mori ([faelmori@gmail.com](mailto:faelmori@gmail.com))
+  * **GitHub**: [https://github.com/faelmori](https://github.com/faelmori)
