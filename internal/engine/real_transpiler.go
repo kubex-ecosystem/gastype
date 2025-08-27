@@ -10,6 +10,8 @@ import (
 	"os"
 
 	"github.com/rafa-mori/gastype/internal/astutil"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // RealBitwiseTranspiler performs actual code transformation
@@ -40,11 +42,12 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 		t.context = astutil.NewContext(inputFile, outputFile, false, "")
 	}
 
-	fmt.Printf("🔄 Transpiling %s → %s\n", inputFile, outputFile)
+	gl.Log("info", fmt.Sprintf("🔄 Transpiling %s → %s\n", inputFile, outputFile))
 
 	// Parse the input file
 	f, err := parser.ParseFile(t.fset, inputFile, nil, parser.ParseComments)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("failed to parse file: %w", err))
 		return fmt.Errorf("failed to parse file: %w", err)
 	}
 
@@ -75,8 +78,8 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 			originalName := ts.Name.Name
 			newName := originalName + "Flags"
 
-			fmt.Printf("  📝 Converting struct %s → %s (%d bool fields)\n",
-				originalName, newName, len(boolFields))
+			gl.Log("info", fmt.Sprintf("  📝 Converting struct %s → %s (%d bool fields)\n",
+				originalName, newName, len(boolFields)))
 
 			// Register in context
 			packageName := f.Name.Name
@@ -109,24 +112,26 @@ func (t *RealBitwiseTranspiler) TranspileBoolToFlags(inputFile, outputFile strin
 	// Step 4: Write the transformed code
 	out, err := os.Create(outputFile)
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("failed to create output file: %w", err))
 		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer out.Close()
 
 	if err := printer.Fprint(out, t.fset, f); err != nil {
+		gl.Log("error", fmt.Sprintf("failed to write transformed code: %w", err))
 		return fmt.Errorf("failed to write transformed code: %w", err)
 	}
 
 	// Step 5: Save context map if configured
 	if t.context.MapFile != "" {
 		if err := t.context.SaveMap(); err != nil {
-			fmt.Printf("  ⚠️  Warning: Failed to save context map: %v\n", err)
+			gl.Log("error", fmt.Sprintf("failed to save context map: %w", err))
 		} else {
-			fmt.Printf("  📋 Context map saved: %s\n", t.context.MapFile)
+			gl.Log("info", fmt.Sprintf("📋 Context map saved: %s\n", t.context.MapFile))
 		}
 	}
 
-	fmt.Printf("  ✅ Transpilation complete: %s\n", outputFile)
+	gl.Log("info", fmt.Sprintf("  ✅ Transpilation complete: %s\n", outputFile))
 	return nil
 }
 
@@ -181,7 +186,7 @@ func (t *RealBitwiseTranspiler) addFlagConstants(f *ast.File, structs map[string
 		newDecls = append(newDecls, f.Decls[insertPos:]...)
 		f.Decls = newDecls
 
-		fmt.Printf("    🏷️  Added constants: %v\n", astutil.GetConstNames(fields))
+		gl.Log("info", fmt.Sprintf("    🏷️  Added constants: %v\n", astutil.GetConstNames(fields)))
 	}
 }
 
@@ -220,17 +225,17 @@ func (t *RealBitwiseTranspiler) transformCompositeLit(node *ast.CompositeLit, st
 	// Store original field initializations for later transformation
 	originalInits := make(map[string]bool)
 
-	fmt.Printf("      🔍 Analyzing composite literal with %d elements\n", len(node.Elts))
+	gl.Log("info", fmt.Sprintf("      🔍 Analyzing composite literal with %d elements\n", len(node.Elts)))
 
 	// Extract field initializations
 	for i, elt := range node.Elts {
-		fmt.Printf("      🔍 Element %d: %T\n", i, elt)
+		gl.Log("info", fmt.Sprintf("      🔍 Element %d: %T\n", i, elt))
 		if kv, ok := elt.(*ast.KeyValueExpr); ok {
-			fmt.Printf("      🔍 KeyValue found\n")
+			gl.Log("info", fmt.Sprintf("      🔍 KeyValue found\n"))
 			if key, ok := kv.Key.(*ast.Ident); ok {
-				fmt.Printf("      🔍 Key: %s\n", key.Name)
+				gl.Log("info", fmt.Sprintf("      🔍 Key: %s\n", key.Name))
 				if val, ok := kv.Value.(*ast.Ident); ok {
-					fmt.Printf("      🔍 Value: %s\n", val.Name)
+					gl.Log("info", fmt.Sprintf("      🔍 Value: %s\n", val.Name))
 					originalInits[key.Name] = (val.Name == "true")
 				}
 			}
@@ -243,9 +248,9 @@ func (t *RealBitwiseTranspiler) transformCompositeLit(node *ast.CompositeLit, st
 	// TODO: Generate assignment statements after the variable declaration
 	// This is complex and would require AST rewriting at statement level
 	// For now, we'll note what needs to be initialized
-	fmt.Printf("    🔄 Transformed struct literal for %s\n", structName)
+	gl.Log("info", fmt.Sprintf("    🔄 Transformed struct literal for %s\n", structName))
 	for field, value := range originalInits {
-		fmt.Printf("      📋 Field %s was %t\n", field, value)
+		gl.Log("info", fmt.Sprintf("      📋 Field %s was %t\n", field, value))
 	}
 } // transformFieldAccess transforms field access to bitwise operations
 func (t *RealBitwiseTranspiler) transformFieldAccess(node *ast.SelectorExpr, structs map[string][]string) {
@@ -258,7 +263,7 @@ func (t *RealBitwiseTranspiler) transformFieldAccess(node *ast.SelectorExpr, str
 			for _, field := range fields {
 				if field == fieldName {
 					// This might be a flag access - we'll transform in context
-					fmt.Printf("    🎯 Found field access: %s.%s\n", ident.Name, fieldName)
+					gl.Log("info", fmt.Sprintf("    🎯 Found field access: %s.%s\n", ident.Name, fieldName))
 				}
 			}
 		}
@@ -295,7 +300,7 @@ func (t *RealBitwiseTranspiler) transformIfCondition(node *ast.IfStmt, structs m
 							},
 						}
 
-						fmt.Printf("    ⚡ Transformed if condition: %s.%s → bitwise check\n", ident.Name, fieldName)
+						gl.Log("info", fmt.Sprintf("    ⚡ Transformed if condition: %s.%s → bitwise check\n", ident.Name, fieldName))
 						return
 					}
 				}
@@ -337,7 +342,7 @@ func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, packag
 				node.Tok = token.OR_ASSIGN
 				node.Rhs[0] = &ast.Ident{Name: flagName}
 
-				fmt.Printf("    ⚡ Transformed assignment: %s = true → flags |= %s\n", fieldName, flagName)
+				gl.Log("info", fmt.Sprintf("    ⚡ Transformed assignment: %s = true → flags |= %s\n", fieldName, flagName))
 			} else if val.Name == "false" {
 				// Transform to: obj.flags &^= FlagField
 				node.Lhs[0] = &ast.SelectorExpr{
@@ -347,7 +352,7 @@ func (t *RealBitwiseTranspiler) transformAssignment(node *ast.AssignStmt, packag
 				node.Tok = token.AND_NOT_ASSIGN
 				node.Rhs[0] = &ast.Ident{Name: flagName}
 
-				fmt.Printf("    ⚡ Transformed assignment: %s = false → flags &^= %s\n", fieldName, flagName)
+				gl.Log("info", fmt.Sprintf("    ⚡ Transformed assignment: %s = false → flags &^= %s\n", fieldName, flagName))
 			}
 			return
 		}
@@ -361,12 +366,12 @@ func (t *RealBitwiseTranspiler) TranspileFile(inputPath, outputPath string) erro
 
 // TranspileProject transpiles an entire project
 func (t *RealBitwiseTranspiler) TranspileProject(inputDir, outputDir string) error {
-	fmt.Printf("🚀 Starting real project transpilation: %s → %s\n", inputDir, outputDir)
+	gl.Log("info", fmt.Sprintf("🚀 Starting real project transpilation: %s → %s\n", inputDir, outputDir))
 
 	// For now, just show what we would do
-	fmt.Printf("  📁 Would recursively transpile all .go files\n")
-	fmt.Printf("  ⚡ Would apply bool→bitflags transformation\n")
-	fmt.Printf("  🔄 Would preserve non-transpilable code\n")
+	gl.Log("info", "  📁 Would recursively transpile all .go files\n")
+	gl.Log("info", "  ⚡ Would apply bool→bitflags transformation\n")
+	gl.Log("info", "  🔄 Would preserve non-transpilable code\n")
 
 	return nil
 }

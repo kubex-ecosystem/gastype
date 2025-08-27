@@ -8,6 +8,8 @@ import (
 
 	"github.com/rafa-mori/gastype/internal/astutil"
 	stdastutil "golang.org/x/tools/go/ast/astutil"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // BoolToFlagsPass converte campos bool em flags bitwise
@@ -84,7 +86,7 @@ func (p *BoolToFlagsPass) Apply(file *ast.File, fset *token.FileSet, ctx *astuti
 			})
 
 			ctx.AddDef(ast.NewIdent(constName), nil)
-			fmt.Printf("🏷️  Added constant: %s (%s)\n", constName, flagType)
+			gl.Log("info", fmt.Sprintf("Added constant: %s (%s)", constName, flagType))
 		}
 		file.Decls = append(constDecls, file.Decls...) // insere no topo
 

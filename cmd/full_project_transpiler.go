@@ -12,6 +12,8 @@ import (
 	"time"
 
 	transpiler "github.com/rafa-mori/gastype/internal/engine"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // ProjectTranspiler handles complete project transpilation
@@ -61,55 +63,62 @@ func NewProjectTranspiler(sourceProject, targetProject string) *ProjectTranspile
 
 // TranspileCompleteProject transpiles an entire Go project
 func (pt *ProjectTranspiler) TranspileCompleteProject() error {
-	fmt.Println("🚀 INICIANDO TRANSPILAÇÃO COMPLETA DE PROJETO - MODO REVOLUCIONÁRIO ATIVADO!")
-	fmt.Printf("📂 Projeto origem: %s\n", pt.sourceProject)
-	fmt.Printf("📂 Projeto destino: %s\n", pt.targetProject)
+	gl.Log("info", "🚀 INICIANDO TRANSPILAÇÃO COMPLETA DE PROJETO - MODO REVOLUCIONÁRIO ATIVADO!")
+	gl.Log("info", fmt.Sprintf("📂 Projeto origem: %s", pt.sourceProject))
+	gl.Log("info", fmt.Sprintf("📂 Projeto destino: %s", pt.targetProject))
 
 	// Step 1: Validate source project
 	if err := pt.validateSourceProject(); err != nil {
+		gl.Log("error", fmt.Sprintf("validação do projeto origem falhou: %w", err))
 		return fmt.Errorf("validação do projeto origem falhou: %w", err)
 	}
 
 	// Step 2: Create target project structure
 	if err := pt.createTargetStructure(); err != nil {
+		gl.Log("error", fmt.Sprintf("criação da estrutura destino falhou: %w", err))
 		return fmt.Errorf("criação da estrutura destino falhou: %w", err)
 	}
 
 	// Step 3: Copy non-Go files (preserving structure)
 	if err := pt.copyNonGoFiles(); err != nil {
+		gl.Log("error", fmt.Sprintf("cópia de arquivos não-Go falhou: %w", err))
 		return fmt.Errorf("cópia de arquivos não-Go falhou: %w", err)
 	}
 
 	// Step 4: Analyze entire project for contexts
 	contexts, err := pt.analyzeProjectContexts()
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("análise de contextos falhou: %w", err))
 		return fmt.Errorf("análise de contextos falhou: %w", err)
 	}
 
 	// Step 5: Transpile all Go files
 	if err := pt.transpileAllGoFiles(contexts); err != nil {
+		gl.Log("error", fmt.Sprintf("transpilação de arquivos Go falhou: %w", err))
 		return fmt.Errorf("transpilação de arquivos Go falhou: %w", err)
 	}
 
 	// Step 6: Generate build scripts and configurations
 	if err := pt.generateBuildSystem(); err != nil {
+		gl.Log("error", fmt.Sprintf("geração do sistema de build falhou: %w", err))
 		return fmt.Errorf("geração do sistema de build falhou: %w", err)
 	}
 
 	// Step 7: Generate transpilation report
 	if err := pt.generateReport(); err != nil {
+		gl.Log("error", fmt.Sprintf("geração de relatório falhou: %w", err))
 		return fmt.Errorf("geração de relatório falhou: %w", err)
 	}
 
 	pt.stats.EndTime = time.Now()
 	pt.stats.Duration = pt.stats.EndTime.Sub(pt.stats.StartTime)
 
-	fmt.Println("\n🔥 TRANSPILAÇÃO COMPLETA FINALIZADA!")
-	fmt.Printf("⏱️  Tempo total: %v\n", pt.stats.Duration)
-	fmt.Printf("📁 Arquivos Go transpilados: %d/%d\n", pt.stats.TranspiledFiles, pt.stats.GoFiles)
-	fmt.Printf("🧠 Contextos encontrados: %d\n", pt.stats.ContextsFound)
-	fmt.Printf("⚡ Contextos transpilados: %d\n", pt.stats.ContextsTranspiled)
-	fmt.Printf("💾 Projeto transpilado salvo em: %s\n", pt.targetProject)
+	gl.Log("info", "🔥 TRANSPILAÇÃO COMPLETA FINALIZADA!")
+	gl.Log("info", fmt.Sprintf("⏱️  Tempo total: %v", pt.stats.Duration))
+	gl.Log("info", fmt.Sprintf("📁 Arquivos Go transpilados: %d/%d", pt.stats.TranspiledFiles, pt.stats.GoFiles))
+	gl.Log("info", fmt.Sprintf("🧠 Contextos encontrados: %d", pt.stats.ContextsFound))
+	gl.Log("info", fmt.Sprintf("⚡ Contextos transpilados: %d", pt.stats.ContextsTranspiled))
+	gl.Log("info", fmt.Sprintf("💾 Projeto transpilado salvo em: %s", pt.targetProject))
 
 	return nil
 }
@@ -119,6 +128,7 @@ func (pt *ProjectTranspiler) validateSourceProject() error {
 	// Check if go.mod exists
 	goModPath := filepath.Join(pt.sourceProject, "go.mod")
 	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
+		gl.Log("error", fmt.Sprintf("go.mod não encontrado - não é um projeto Go válido"))
 		return fmt.Errorf("go.mod não encontrado - não é um projeto Go válido")
 	}
 
@@ -134,15 +144,17 @@ func (pt *ProjectTranspiler) validateSourceProject() error {
 		return nil
 	})
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro contando arquivos Go: %w", err))
 		return fmt.Errorf("erro contando arquivos Go: %w", err)
 	}
 
 	if goFileCount == 0 {
+		gl.Log("error", "nenhum arquivo Go encontrado no projeto")
 		return fmt.Errorf("nenhum arquivo Go encontrado no projeto")
 	}
 
 	pt.stats.GoFiles = goFileCount
-	fmt.Printf("✅ Projeto válido encontrado com %d arquivos Go\n", goFileCount)
+	gl.Log("info", fmt.Sprintf("✅ Projeto válido encontrado com %d arquivos Go", goFileCount))
 	return nil
 }
 
@@ -150,14 +162,16 @@ func (pt *ProjectTranspiler) validateSourceProject() error {
 func (pt *ProjectTranspiler) createTargetStructure() error {
 	// Remove existing target if exists
 	if _, err := os.Stat(pt.targetProject); !os.IsNotExist(err) {
-		fmt.Printf("🗑️  Removendo projeto transpilado existente...\n")
+		gl.Log("info", "🗑️  Removendo projeto transpilado existente...")
 		if err := os.RemoveAll(pt.targetProject); err != nil {
+			gl.Log("error", fmt.Sprintf("erro removendo projeto existente: %w", err))
 			return fmt.Errorf("erro removendo projeto existente: %w", err)
 		}
 	}
 
 	// Create target directory
 	if err := os.MkdirAll(pt.targetProject, 0755); err != nil {
+		gl.Log("error", fmt.Sprintf("erro criando diretório destino: %w", err))
 		return fmt.Errorf("erro criando diretório destino: %w", err)
 	}
 
@@ -184,10 +198,11 @@ func (pt *ProjectTranspiler) createTargetStructure() error {
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro replicando estrutura: %w", err))
 		return fmt.Errorf("erro replicando estrutura: %w", err)
 	}
 
-	fmt.Printf("✅ Estrutura de diretórios replicada\n")
+	gl.Log("info", "✅ Estrutura de diretórios replicada")
 	return nil
 }
 
@@ -220,10 +235,11 @@ func (pt *ProjectTranspiler) copyNonGoFiles() error {
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro copiando arquivos não-Go: %w", err))
 		return fmt.Errorf("erro copiando arquivos não-Go: %w", err)
 	}
 
-	fmt.Printf("✅ Arquivos não-Go copiados\n")
+	gl.Log("info", "✅ Arquivos não-Go copiados")
 	return nil
 }
 
@@ -247,7 +263,7 @@ func (pt *ProjectTranspiler) copyFile(src, dst string) error {
 
 // analyzeProjectContexts analyzes the entire project for transpilable contexts
 func (pt *ProjectTranspiler) analyzeProjectContexts() (map[string][]transpiler.LogicalContext, error) {
-	fmt.Printf("🧠 Analisando contextos lógicos do projeto...\n")
+	gl.Log("info", "🧠 Analisando contextos lógicos do projeto...")
 
 	allContexts := make(map[string][]transpiler.LogicalContext)
 
@@ -277,18 +293,19 @@ func (pt *ProjectTranspiler) analyzeProjectContexts() (map[string][]transpiler.L
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro analisando contextos: %w", err))
 		return nil, fmt.Errorf("erro analisando contextos: %w", err)
 	}
 
-	fmt.Printf("✅ Análise completa: %d contextos encontrados em %d arquivos\n",
-		pt.stats.ContextsFound, len(allContexts))
+	gl.Log("info", fmt.Sprintf("✅ Análise completa: %d contextos encontrados em %d arquivos",
+		pt.stats.ContextsFound, len(allContexts)))
 
 	return allContexts, nil
 }
 
 // transpileAllGoFiles transpiles all Go files using found contexts
 func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpiler.LogicalContext) error {
-	fmt.Printf("⚡ Transpilando arquivos Go...\n")
+	gl.Log("info", "⚡ Transpilando arquivos Go...")
 
 	err := filepath.Walk(pt.sourceProject, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -312,6 +329,7 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 		if len(fileContexts) == 0 {
 			// No contexts found, copy original file
 			if err := pt.copyFile(path, targetPath); err != nil {
+				gl.Log("error", fmt.Sprintf("erro copiando %s: %w", path, err))
 				return fmt.Errorf("erro copiando %s: %w", path, err)
 			}
 		} else {
@@ -321,11 +339,13 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 				pt.stats.Errors = append(pt.stats.Errors, fmt.Sprintf("Erro transpilando %s: %v", path, err))
 				// Fallback to original file
 				if err := pt.copyFile(path, targetPath); err != nil {
+					gl.Log("error", fmt.Sprintf("erro copiando fallback %s: %w", path, err))
 					return fmt.Errorf("erro copiando fallback %s: %w", path, err)
 				}
 			} else {
 				// Save transpiled code
 				if err := os.WriteFile(targetPath, []byte(transpiledCode), 0644); err != nil {
+					gl.Log("error", fmt.Sprintf("erro salvando transpilado %s: %w", targetPath, err))
 					return fmt.Errorf("erro salvando transpilado %s: %w", targetPath, err)
 				}
 				pt.stats.TranspiledFiles++
@@ -338,16 +358,17 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 	})
 
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro transpilando arquivos: %w", err))
 		return fmt.Errorf("erro transpilando arquivos: %w", err)
 	}
 
-	fmt.Printf("✅ Transpilação completa: %d arquivos processados\n", pt.stats.TotalFiles)
+	gl.Log("info", fmt.Sprintf("✅ Transpilação completa: %d arquivos processados", pt.stats.TotalFiles))
 	return nil
 }
 
 // generateBuildSystem creates build scripts and configurations for transpiled project
 func (pt *ProjectTranspiler) generateBuildSystem() error {
-	fmt.Printf("🔧 Gerando sistema de build...\n")
+	gl.Log("info", "🔧 Gerando sistema de build...")
 
 	// Create build script
 	buildScript := `#!/bin/bash
@@ -377,6 +398,7 @@ fi
 
 	buildPath := filepath.Join(pt.targetProject, "build.sh")
 	if err := os.WriteFile(buildPath, []byte(buildScript), 0755); err != nil {
+		gl.Log("error", fmt.Sprintf("erro criando build.sh: %w", err))
 		return fmt.Errorf("erro criando build.sh: %w", err)
 	}
 
@@ -397,7 +419,7 @@ This is a **REVOLUTIONARY TRANSPILED VERSION** of a Go project using the GASType
 ## ⚡ Performance Features
 
 ✅ **Ultra-optimized bitwise operations**
-✅ **Maximum code obfuscation**  
+✅ **Maximum code obfuscation**
 ✅ **Reduced binary size**
 ✅ **Enhanced security through code obfuscation**
 ✅ **Surreal performance optimizations**
@@ -432,10 +454,11 @@ This transpiled code provides enhanced security through:
 
 	readmePath := filepath.Join(pt.targetProject, "README_TRANSPILED.md")
 	if err := os.WriteFile(readmePath, []byte(readme), 0644); err != nil {
+		gl.Log("error", fmt.Sprintf("erro criando README_TRANSPILED.md: %w", err))
 		return fmt.Errorf("erro criando README_TRANSPILED.md: %w", err)
 	}
 
-	fmt.Printf("✅ Sistema de build gerado\n")
+	gl.Log("info", "✅ Sistema de build gerado")
 	return nil
 }
 
@@ -445,21 +468,22 @@ func (pt *ProjectTranspiler) generateReport() error {
 	reportPath := filepath.Join(pt.targetProject, "transpilation_report.json")
 	reportData, err := json.MarshalIndent(pt.stats, "", "  ")
 	if err != nil {
+		gl.Log("error", fmt.Sprintf("erro gerando relatório JSON: %w", err))
 		return fmt.Errorf("erro gerando relatório JSON: %w", err)
 	}
 
 	if err := os.WriteFile(reportPath, reportData, 0644); err != nil {
+		gl.Log("error", fmt.Sprintf("erro salvando relatório: %w", err))
 		return fmt.Errorf("erro salvando relatório: %w", err)
 	}
 
-	fmt.Printf("✅ Relatório de transpilação salvo em: %s\n", reportPath)
+	gl.Log("info", fmt.Sprintf("✅ Relatório de transpilação salvo em: %s", reportPath))
 	return nil
 }
 func TranspileProject() {
 	if len(os.Args) != 3 {
-		fmt.Println("Uso: go run full_project_transpiler.go <projeto_origem> <projeto_destino>")
-		fmt.Println("Exemplo: go run full_project_transpiler.go /path/to/source /path/to/target")
-		os.Exit(1)
+		gl.Log("error", "Uso: go run full_project_transpiler.go <projeto_origem> <projeto_destino>")
+		gl.Log("fatal", "Exemplo: go run full_project_transpiler.go /path/to/source /path/to/target")
 	}
 
 	sourceProject := os.Args[1]
@@ -468,10 +492,9 @@ func TranspileProject() {
 	transpiler := NewProjectTranspiler(sourceProject, targetProject)
 
 	if err := transpiler.TranspileCompleteProject(); err != nil {
-		fmt.Printf("❌ ERRO FATAL: %v\n", err)
-		os.Exit(1)
+		gl.Log("fatal", err)
 	}
 
-	fmt.Println("\n🎉 TRANSPILAÇÃO REVOLUCIONÁRIA COMPLETA! 🎉")
-	fmt.Println("🚀 Seu projeto foi completamente transpilado para máxima performance!")
+	gl.Log("info", "🎉 TRANSPILAÇÃO REVOLUCIONÁRIA COMPLETA! 🎉")
+	gl.Log("info", "🚀 Seu projeto foi completamente transpilado para máxima performance!")
 }

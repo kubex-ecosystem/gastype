@@ -4,11 +4,12 @@ package transpiler
 import (
 	"fmt"
 	"go/ast"
+	"go/importer"
 	"go/types"
 
-	"golang.org/x/tools/go/importer"
-
 	"github.com/rafa-mori/gastype/internal/astutil"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 // typeCheckFile popula ctx.Info (types/selections/scopes) para o arquivo atual.
@@ -28,7 +29,7 @@ func (e *Engine) typeCheckFile(astFile *ast.File) error {
 	_, err := conf.Check("", e.Ctx.Fset, []*ast.File{astFile}, info)
 	if err != nil {
 		// não quebra pipeline; só loga o warning
-		fmt.Printf("  ℹ️ type-check warnings: %v\n", err)
+		gl.Log("warn", fmt.Sprintf("type-check warnings: %v", err))
 	}
 	return nil
 }

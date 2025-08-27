@@ -9,5 +9,3 @@ set -o functrace # If a function fails, the shell will exit immediately
 shopt -s inherit_errexit # Inherit the errexit option in functions
 
 IFS=$'\n\t'
-
-# echo "✅ Executing pre-build example script..."

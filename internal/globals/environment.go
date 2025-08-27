@@ -6,8 +6,9 @@ import (
 	"runtime"
 	"syscall"
 
-	l "github.com/faelmori/logz"
 	t "github.com/rafa-mori/gastype/interfaces"
+
+	gl "github.com/rafa-mori/gastype/internal/module/logger"
 )
 
 type Environment struct {
@@ -32,7 +33,7 @@ func (e *Environment) MemTotal() int {
 		var mem syscall.Sysinfo_t
 		err := syscall.Sysinfo(&mem)
 		if err != nil {
-			l.Error(fmt.Sprintf("Error getting memory info: %s", err.Error()), nil)
+			gl.Log("error", fmt.Sprintf("Error getting memory info: %s", err.Error()))
 			return 0
 		}
 		totalRAM := mem.Totalram * uint64(mem.Unit) / (1024 * 1024) // Convertendo para MB
@@ -45,7 +46,7 @@ func (e *Environment) Hostname() string {
 	if e.hostname == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
-			l.Error(fmt.Sprintf("Error getting hostname: %s", err.Error()), nil)
+			gl.Log("error", fmt.Sprintf("Error getting hostname: %s", err.Error()))
 			return ""
 		}
 		e.hostname = hostname
