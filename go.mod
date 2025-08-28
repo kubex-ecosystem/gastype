@@ -8,7 +8,11 @@ require (
 	github.com/spf13/cobra v1.9.1
 )
 
-require github.com/gorilla/websocket v1.5.3 // indirect
+require (
+	github.com/gorilla/websocket v1.5.3 // indirect
+	golang.org/x/mod v0.27.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
+)
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect

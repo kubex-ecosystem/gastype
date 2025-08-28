@@ -1,6 +1,11 @@
+// Package test_project provides a sample configuration for testing.
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	l "github.com/rafa-mori/logz"
+)
 
 type Config struct {
 	Debug               bool
@@ -171,4 +176,6 @@ func main() {
 
 	fmt.Println("-------------------------------")
 	fmt.Println("End of tests.")
+
+	l.Info("All tests completed successfully.")
 }
