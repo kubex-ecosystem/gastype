@@ -23,7 +23,7 @@ func CheckConstant(node ast.Expr, expectedType string, ctx *TranspileContext) bo
 		return tv.Type.Underlying().String() == "int" || tv.Value.Kind() == constant.Int
 	case "bool":
 		return tv.Type.Underlying().String() == "bool" || tv.Value.Kind() == constant.Bool
-	// Adicione outros tipos conforme necessário
+	// Adicionar outros tipos conforme necessário
 	default:
 		return false
 	}
