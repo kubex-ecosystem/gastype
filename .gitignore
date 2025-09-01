@@ -55,3 +55,6 @@ tests/**/*
 /go.sum
 gastype
 
+/docs/prompt/*.md
+/docs/prompt/*.sh
+/docs/prompt/*.txt

@@ -15,7 +15,6 @@ import (
 	"github.com/rafa-mori/gastype/internal/pipeline"
 
 	gl "github.com/rafa-mori/gastype/internal/module/logger"
-	l "github.com/rafa-mori/logz"
 )
 
 type InputKind string
@@ -45,26 +44,19 @@ func TranspileCmd() *cobra.Command {
 	var preserveDocs, backupOriginal, noObfuscate, dryRun, estimatePerf, verbose bool
 	var securityLevel int
 
-	cmd := &cobra.Command{
-		Use:   "transpile",
-		Short: "Transpile Go code to bitwise-optimized equivalent",
-		Long: `Transpile traditional Go code to bitwise-optimized equivalent using AST analysis.
+	short := "Transpile Go code to bitwise-optimized equivalent"
+	long := `Transpile traditional Go code to bitwise-optimized equivalent using AST analysis.
 
 		This command analyzes Go source code and identifies optimization opportunities:
 		- Boolean struct fields → Bitwise flags
 		- If/else chains → Jump tables
 		- String literals → Byte arrays (security)
-		- Configuration structs → Flag systems
+		- Configuration structs → Flag systems`
 
-		The transpiler can operate in different modes:
-		- analyze: Only analyze and report optimization opportunities
-		- transpile: Generate transpiled code files
-		- both: Analyze and generate transpiled code
-		- full-project: Complete project transpilation with build system
-		- staged-transpile: Multi-stage transpilation (clean → validate → obfuscate)
-
-		Examples:
-		  gastype transpile -i ./src -o ./src_optimized`,
+	cmd := &cobra.Command{
+		Use:   "transpile",
+		Short: short,
+		Long:  long,
 
 		Run: func(cmd *cobra.Command, args []string) {
 			// Initialize logger
@@ -81,28 +73,13 @@ func TranspileCmd() *cobra.Command {
 			reg := &pipeline.Registry{}
 			reg.Register(stringpass.New())
 
-			for _, pkg := range pkgs {
-				for i, f := range pkg.Syntax {
-					// Get file set and type information
-					fset := pkg.Fset
-
-					// Get type information
-					info := pkg.TypesInfo
-
-					// Create pipeline context
-					ctx := pipeline.NewContext(fset, info, pkg.Types, f, pipeline.Options{
-						ShortStringMinLen: 4,
-						DryRun:            false,
-						MaxWorkers:        0,
-					}, gl.GetLogger[l.Logger](nil))
-
-					// Run the pipeline
-					if err := reg.Run(f, ctx); err != nil {
-						pos := fset.Position(f.Pos())
-						fmt.Fprintf(os.Stderr, "file=%s index=%d error=%v\n", pos.Filename, i, err)
-					}
-				}
+			plInputs, err := PlanInputs(patterns)
+			if err != nil {
+				gl.Log("Fatal", err)
 			}
+
+			LoadWithPlans(plInputs, false, cfg.Mode, gl.Log)
+
 		},
 	}
 
@@ -195,12 +172,14 @@ func LoadWithPlans(plans []LoadPlan, tests bool, mode packages.LoadMode, logf fu
 			}
 			if i == len(pl.Pattern)-1 {
 				// última tentativa: devolve o primeiro erro legível
-				return nil, fmt.Errorf(buildNiceLoadError(err, pkgs, cfg, pat, pl))
+				gl.Log("warn", fmt.Sprintf("failed to load kind=%s dir=%q pattern=%q (%s)", pl.Kind, cfg.Dir, pat, pl.Note))
+				return nil, fmt.Errorf("%s", buildNiceLoadError(err, pkgs, cfg, pat, pl))
 			}
 		}
 
 		if !ok {
-
+			gl.Log("warn", fmt.Sprintf("não foi possível carregar o input %q (kind=%s dir=%q patterns=%v)", pl.Pattern, pl.Kind, cfg.Dir, pl.Pattern))
+			return nil, fmt.Errorf("não foi possível carregar o input %q (kind=%s dir=%q patterns=%v)", pl.Pattern, pl.Kind, cfg.Dir, pl.Pattern)
 		}
 	}
 	return acc, nil

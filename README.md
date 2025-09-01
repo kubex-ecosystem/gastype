@@ -1,4 +1,4 @@
-# ![Gastype Banner](./assets/top_banner.png)
+# ![Gastype Banner](./docs/assets/top_banner_ct_md.png)
 
 ---
 
