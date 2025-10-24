@@ -1,7 +1,7 @@
 package actions
 
 import (
-	i "github.com/rafa-mori/gastype/interfaces"
+	i "github.com/kubex-ecosystem/gastype/interfaces"
 )
 
 // Action Common struct for all actions

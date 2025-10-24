@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // OutputManager controla a cópia e substituição dos arquivos no output

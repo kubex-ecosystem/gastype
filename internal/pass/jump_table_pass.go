@@ -9,7 +9,7 @@ import (
 
 	stdastutil "golang.org/x/tools/go/ast/astutil"
 
-	"github.com/rafa-mori/gastype/internal/astutil"
+	"github.com/kubex-ecosystem/gastype/internal/astutil"
 )
 
 // JumpTablePass: if/else encadeado por igualdade da MESMA variável string → jump table.

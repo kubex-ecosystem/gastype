@@ -6,7 +6,7 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/rafa-mori/gastype/internal/astutil"
+	"github.com/kubex-ecosystem/gastype/internal/astutil"
 )
 
 // IfToBitwisePass cfg.Debug  ->  (cfg.flags & FlagConfig_Debug) != 0

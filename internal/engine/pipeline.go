@@ -4,7 +4,7 @@ package transpiler
 import (
 	"strings"
 
-	"github.com/rafa-mori/gastype/internal/pass"
+	"github.com/kubex-ecosystem/gastype/internal/pass"
 )
 
 // DefaultPipeline creates a pipeline with the specified passes

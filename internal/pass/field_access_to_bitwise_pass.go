@@ -7,7 +7,7 @@ import (
 	"go/token"
 	"strings"
 
-	"github.com/rafa-mori/gastype/internal/astutil"
+	"github.com/kubex-ecosystem/gastype/internal/astutil"
 )
 
 // FieldAccessToBitwisePass troca usos “cfg.Debug” em args/returns/exprs por bitwise check

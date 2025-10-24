@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // ParseFiles processes all Go files in a directory and returns parsed packages

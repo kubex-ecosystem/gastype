@@ -5,7 +5,7 @@ import (
 	"go/ast"
 	"go/token"
 
-	"github.com/rafa-mori/gastype/internal/astutil"
+	"github.com/kubex-ecosystem/gastype/internal/astutil"
 )
 
 // AssignToBitwisePass converts bool field assignments to bitwise flag operations.

@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // StructBitwiseSuggestion representa sugestão de conversão de campos bool para flags
