@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	manifest "github.com/rafa-mori/gastype/internal/module/info"
-	"github.com/rafa-mori/gastype/internal/module/logger"
+	manifest "github.com/kubex-ecosystem/gastype/internal/module/info"
+	"github.com/kubex-ecosystem/gastype/internal/module/logger"
 	"github.com/spf13/cobra"
 )
 

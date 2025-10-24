@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rafa-mori/gastype/internal/astutil"
-	transpiler "github.com/rafa-mori/gastype/internal/engine"
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
-	"github.com/rafa-mori/gastype/internal/pass"
+	"github.com/kubex-ecosystem/gastype/internal/astutil"
+	transpiler "github.com/kubex-ecosystem/gastype/internal/engine"
+	"github.com/kubex-ecosystem/gastype/internal/pass"
+	gl "github.com/kubex-ecosystem/logz/logger"
 
 	"github.com/spf13/cobra"
 )

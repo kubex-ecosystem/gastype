@@ -3,8 +3,8 @@ package cli
 import (
 	"fmt"
 
-	m "github.com/rafa-mori/gastype/internal/manager"
-	l "github.com/rafa-mori/logz"
+	m "github.com/kubex-ecosystem/gastype/internal/manager"
+	l "github.com/kubex-ecosystem/logz"
 	"github.com/spf13/cobra"
 )
 

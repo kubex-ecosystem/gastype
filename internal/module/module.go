@@ -2,9 +2,9 @@
 package module
 
 import (
-	c "github.com/rafa-mori/gastype/cmd/cli"
-	"github.com/rafa-mori/gastype/internal/module/version"
-	l "github.com/rafa-mori/logz"
+	c "github.com/kubex-ecosystem/gastype/cmd/cli"
+	"github.com/kubex-ecosystem/gastype/internal/module/version"
+	l "github.com/kubex-ecosystem/logz"
 	"github.com/spf13/cobra"
 
 	"os"

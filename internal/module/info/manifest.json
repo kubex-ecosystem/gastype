@@ -9,9 +9,10 @@
     "gast",
     "gtp"
   ],
-  "repository": "https://github.com/rafa-mori/gastype",
-  "homepage": "https://github.com/rafa-mori/gastype",
+  "repository": "https://github.com/kubex-ecosystem/gastype",
+  "homepage": "https://github.com/kubex-ecosystem/gastype",
   "description": "Kubex - GASType is a transpiler, obfuscator and optimizer Golang source code tool that enhances code security and performance.",
+  "go_version": "1.25.3",
   "main": "cmd/main.go",
   "bin": "gastype",
   "author": "Rafael Mori <faelmori@gmail.com>",

@@ -8,7 +8,7 @@ import (
 	"go/token"
 	"strings"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // BitwiseCodeGenerator gera código Go otimizado com operações bitwise

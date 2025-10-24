@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	t "github.com/rafa-mori/gastype/interfaces"
-	g "github.com/rafa-mori/gastype/internal/globals"
-	l "github.com/rafa-mori/logz"
+	t "github.com/kubex-ecosystem/gastype/interfaces"
+	g "github.com/kubex-ecosystem/gastype/internal/globals"
+	l "github.com/kubex-ecosystem/logz"
 )
 
 // WorkerPool manages workers and their assigned jobs

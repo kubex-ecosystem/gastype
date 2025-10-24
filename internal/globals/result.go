@@ -4,8 +4,8 @@ package globals
 import (
 	"fmt"
 
-	t "github.com/rafa-mori/gastype/interfaces"
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	t "github.com/kubex-ecosystem/gastype/interfaces"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 type Result struct {

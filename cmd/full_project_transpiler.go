@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	transpiler "github.com/rafa-mori/gastype/internal/engine"
+	transpiler "github.com/kubex-ecosystem/gastype/internal/engine"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // ProjectTranspiler handles complete project transpilation

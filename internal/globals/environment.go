@@ -6,9 +6,9 @@ import (
 	"runtime"
 	"syscall"
 
-	t "github.com/rafa-mori/gastype/interfaces"
+	t "github.com/kubex-ecosystem/gastype/interfaces"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 type Environment struct {

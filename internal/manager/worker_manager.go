@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	t "github.com/rafa-mori/gastype/interfaces"
+	t "github.com/kubex-ecosystem/gastype/interfaces"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // WorkerManager manages the pool of workers for parallel task execution

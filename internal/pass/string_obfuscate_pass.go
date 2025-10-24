@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rafa-mori/gastype/internal/astutil"
+	"github.com/kubex-ecosystem/gastype/internal/astutil"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 type objectSpecMap struct {

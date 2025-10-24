@@ -4,7 +4,7 @@ site_description: "A powerful CLI tool for managing and transforming prompts wit
 site_author: "Rafael Mori"
 
 repo_name: "rafa-mori/grompt"
-repo_url: https://github.com/rafa-mori/grompt
+repo_url: https://github.com/kubex-ecosystem/grompt
 
 theme:
   name: material
@@ -95,7 +95,7 @@ nav:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/rafa-mori/grompt
+      link: https://github.com/kubex-ecosystem/grompt
       name: Grompt on GitHub
     - icon: fontawesome/brands/linkedin
       link: https://www.linkedin.com/in/rafa-mori/

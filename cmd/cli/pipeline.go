@@ -16,7 +16,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // PipelineConfig holds configuration for pipeline operations

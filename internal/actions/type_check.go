@@ -11,8 +11,8 @@ import (
 	"go/parser"
 	"go/token"
 
-	types "github.com/rafa-mori/gastype/interfaces"
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	types "github.com/kubex-ecosystem/gastype/interfaces"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // TypeCheckAction defines a type-checking action

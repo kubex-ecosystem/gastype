@@ -43,7 +43,7 @@ The tool offers a suite of transpilation "passes" that convert common, less-effi
 
 ```bash
 # Clone the repository
-git clone https://github.com/rafa-mori/gastype.git
+git clone https://github.com/kubex-ecosystem/gastype.git
 cd gastype
 
 # Build and install the binary
@@ -111,7 +111,7 @@ The heart of `gastype` lies in its transpilation "passes". Each pass is a modula
 
 ### **6. Contributing**
 
-We appreciate your interest in contributing to `gastype`. Feel free to open `issues` or submit `pull requests`. Please refer to the [Contributing Guide](https://www.google.com/search?q=https://github.com/rafa-mori/gastype/blob/main/CONTRIBUTING.md) for more details.
+We appreciate your interest in contributing to `gastype`. Feel free to open `issues` or submit `pull requests`. Please refer to the [Contributing Guide](https://www.google.com/search?q=https://github.com/kubex-ecosystem/gastype/blob/main/CONTRIBUTING.md) for more details.
 
 ### **7. License**
 

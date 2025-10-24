@@ -4,16 +4,16 @@ O AST do Go tá considerando pacotes da stdlib como imports locais, e o `rewrite
 Exemplo do erro abaixo.
 
 ```go
- "github.com/rafa-mori/gobe/encoding/json"
+ "github.com/kubex-ecosystem/gobe/encoding/json"
  "fmt"
  "io"
- "github.com/rafa-mori/gobe/net/http"
+ "github.com/kubex-ecosystem/gobe/net/http"
  "strconv"
  "strings"
  "time"
 
- manifest "github.com/rafa-mori/gobe/info"
- "github.com/rafa-mori/gobe/logger"
+ manifest "github.com/kubex-ecosystem/gobe/info"
+ "github.com/kubex-ecosystem/gobe/logger"
  "github.com/spf13/cobra"
 ```
 
@@ -28,7 +28,7 @@ if !strings.Contains(path, ".") { // se não tem ponto, trata como local
 ```
 
 Só que o AST considera `encoding/json` e `net/http` como **path sem ponto** — porque eles são do Go standard library.
-A função acha que é “import local” e enfia seu `modulePath` na frente → `"github.com/rafa-mori/gobe/encoding/json"`.
+A função acha que é “import local” e enfia seu `modulePath` na frente → `"github.com/kubex-ecosystem/gobe/encoding/json"`.
 💀 Resultado: **stdlib sequestrada pro seu repositório**.
 
 ---
@@ -84,8 +84,8 @@ func isStdLib(importPath string) bool {
 Antes:
 
 ```go
-"encoding/json" → "github.com/rafa-mori/gobe/encoding/json"
-"net/http"      → "github.com/rafa-mori/gobe/net/http"
+"encoding/json" → "github.com/kubex-ecosystem/gobe/encoding/json"
+"net/http"      → "github.com/kubex-ecosystem/gobe/net/http"
 ```
 
 Depois:

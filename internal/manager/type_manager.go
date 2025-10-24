@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/rafa-mori/gastype/internal/actions"
-	"github.com/rafa-mori/gastype/utils"
+	"github.com/kubex-ecosystem/gastype/internal/actions"
+	"github.com/kubex-ecosystem/gastype/utils"
 
-	t "github.com/rafa-mori/gastype/interfaces"
+	t "github.com/kubex-ecosystem/gastype/interfaces"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 // TypeManager manages type-related actions and notifications

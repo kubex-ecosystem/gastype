@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	t "github.com/rafa-mori/gastype/interfaces"
-	"github.com/rafa-mori/gastype/internal/globals"
+	t "github.com/kubex-ecosystem/gastype/interfaces"
+	"github.com/kubex-ecosystem/gastype/internal/globals"
 )
 
 type Config struct {

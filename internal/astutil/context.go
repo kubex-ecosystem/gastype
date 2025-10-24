@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	gl "github.com/rafa-mori/gastype/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz/logger"
 )
 
 type AssignTransformation struct {
