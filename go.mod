@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	github.com/fatih/color v1.18.0
 	github.com/kubex-ecosystem/logz v1.5.5
-	github.com/spf13/cobra v1.10.1
+	github.com/spf13/cobra v1.10.2
 )
 
 require github.com/gorilla/websocket v1.5.3 // indirect
