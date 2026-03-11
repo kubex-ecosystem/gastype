@@ -60,8 +60,8 @@ type SecurityFeature struct {
 func (bt *BitwiseTranspiler) AnalyzeFile(filename string) (*TranspilationResult, error) {
 	suggestions, err := bt.analyzeFileSugereBitwise(filename)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro na análise bitwise: %w", err))
-		return nil, fmt.Errorf("erro na análise bitwise: %w", err)
+		gl.Log("error", fmt.Sprintf("erro na análise bitwise: %v", err))
+		return nil, fmt.Errorf("erro na análise bitwise: %v", err)
 	}
 
 	result := &TranspilationResult{
@@ -109,8 +109,8 @@ func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationR
 
 		result, err := bt.AnalyzeFile(path)
 		if err != nil {
-			gl.Log("error", fmt.Sprintf("erro analisando %s: %w", path, err))
-			return fmt.Errorf("erro analisando %s: %w", path, err)
+			gl.Log("error", fmt.Sprintf("erro analisando %s: %v", path, err))
+			return fmt.Errorf("erro analisando %s: %v", path, err)
 		}
 
 		// Apenas adicionar se há otimizações
@@ -122,8 +122,8 @@ func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationR
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro percorrendo projeto: %w", err))
-		return nil, fmt.Errorf("erro percorrendo projeto: %w", err)
+		gl.Log("error", fmt.Sprintf("erro percorrendo projeto: %v", err))
+		return nil, fmt.Errorf("erro percorrendo projeto: %v", err)
 	}
 
 	return results, nil
@@ -133,15 +133,15 @@ func (bt *BitwiseTranspiler) AnalyzeProject(projectDir string) ([]TranspilationR
 func (bt *BitwiseTranspiler) analyzeFileSugereBitwise(filename string) ([]StructBitwiseSuggestion, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro ao abrir arquivo: %w", err))
-		return nil, fmt.Errorf("erro ao abrir arquivo: %w", err)
+		gl.Log("error", fmt.Sprintf("erro ao abrir arquivo: %v", err))
+		return nil, fmt.Errorf("erro ao abrir arquivo: %v", err)
 	}
 	defer file.Close()
 
 	node, err := parser.ParseFile(bt.fset, filename, nil, parser.AllErrors)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro ao parsear arquivo: %w", err))
-		return nil, fmt.Errorf("erro ao parsear arquivo: %w", err)
+		gl.Log("error", fmt.Sprintf("erro ao parsear arquivo: %v", err))
+		return nil, fmt.Errorf("erro ao parsear arquivo: %v", err)
 	}
 
 	var suggestions []StructBitwiseSuggestion
@@ -188,8 +188,8 @@ func SugereBitwiseParaArquivo(filename string) error {
 	bt := NewBitwiseTranspiler()
 	suggestions, err := bt.analyzeFileSugereBitwise(filename)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro na análise bitwise: %w", err))
-		return fmt.Errorf("erro na análise bitwise: %w", err)
+		gl.Log("error", fmt.Sprintf("erro na análise bitwise: %v", err))
+		return fmt.Errorf("erro na análise bitwise: %v", err)
 	}
 	if len(suggestions) == 0 {
 		gl.Log("info", fmt.Sprintf("Nenhuma struct com campos bool encontrada em %s\n", filename))

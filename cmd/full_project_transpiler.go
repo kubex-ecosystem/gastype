@@ -69,45 +69,45 @@ func (pt *ProjectTranspiler) TranspileCompleteProject() error {
 
 	// Step 1: Validate source project
 	if err := pt.validateSourceProject(); err != nil {
-		gl.Log("error", fmt.Sprintf("validação do projeto origem falhou: %w", err))
-		return fmt.Errorf("validação do projeto origem falhou: %w", err)
+		gl.Log("error", fmt.Sprintf("validação do projeto origem falhou: %v", err))
+		return fmt.Errorf("validação do projeto origem falhou: %v", err)
 	}
 
 	// Step 2: Create target project structure
 	if err := pt.createTargetStructure(); err != nil {
-		gl.Log("error", fmt.Sprintf("criação da estrutura destino falhou: %w", err))
-		return fmt.Errorf("criação da estrutura destino falhou: %w", err)
+		gl.Log("error", fmt.Sprintf("criação da estrutura destino falhou: %v", err))
+		return fmt.Errorf("criação da estrutura destino falhou: %v", err)
 	}
 
 	// Step 3: Copy non-Go files (preserving structure)
 	if err := pt.copyNonGoFiles(); err != nil {
-		gl.Log("error", fmt.Sprintf("cópia de arquivos não-Go falhou: %w", err))
-		return fmt.Errorf("cópia de arquivos não-Go falhou: %w", err)
+		gl.Log("error", fmt.Sprintf("cópia de arquivos não-Go falhou: %v", err))
+		return fmt.Errorf("cópia de arquivos não-Go falhou: %v", err)
 	}
 
 	// Step 4: Analyze entire project for contexts
 	contexts, err := pt.analyzeProjectContexts()
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("análise de contextos falhou: %w", err))
-		return fmt.Errorf("análise de contextos falhou: %w", err)
+		gl.Log("error", fmt.Sprintf("análise de contextos falhou: %v", err))
+		return fmt.Errorf("análise de contextos falhou: %v", err)
 	}
 
 	// Step 5: Transpile all Go files
 	if err := pt.transpileAllGoFiles(contexts); err != nil {
-		gl.Log("error", fmt.Sprintf("transpilação de arquivos Go falhou: %w", err))
-		return fmt.Errorf("transpilação de arquivos Go falhou: %w", err)
+		gl.Log("error", fmt.Sprintf("transpilação de arquivos Go falhou: %v", err))
+		return fmt.Errorf("transpilação de arquivos Go falhou: %v", err)
 	}
 
 	// Step 6: Generate build scripts and configurations
 	if err := pt.generateBuildSystem(); err != nil {
-		gl.Log("error", fmt.Sprintf("geração do sistema de build falhou: %w", err))
-		return fmt.Errorf("geração do sistema de build falhou: %w", err)
+		gl.Log("error", fmt.Sprintf("geração do sistema de build falhou: %v", err))
+		return fmt.Errorf("geração do sistema de build falhou: %v", err)
 	}
 
 	// Step 7: Generate transpilation report
 	if err := pt.generateReport(); err != nil {
-		gl.Log("error", fmt.Sprintf("geração de relatório falhou: %w", err))
-		return fmt.Errorf("geração de relatório falhou: %w", err)
+		gl.Log("error", fmt.Sprintf("geração de relatório falhou: %v", err))
+		return fmt.Errorf("geração de relatório falhou: %v", err)
 	}
 
 	pt.stats.EndTime = time.Now()
@@ -144,8 +144,8 @@ func (pt *ProjectTranspiler) validateSourceProject() error {
 		return nil
 	})
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro contando arquivos Go: %w", err))
-		return fmt.Errorf("erro contando arquivos Go: %w", err)
+		gl.Log("error", fmt.Sprintf("erro contando arquivos Go: %v", err))
+		return fmt.Errorf("erro contando arquivos Go: %v", err)
 	}
 
 	if goFileCount == 0 {
@@ -164,15 +164,15 @@ func (pt *ProjectTranspiler) createTargetStructure() error {
 	if _, err := os.Stat(pt.targetProject); !os.IsNotExist(err) {
 		gl.Log("info", "🗑️  Removendo projeto transpilado existente...")
 		if err := os.RemoveAll(pt.targetProject); err != nil {
-			gl.Log("error", fmt.Sprintf("erro removendo projeto existente: %w", err))
-			return fmt.Errorf("erro removendo projeto existente: %w", err)
+			gl.Log("error", fmt.Sprintf("erro removendo projeto existente: %v", err))
+			return fmt.Errorf("erro removendo projeto existente: %v", err)
 		}
 	}
 
 	// Create target directory
 	if err := os.MkdirAll(pt.targetProject, 0755); err != nil {
-		gl.Log("error", fmt.Sprintf("erro criando diretório destino: %w", err))
-		return fmt.Errorf("erro criando diretório destino: %w", err)
+		gl.Log("error", fmt.Sprintf("erro criando diretório destino: %v", err))
+		return fmt.Errorf("erro criando diretório destino: %v", err)
 	}
 
 	// Replicate entire directory structure
@@ -198,8 +198,8 @@ func (pt *ProjectTranspiler) createTargetStructure() error {
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro replicando estrutura: %w", err))
-		return fmt.Errorf("erro replicando estrutura: %w", err)
+		gl.Log("error", fmt.Sprintf("erro replicando estrutura: %v", err))
+		return fmt.Errorf("erro replicando estrutura: %v", err)
 	}
 
 	gl.Log("info", "✅ Estrutura de diretórios replicada")
@@ -235,8 +235,8 @@ func (pt *ProjectTranspiler) copyNonGoFiles() error {
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro copiando arquivos não-Go: %w", err))
-		return fmt.Errorf("erro copiando arquivos não-Go: %w", err)
+		gl.Log("error", fmt.Sprintf("erro copiando arquivos não-Go: %v", err))
+		return fmt.Errorf("erro copiando arquivos não-Go: %v", err)
 	}
 
 	gl.Log("info", "✅ Arquivos não-Go copiados")
@@ -293,8 +293,8 @@ func (pt *ProjectTranspiler) analyzeProjectContexts() (map[string][]transpiler.L
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro analisando contextos: %w", err))
-		return nil, fmt.Errorf("erro analisando contextos: %w", err)
+		gl.Log("error", fmt.Sprintf("erro analisando contextos: %v", err))
+		return nil, fmt.Errorf("erro analisando contextos: %v", err)
 	}
 
 	gl.Log("info", fmt.Sprintf("✅ Análise completa: %d contextos encontrados em %d arquivos",
@@ -329,8 +329,8 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 		if len(fileContexts) == 0 {
 			// No contexts found, copy original file
 			if err := pt.copyFile(path, targetPath); err != nil {
-				gl.Log("error", fmt.Sprintf("erro copiando %s: %w", path, err))
-				return fmt.Errorf("erro copiando %s: %w", path, err)
+				gl.Log("error", fmt.Sprintf("erro copiando %s: %v", path, err))
+				return fmt.Errorf("erro copiando %s: %v", path, err)
 			}
 		} else {
 			// Transpile with contexts
@@ -339,14 +339,14 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 				pt.stats.Errors = append(pt.stats.Errors, fmt.Sprintf("Erro transpilando %s: %v", path, err))
 				// Fallback to original file
 				if err := pt.copyFile(path, targetPath); err != nil {
-					gl.Log("error", fmt.Sprintf("erro copiando fallback %s: %w", path, err))
-					return fmt.Errorf("erro copiando fallback %s: %w", path, err)
+					gl.Log("error", fmt.Sprintf("erro copiando fallback %s: %v", path, err))
+					return fmt.Errorf("erro copiando fallback %s: %v", path, err)
 				}
 			} else {
 				// Save transpiled code
 				if err := os.WriteFile(targetPath, []byte(transpiledCode), 0644); err != nil {
-					gl.Log("error", fmt.Sprintf("erro salvando transpilado %s: %w", targetPath, err))
-					return fmt.Errorf("erro salvando transpilado %s: %w", targetPath, err)
+					gl.Log("error", fmt.Sprintf("erro salvando transpilado %s: %v", targetPath, err))
+					return fmt.Errorf("erro salvando transpilado %s: %v", targetPath, err)
 				}
 				pt.stats.TranspiledFiles++
 				pt.stats.ContextsTranspiled += len(fileContexts)
@@ -358,8 +358,8 @@ func (pt *ProjectTranspiler) transpileAllGoFiles(contexts map[string][]transpile
 	})
 
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro transpilando arquivos: %w", err))
-		return fmt.Errorf("erro transpilando arquivos: %w", err)
+		gl.Log("error", fmt.Sprintf("erro transpilando arquivos: %v", err))
+		return fmt.Errorf("erro transpilando arquivos: %v", err)
 	}
 
 	gl.Log("info", fmt.Sprintf("✅ Transpilação completa: %d arquivos processados", pt.stats.TotalFiles))
@@ -398,8 +398,8 @@ fi
 
 	buildPath := filepath.Join(pt.targetProject, "build.sh")
 	if err := os.WriteFile(buildPath, []byte(buildScript), 0755); err != nil {
-		gl.Log("error", fmt.Sprintf("erro criando build.sh: %w", err))
-		return fmt.Errorf("erro criando build.sh: %w", err)
+		gl.Log("error", fmt.Sprintf("erro criando build.sh: %v", err))
+		return fmt.Errorf("erro criando build.sh: %v", err)
 	}
 
 	// Create README for transpiled project
@@ -454,8 +454,8 @@ This transpiled code provides enhanced security through:
 
 	readmePath := filepath.Join(pt.targetProject, "README_TRANSPILED.md")
 	if err := os.WriteFile(readmePath, []byte(readme), 0644); err != nil {
-		gl.Log("error", fmt.Sprintf("erro criando README_TRANSPILED.md: %w", err))
-		return fmt.Errorf("erro criando README_TRANSPILED.md: %w", err)
+		gl.Log("error", fmt.Sprintf("erro criando README_TRANSPILED.md: %v", err))
+		return fmt.Errorf("erro criando README_TRANSPILED.md: %v", err)
 	}
 
 	gl.Log("info", "✅ Sistema de build gerado")
@@ -468,13 +468,13 @@ func (pt *ProjectTranspiler) generateReport() error {
 	reportPath := filepath.Join(pt.targetProject, "transpilation_report.json")
 	reportData, err := json.MarshalIndent(pt.stats, "", "  ")
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro gerando relatório JSON: %w", err))
-		return fmt.Errorf("erro gerando relatório JSON: %w", err)
+		gl.Log("error", fmt.Sprintf("erro gerando relatório JSON: %v", err))
+		return fmt.Errorf("erro gerando relatório JSON: %v", err)
 	}
 
 	if err := os.WriteFile(reportPath, reportData, 0644); err != nil {
-		gl.Log("error", fmt.Sprintf("erro salvando relatório: %w", err))
-		return fmt.Errorf("erro salvando relatório: %w", err)
+		gl.Log("error", fmt.Sprintf("erro salvando relatório: %v", err))
+		return fmt.Errorf("erro salvando relatório: %v", err)
 	}
 
 	gl.Log("info", fmt.Sprintf("✅ Relatório de transpilação salvo em: %s", reportPath))

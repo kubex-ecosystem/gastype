@@ -59,8 +59,8 @@ func (e *Engine) AddPass(pass TranspilePass) {
 func (e *Engine) Run(root string) error {
 	files, err := DiscoverGoFiles(root)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("failed to discover Go files: %w", err))
-		return fmt.Errorf("failed to discover Go files: %w", err)
+		gl.Log("error", fmt.Sprintf("failed to discover Go files: %v", err))
+		return fmt.Errorf("failed to discover Go files: %v", err)
 	}
 
 	gl.Log("info", fmt.Sprintf("🚀 Starting transpilation engine on %d files\n", len(files)))
@@ -83,7 +83,7 @@ func (e *Engine) Run(root string) error {
 			// 🚀 REVOLUTIONARY: Use shared FileSet in passes
 			if err := pass.Apply(astFile, e.Ctx.Fset, e.Ctx); err != nil {
 				gl.Log("error", fmt.Sprintf("  ⚠️  Pass %s failed on %s: %v\n", pass.Name(), filePath, err))
-				return fmt.Errorf("pass %s failed on %s: %w", pass.Name(), filePath, err)
+				return fmt.Errorf("pass %s failed on %s: %v", pass.Name(), filePath, err)
 			}
 			fileTransformed = true
 		}
@@ -104,8 +104,8 @@ func (e *Engine) Run(root string) error {
 	// Save context map if configured
 	if e.Ctx.MapFile != "" {
 		if err := e.Ctx.SaveMap(); err != nil {
-			gl.Log("error", fmt.Sprintf("failed to save context map: %w", err))
-			return fmt.Errorf("failed to save context map: %w", err)
+			gl.Log("error", fmt.Sprintf("failed to save context map: %v", err))
+			return fmt.Errorf("failed to save context map: %v", err)
 		}
 		gl.Log("info", fmt.Sprintf("📋 Context map saved: %s\n", e.Ctx.MapFile))
 	}

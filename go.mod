@@ -1,6 +1,6 @@
 module github.com/kubex-ecosystem/gastype
 
-go 1.25.3
+go 1.26.1
 
 require (
 	github.com/fatih/color v1.18.0

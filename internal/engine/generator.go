@@ -27,8 +27,8 @@ func NewBitwiseCodeGenerator() *BitwiseCodeGenerator {
 func (bcg *BitwiseCodeGenerator) GenerateBitwiseCode(filename string) (string, error) {
 	node, err := parser.ParseFile(bcg.fset, filename, nil, parser.ParseComments)
 	if err != nil {
-		gl.Log("error", fmt.Sprintf("erro ao parsear arquivo: %w", err))
-		return "", fmt.Errorf("erro ao parsear arquivo: %w", err)
+		gl.Log("error", fmt.Sprintf("erro ao parsear arquivo: %v", err))
+		return "", fmt.Errorf("erro ao parsear arquivo: %v", err)
 	}
 
 	var output strings.Builder
