@@ -33,26 +33,25 @@ func (wm *WorkerManager) StartWorkers() {
 	var wg sync.WaitGroup
 
 	for i := 0; i < wm.WorkerCount; i++ {
-		wg.Add(1)
-		go func(workerID int) {
-			defer wg.Done()
-			gl.Log("info", fmt.Sprintf("Worker started: %d", workerID))
-
-			for {
-				select {
-				case <-wm.StopChannel:
-					gl.Log("info", fmt.Sprintf("Worker stopped: %d", workerID))
-					return
-				case job, ok := <-wm.JobQueue:
-					if !ok {
+		wg.Go(func() {
+			func(workerID int) {
+				gl.Log("info", fmt.Sprintf("Worker started: %d", workerID))
+				for {
+					select {
+					case <-wm.StopChannel:
+						gl.Log("info", fmt.Sprintf("Worker stopped: %d", workerID))
 						return
-					}
-					if err := job.Execute(); err != nil {
-						gl.Log("error", fmt.Sprintf("Error executing job: %s, job: %s", err.Error(), job.GetType()))
+					case job, ok := <-wm.JobQueue:
+						if !ok {
+							return
+						}
+						if err := job.Execute(); err != nil {
+							gl.Log("error", fmt.Sprintf("Error executing job: %s, job: %s", err.Error(), job.GetType()))
+						}
 					}
 				}
-			}
-		}(i)
+			}(i)
+		})
 	}
 
 	wg.Wait()

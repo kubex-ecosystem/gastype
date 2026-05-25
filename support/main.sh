@@ -88,7 +88,6 @@ __first "$@" >&2 || {
   exit 1
 }
 
-
 __source_script_if_needed() {
   local _check_declare="${1:-}"
   local _script_path="${2:-}"
